@@ -28,8 +28,9 @@ const NavBar = () => {
       sx={{
         flexGrow: 1,
         // backgroundColor: "transparent",
-        backgroundColor: "#2d2c38",
+        backgroundColor: "white",
         maxHeight: "8vh",
+        zIndex: 2,
       }}
     >
       <Toolbar>
@@ -44,7 +45,7 @@ const NavBar = () => {
               href="/"
               style={{
                 textDecoration: "none",
-                color: "white",
+                color: "black",
                 marginLeft: "1rem",
                 fontSize: "1.5rem",
               }}

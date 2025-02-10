@@ -30,6 +30,7 @@ function App() {
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <div className="navbar">
         <Navbar />
+        <div className="overlay"></div>
         <div className="contenedor-centrado">
           <div className="texto-central">Descubre las mejores playas</div>
           <div className="texto-central-pequeño">
