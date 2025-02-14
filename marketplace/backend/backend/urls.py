@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 class ApiRootView(APIView):
       def get(self, request, *args, **kwargs):
@@ -17,4 +18,6 @@ urlpatterns = [
     path('api/', ApiRootView.as_view()),
     path('api/propiedades/', include('propiedad.urls')),
     path('api/usuarios/', include('usuario.urls')),
+    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

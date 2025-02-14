@@ -1,6 +1,5 @@
 import React from "react";
 import "../App.css";
-import { be } from "date-fns/locale";
 
 const Footer = () => {
   return (

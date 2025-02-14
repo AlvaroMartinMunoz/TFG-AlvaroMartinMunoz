@@ -140,4 +140,62 @@ body{
   justify-content: center;
   align-items: center;
   height: 83px;
+  margin-bottom: 0px;
+}
+
+.register{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+  width: 50%; 
+  margin: 40px auto;
+  padding: 40px;
+  flex-direction: column;
+  border: #282c34 1px solid;
+  /* border-radius: 30px; */
+  min-height: 500px;
+
+
+}
+
+.form-group{
+  display: flex;
+  flex-direction: column;
+  margin: 10px;
+
+}
+
+.register-button{
+  display: block;
+  margin: 20px auto;
+  height: 25px;
+  border-radius: 10px;
+}
+
+.error-message{
+  color: red;
+  font-size: 0.8rem;
+}
+
+/* Estilo para la barra de desplazamiento */
+.register::-webkit-scrollbar {
+  width: 0px; /* Ancho de la barra de desplazamiento */
+}
+
+/* Estilo para la pista de la barra de desplazamiento */
+.register::-webkit-scrollbar-track {
+  background: #f1f1f1; /* Color de fondo de la pista */
+  border-radius: 10px; /* Bordes redondeados */
+}
+
+/* Estilo para el pulgar de la barra de desplazamiento */
+.register::-webkit-scrollbar-thumb {
+  background: #888; /* Color del pulgar */
+  border-radius: 10px; /* Bordes redondeados */
+}
+
+/* Estilo para el pulgar de la barra de desplazamiento al pasar el ratón */
+.register::-webkit-scrollbar-thumb:hover {
+  background: #555; /* Color del pulgar al pasar el ratón */
 }
