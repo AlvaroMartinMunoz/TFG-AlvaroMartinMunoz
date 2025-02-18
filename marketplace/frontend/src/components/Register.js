@@ -31,6 +31,7 @@ const Register = () => {
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -47,7 +48,20 @@ const Register = () => {
       today.setFullYear(today.getFullYear() - 18)
     );
 
+    const emailRegex =
+      /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+
+    const emailDominio = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
     const dniRegex = /^[0-9]{8}[A-Za-z]$/;
+
+    if (!emailRegex.test(formData.email)) {
+      errors.email = "El email debe tener un formato válido";
+    }
+
+    if (!emailDominio.test(formData.email)) {
+      errors.email = "El email debe tener un dominio válido";
+    }
 
     if (!dniRegex.test(formData.dni)) {
       errors.dni =
@@ -122,9 +136,11 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
     if (!(await validateForm())) {
       setMessage("Por favor, corrija los errores en el formulario");
+      setLoading(false);
       return;
     }
 
@@ -150,6 +166,8 @@ const Register = () => {
       const errorData = await response.json();
       setMessage(errorData.detail || "Error al registrar");
     }
+
+    setLoading(false);
   };
 
   return (
@@ -318,6 +336,7 @@ const Register = () => {
               variant="contained"
               color="primary"
               fullWidth
+              disabled={loading}
               sx={{ mt: 2 }}
             >
               Registrarse
@@ -325,7 +344,9 @@ const Register = () => {
           </form>
         </Box>
       </Container>
-      <Footer />
+      <Box sx={{ marginTop: "20px" }}>
+        <Footer />
+      </Box>
     </div>
   );
 };

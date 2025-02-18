@@ -11,18 +11,29 @@ import {
 import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
+import { Link } from "react-router-dom";
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
 
   useEffect(() => {
-    if (isAuthenticated()) {
-      const token = localStorage.getItem("accessToken");
-      const decodedToken = jwtDecode(token);
-      const userId = decodedToken.user_id;
-      console.log(userId);
-      fetchAllUsers(userId);
+    const token = localStorage.getItem("accessToken");
+
+    if (token) {
+      try {
+        const decodedToken = jwtDecode(token);
+
+        if (decodedToken && decodedToken.user_id) {
+          fetchAllUsers(decodedToken.user_id);
+        } else {
+          console.log("Token inválido, cerrando sesión...");
+          handleLogOut();
+        }
+      } catch (error) {
+        console.error("Error al decodificar el token:", error);
+        handleLogOut();
+      }
     }
   }, []);
 
@@ -55,7 +66,6 @@ const NavBar = () => {
       if (response.ok) {
         const data = await response.json();
         const user = data.find((user) => user.usuario.id === userId);
-        console.log(user);
         if (user) {
           setUsername(user.usuario.username);
         } else {
@@ -147,11 +157,61 @@ const NavBar = () => {
             </a>
           </Typography>
         </Box>
+        {!isAuthenticated() ? (
+          <Box sx={{ width: "80px" }}>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: 1,
+                marginLeft: "140px",
+              }}
+            >
+              <Link
+                to="/explorar"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                Explorar
+              </Link>
+            </Typography>
+          </Box>
+        ) : (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 1,
+              marginRight: "20px",
+            }}
+          >
+            <Typography
+              variant="body1"
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: -1,
+                marginLeft: 0,
+              }}
+            >
+              <Link
+                to="/explorar"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                {" "}
+                Explorar{" "}
+              </Link>
+            </Typography>
+          </Box>
+        )}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-
+            color: "transparent",
             justifyContent: "center",
             width: "150px",
             height: "50px",

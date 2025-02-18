@@ -12,7 +12,6 @@ import NavBar from "./NavBar";
 import Footer from "./Footer";
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { set } from "date-fns";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
@@ -125,13 +124,16 @@ const Login = () => {
               color="primary"
               fullWidth
               sx={{ mt: 2 }}
+              disabled={loading}
             >
               Iniciar Sesion
             </Button>
           </form>
         </Box>
       </Container>
-      <Footer />
+      <Box sx={{ marginTop: "20px" }}>
+        <Footer />
+      </Box>
     </div>
   );
 };

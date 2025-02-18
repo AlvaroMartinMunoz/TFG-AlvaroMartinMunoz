@@ -13,6 +13,7 @@ import { es } from "date-fns/locale";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
+import Explorer from "./components/Explorer";
 
 function App() {
   const [fechaLlegada, setFechaLlegada] = useState(null);
@@ -102,6 +103,7 @@ function App() {
           />
           <Route path="/inicio-de-sesion" element={<Login />} />
           <Route path="/registro" element={<Register />} />
+          <Route path="/explorar" element={<Explorer />} />
         </Routes>
       </Router>
     </LocalizationProvider>
