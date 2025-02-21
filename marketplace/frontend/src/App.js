@@ -37,8 +37,8 @@ function App() {
           <Route
             path="/"
             element={
-              <div>
-                <div className="navbar">
+              <div style={{ flexDirection: "column", display: "flex" }}>
+                <div className="navbar" >
                   <Navbar />
                   <div className="overlay"></div>
                   <div className="contenedor-centrado">
@@ -97,7 +97,9 @@ function App() {
                     </div>
                   </div>
                 </div>
-                <Footer />
+                <div style={{ mt: " auto" }}>
+                  <Footer />
+                </div>
               </div>
             }
           />

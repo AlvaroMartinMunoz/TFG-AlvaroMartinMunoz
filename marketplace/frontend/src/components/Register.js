@@ -171,7 +171,15 @@ const Register = () => {
   };
 
   return (
-    <div style={{ backgroundColor: "#f4f7fc", minHeight: "100vh" }}>
+    <div
+      style={{
+        backgroundColor: "#f4f7fc",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        flex: "1",
+      }}
+    >
       <NavBar />
       <Container
         maxWidth="md"
@@ -202,6 +210,7 @@ const Register = () => {
                   required
                   error={!!errors.usuario}
                   helperText={errors.usuario}
+                  size="small"
                 />
                 <TextField
                   fullWidth
@@ -213,6 +222,8 @@ const Register = () => {
                   required
                   error={!!errors.email}
                   helperText={errors.email}
+                  size="small"
+
                 />
                 <TextField
                   fullWidth
@@ -223,6 +234,8 @@ const Register = () => {
                   margin="normal"
                   onChange={handleChange}
                   required
+                  size="small"
+
                   error={!!errors.password}
                   helperText={errors.password}
                   slotProps={{
@@ -247,6 +260,8 @@ const Register = () => {
                   required
                   error={!!errors.dni}
                   helperText={errors.dni}
+                  size="small"
+
                 />
                 <TextField
                   fullWidth
@@ -258,6 +273,8 @@ const Register = () => {
                   required
                   error={!!errors.telefono}
                   helperText={errors.telefono}
+                  size="small"
+
                 />
               </Box>
 
@@ -270,6 +287,8 @@ const Register = () => {
                   variant="outlined"
                   margin="normal"
                   onChange={handleChange}
+                  size="small"
+
                   required
                 />
                 <TextField
@@ -280,6 +299,8 @@ const Register = () => {
                   margin="normal"
                   onChange={handleChange}
                   required
+                  size="small"
+
                 />
                 <TextField
                   fullWidth
@@ -290,6 +311,8 @@ const Register = () => {
                   margin="normal"
                   onChange={handleChange}
                   required
+                  size="small"
+
                   error={!!errors.fecha_de_nacimiento}
                   helperText={errors.fecha_de_nacimiento}
                   SlotProps={{
@@ -319,6 +342,8 @@ const Register = () => {
                   select
                   variant="outlined"
                   margin="normal"
+                  size="small"
+
                   onChange={handleChange}
                   required
                   SelectProps={{
@@ -335,6 +360,8 @@ const Register = () => {
               type="submit"
               variant="contained"
               color="primary"
+              size="small"
+
               fullWidth
               disabled={loading}
               sx={{ mt: 2 }}
@@ -344,7 +371,7 @@ const Register = () => {
           </form>
         </Box>
       </Container>
-      <Box sx={{ marginTop: "20px" }}>
+      <Box sx={{ mt: "auto" }}>
         <Footer />
       </Box>
     </div>

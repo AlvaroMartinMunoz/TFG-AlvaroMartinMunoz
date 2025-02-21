@@ -1,9 +1,8 @@
-
 .App {
   text-align: center;
 }
 
-body{
+body {
   font-family: 'Ubuntu', sans-serif;
 }
 
@@ -37,27 +36,28 @@ body{
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-.navbar{
+.navbar {
   /* background: linear-gradient(to left, black, transparent 50%), 
                 linear-gradient(to right, black, transparent 50%), 
                 url('./assets/TropicalSunset.jpeg'); */
-    /* background-color: hwb(44 64% 13%); */
-    background-color: white;
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
-    height: 90vh;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
+  /* background-color: hwb(44 64% 13%); */
+  background-color: white;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  height: 90vh;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-.contenedor-centrado{
+.contenedor-centrado {
   flex: 1;
   display: flex;
   justify-content: center;
@@ -66,24 +66,26 @@ body{
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  max-height: 700px;  
+  max-height: 700px;
 
 }
-.overlay{
+
+.overlay {
   position: absolute;
   flex: 1;
   display: flex;
-  max-height: 758px;
+  max-height: 568px;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(93, 93, 136, 0.5); /* Ajusta el color y la transparencia aquí */
+  background-color: rgba(93, 93, 136, 0.5);
+  /* Ajusta el color y la transparencia aquí */
   z-index: 1;
 }
 
 
-.texto-central{
+.texto-central {
   color: white;
   font-size: 3.5rem;
   text-align: center;
@@ -95,7 +97,8 @@ body{
   position: absolute;
   z-index: 2;
 }
-.texto-central-pequeño{
+
+.texto-central-pequeño {
   color: white;
   font-size: 1.25rem;
   text-align: center;
@@ -108,7 +111,7 @@ body{
   z-index: 2;
 }
 
-.filtro-inicio{
+.filtro-inicio {
   background-color: #f0f0f0f0;
 
   display: flex;
@@ -121,19 +124,19 @@ body{
 
 }
 
-.circular-button{
+.circular-button {
   border-radius: 50%;
   background-color: "transparent";
 }
 
-.separador{
+.separador {
   width: 2px;
   height: 50px;
   background-color: grey;
   margin: 0 10px;
 }
 
-.footer{
+.footer {
   background-color: white;
   color: #2d2c38;
   display: flex;
@@ -141,14 +144,15 @@ body{
   align-items: center;
   height: 83px;
   margin-bottom: 0px;
+  max-height: 63px;
 }
 
-.register{
+.register {
   display: flex;
   justify-content: center;
   align-items: center;
   background-color: white;
-  width: 50%; 
+  width: 50%;
   margin: 40px auto;
   padding: 40px;
   flex-direction: column;
@@ -159,43 +163,49 @@ body{
 
 }
 
-.form-group{
+.form-group {
   display: flex;
   flex-direction: column;
   margin: 10px;
 
 }
 
-.register-button{
+.register-button {
   display: block;
   margin: 20px auto;
   height: 25px;
   border-radius: 10px;
 }
 
-.error-message{
+.error-message {
   color: red;
   font-size: 0.8rem;
 }
 
 /* Estilo para la barra de desplazamiento */
 .register::-webkit-scrollbar {
-  width: 0px; /* Ancho de la barra de desplazamiento */
+  width: 0px;
+  /* Ancho de la barra de desplazamiento */
 }
 
 /* Estilo para la pista de la barra de desplazamiento */
 .register::-webkit-scrollbar-track {
-  background: #f1f1f1; /* Color de fondo de la pista */
-  border-radius: 10px; /* Bordes redondeados */
+  background: #f1f1f1;
+  /* Color de fondo de la pista */
+  border-radius: 10px;
+  /* Bordes redondeados */
 }
 
 /* Estilo para el pulgar de la barra de desplazamiento */
 .register::-webkit-scrollbar-thumb {
-  background: #888; /* Color del pulgar */
-  border-radius: 10px; /* Bordes redondeados */
+  background: #888;
+  /* Color del pulgar */
+  border-radius: 10px;
+  /* Bordes redondeados */
 }
 
 /* Estilo para el pulgar de la barra de desplazamiento al pasar el ratón */
 .register::-webkit-scrollbar-thumb:hover {
-  background: #555; /* Color del pulgar al pasar el ratón */
+  background: #555;
+  /* Color del pulgar al pasar el ratón */
 }

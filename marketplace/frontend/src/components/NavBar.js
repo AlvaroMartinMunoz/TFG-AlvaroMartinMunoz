@@ -132,7 +132,7 @@ const NavBar = () => {
         flexGrow: 1,
         // backgroundColor: "transparent",
         backgroundColor: "white",
-        maxHeight: "8vh",
+        maxHeight: "10vh",
         zIndex: 2,
       }}
     >
@@ -150,7 +150,7 @@ const NavBar = () => {
                 textDecoration: "none",
                 color: "black",
                 marginLeft: "1rem",
-                fontSize: "1.5rem",
+                fontSize: "1.25rem",
               }}
             >
               Marketplace
