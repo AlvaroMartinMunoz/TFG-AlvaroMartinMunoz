@@ -15,6 +15,7 @@ class ApiRootView(APIView):
       
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('', ApiRootView.as_view()),
     path('api/', ApiRootView.as_view()),
     path('api/propiedades/', include('propiedad.urls')),
     path('api/usuarios/', include('usuario.urls')),

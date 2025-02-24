@@ -12,6 +12,8 @@ import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
+import { hr } from "date-fns/locale";
+import { add } from "date-fns";
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -66,6 +68,15 @@ const NavBar = () => {
       if (response.ok) {
         const data = await response.json();
         const user = data.find((user) => user.usuario.id === userId);
+        const usuarioId = user.id;
+
+        const additionalInfo = {
+          usuarioId: usuarioId,
+        }
+
+        localStorage.setItem("additionalInfo", JSON.stringify(additionalInfo));
+
+
         if (user) {
           setUsername(user.usuario.username);
         } else {
@@ -171,7 +182,7 @@ const NavBar = () => {
             >
               <Link
                 to="/explorar"
-                style={{ textDecoration: "none", color: "inherit" }}
+                style={{ textDecoration: "none", color: "inherit", zIndex: 1 }}
               >
                 Explorar
               </Link>
@@ -270,7 +281,10 @@ const NavBar = () => {
                 </MenuItem>
               </>
             ) : (
-              <MenuItem onClick={handleLogOut}>Cerrar Sesion</MenuItem>
+              <>
+                <MenuItem onClick={() => { window.location.href = "/perfil"; handleClose(); }}>Perfil</MenuItem>
+                <MenuItem onClick={handleLogOut}>Cerrar Sesion</MenuItem>
+              </>
             )}
           </Menu>
         </Box>
