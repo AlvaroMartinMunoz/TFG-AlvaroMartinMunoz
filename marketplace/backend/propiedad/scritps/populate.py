@@ -2,6 +2,7 @@ import os
 import sys
 import django
 import random
+from faker import Faker
 
 # Configuración Django
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -9,35 +10,38 @@ sys.path.insert(0, project_root)
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "backend.settings")
 django.setup()
 
+fake = Faker("es_ES")
 from datetime import date, timedelta
 from django.db import IntegrityError
-from faker import Faker
+
 from django.contrib.auth.models import User
 from usuario.models.usuario import Usuario
 from propiedad.models.propiedad import Propiedad
 
-fake = Faker("es_ES")
+
 
 def crear_propiedades():
     tipos_propiedad = ["Apartamento", "Casa", "Villa"]
     politicas_cancelacion = ["Flexible", "Moderada", "Estricta"]
+
+
+    usuarios = list(Usuario.objects.all())  # Convertimos a lista para evitar errores
+
+    if not usuarios:
+        print("⚠️ No hay usuarios en la base de datos. Creando propiedades sin anfitriones.")
     
-    usuarios = Usuario.objects.all()
-    
-    porcentaje_anfitriones = 0.4  
-    num_anfitriones = int(usuarios.count() * porcentaje_anfitriones)
-    anfitriones = random.sample(list(usuarios), num_anfitriones)
-    
-    for anfitrion in anfitriones:
-        num_propiedades = random.randint(1, 3)  
-        for _ in range(num_propiedades):
-            Propiedad.objects.create(
-                anfitrion=anfitrion.usuario,
+    num_propiedades = max(5, len(usuarios) * 2)  # Al menos 5 propiedades, ajustado a usuarios
+
+    for _ in range(num_propiedades):
+        anfitrion = random.choice(usuarios) if usuarios else None  # Puede ser None si no hay usuarios
+        
+        try:
+            propiedad = Propiedad.objects.create(
+                anfitrion=anfitrion,
                 nombre=fake.street_name(),
                 descripcion=fake.text(),
                 direccion=fake.address(),
                 ciudad=fake.city(),
-                estado=fake.state(),
                 codigo_postal=fake.postcode(),
                 pais="España",
                 tipo_de_propiedad=random.choice(tipos_propiedad),
@@ -57,7 +61,10 @@ def crear_propiedades():
                 permitido_fumar=random.choice([True, False]),
                 politica_de_cancelacion=random.choice(politicas_cancelacion),
             )
-        print(f"✅ Propiedades creadas para: {anfitrion.usuario.username}")
+            print(f"✅ Propiedad creada: {propiedad.nombre} en {propiedad.ciudad}")
+
+        except IntegrityError as e:
+            print(f"⚠️ Error al crear propiedad: {e}")
 
 if __name__ == "__main__":
     crear_propiedades()

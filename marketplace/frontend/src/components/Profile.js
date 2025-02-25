@@ -45,6 +45,7 @@ const Profile = () => {
         const token = localStorage.getItem("accessToken");
         const usuarioIdSinParse = localStorage.getItem("additionalInfo");
         const usuarioId = JSON.parse(usuarioIdSinParse).usuarioId;
+        console.log(usuarioId);
 
         if (token) {
             try {

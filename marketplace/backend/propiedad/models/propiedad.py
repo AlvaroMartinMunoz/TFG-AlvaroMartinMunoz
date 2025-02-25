@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
+from usuario.models.usuario import Usuario
 
 class Propiedad(models.Model):
 
@@ -19,16 +20,15 @@ class Propiedad(models.Model):
         ('Estricta', 'Estricta'),
     ]
 
-    anfitrion = models.ForeignKey(User, on_delete=models.CASCADE, related_name='propiedades')
+    anfitrion = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='propiedades')
 
     # INFORMACIÓN GENERAL
-    nombre = models.CharField(max_length=100,blank=False, null=False, help_text='Introduzca un nombre para su propiedad.')
+    nombre = models.CharField(max_length=100,blank=False, null=False, help_text='Introduzca un nombre para su propiedad.', unique=True)
     descripcion = models.TextField(blank=False, null=False, help_text='Introduzca una descripción para su propiedad.')
     direccion = models.CharField(max_length=255, blank=False, null=False, help_text='Introduzca la dirección de su propiedad.')
     ciudad = models.CharField(max_length=100, blank=False, null=False, help_text='Introduzca la ciudad donde se encuentra su propiedad.')
-    estado = models.CharField(max_length=100, blank=True, null=True, default=None, help_text='Introduzca el estado donde se encuentra su propiedad.')
-    codigo_postal = models.CharField(max_length=5, validators=[RegexValidator(r'^\d{5}$', message='El código postal debe tener 5 dígitos.')],help_text='Introduzca un código postal válido de 5 dígitos.')
     pais = models.CharField(max_length=100, blank=False, null=False, help_text='Introduzca el país donde se encuentra su propiedad.')
+    codigo_postal = models.CharField(max_length=5, validators=[RegexValidator(r'^\d{5}$', message='El código postal debe tener 5 dígitos.')],help_text='Introduzca un código postal válido de 5 dígitos.')
     tipo_de_propiedad = models.CharField(max_length=20, choices=TIPOS_DE_PROPIEDAD, blank=False, null=False, help_text='Seleccione el tipo de propiedad.')
 
     # PRECIOS Y DISPONIBILIDAD
@@ -71,3 +71,6 @@ class Propiedad(models.Model):
 
     def __str__(self):
         return self.nombre
+    
+    class Meta:
+        unique_together = ['latitud', 'longitud', 'direccion', 'ciudad', 'pais', 'codigo_postal', 'nombre']

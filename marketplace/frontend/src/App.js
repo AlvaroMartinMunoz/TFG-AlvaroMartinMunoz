@@ -3,7 +3,7 @@ import Navbar from "./components/NavBar";
 import Footer from "./components/Footer";
 import Register from "./components/Register";
 import Login from "./components/Login";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
 import { Button, TextField } from "@mui/material";
@@ -15,6 +15,9 @@ import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import Explorer from "./components/Explorer";
 import Profile from "./components/Profile";
+import MyProperties from "./components/MyProperties";
+import PrivateRoute from "./components/PrivateRoute";
+import CreatePropertie from "./components/CreatePropertie";
 
 function App() {
   const [fechaLlegada, setFechaLlegada] = useState(null);
@@ -30,6 +33,7 @@ function App() {
       setNumPersonas(numPersonas - 1);
     }
   };
+
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
@@ -107,7 +111,9 @@ function App() {
           <Route path="/inicio-de-sesion" element={<Login />} />
           <Route path="/registro" element={<Register />} />
           <Route path="/explorar" element={<Explorer />} />
-          <Route path="/perfil" element={<Profile />} />
+          <Route path="/perfil" element={<PrivateRoute component={Profile} />} />
+          <Route path="/mis-propiedades" element={<PrivateRoute component={MyProperties} />} />
+          <Route path="/crear-propiedad" element={<PrivateRoute component={CreatePropertie} />} />
         </Routes>
       </Router>
     </LocalizationProvider>

@@ -12,8 +12,7 @@ import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
-import { hr } from "date-fns/locale";
-import { add } from "date-fns";
+
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -283,6 +282,7 @@ const NavBar = () => {
             ) : (
               <>
                 <MenuItem onClick={() => { window.location.href = "/perfil"; handleClose(); }}>Perfil</MenuItem>
+                <MenuItem onClick={() => { window.location.href = "/mis-propiedades"; handleClose(); }}>Mis propiedades</MenuItem>
                 <MenuItem onClick={handleLogOut}>Cerrar Sesion</MenuItem>
               </>
             )}
