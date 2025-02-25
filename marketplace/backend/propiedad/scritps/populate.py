@@ -18,15 +18,18 @@ from propiedad.models.propiedad import Propiedad
 
 fake = Faker("es_ES")
 
-# Función para crear propiedades para anfitriones existentes
 def crear_propiedades():
     tipos_propiedad = ["Apartamento", "Casa", "Villa"]
     politicas_cancelacion = ["Flexible", "Moderada", "Estricta"]
     
-    anfitriones = Usuario.objects.filter(rol="Anfitrion")
+    usuarios = Usuario.objects.all()
+    
+    porcentaje_anfitriones = 0.4  
+    num_anfitriones = int(usuarios.count() * porcentaje_anfitriones)
+    anfitriones = random.sample(list(usuarios), num_anfitriones)
     
     for anfitrion in anfitriones:
-        num_propiedades = random.randint(1, 3)
+        num_propiedades = random.randint(1, 3)  
         for _ in range(num_propiedades):
             Propiedad.objects.create(
                 anfitrion=anfitrion.usuario,

@@ -24,7 +24,6 @@ class Migration(migrations.Migration):
                 ('direccion', models.CharField(help_text='Introduzca su dirección.', max_length=255)),
                 ('biografia', models.TextField(blank=True, default=None, help_text='Introduzca una breve descripción sobre usted.', null=True)),
                 ('fecha_de_nacimiento', models.DateField(help_text='Introduzca su fecha de nacimiento.')),
-                ('rol', models.CharField(choices=[('Anfitrion', 'Anfitrion'), ('Huesped', 'Huesped')], help_text='Seleccione su rol.', max_length=20)),
                 ('foto_de_perfil', models.ImageField(blank=True, default=None, help_text='Suba una foto de perfil.', null=True, upload_to='fotos_de_perfil/')),
                 ('valoraciones_usuario', models.FloatField(default=0, help_text='Valoración promedio del usuario por sus interacciones.')),
                 ('numero_de_resenas', models.PositiveIntegerField(default=0, help_text='Número de valoraciones recibidas por el usuario.')),

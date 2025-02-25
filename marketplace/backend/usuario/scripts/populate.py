@@ -62,7 +62,6 @@ def crear_usuarios():
                 direccion=fake.address(),
                 biografia=f"{nombre} {apellido}, {edad} años. Me gusta: {', '.join(mis_hobbies)}.",
                 fecha_de_nacimiento=fecha_nac,
-                rol=random.choice(["Anfitrion", "Huesped"]),
                 valoraciones_usuario=0,
                 numero_de_resenas=0
             )

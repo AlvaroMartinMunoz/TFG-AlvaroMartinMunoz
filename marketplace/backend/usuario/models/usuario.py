@@ -9,10 +9,7 @@ from django.utils.timezone import now
 
 class Usuario(models.Model):
 
-    ROLES_DE_USUARIO = [
-        ('Anfitrion', 'Anfitrion'),
-        ('Huesped', 'Huesped'),
-    ]
+    
 
     usuario = models.OneToOneField(User, on_delete=models.CASCADE)
 
@@ -27,7 +24,6 @@ class Usuario(models.Model):
     fecha_de_nacimiento = models.DateField(blank=False, validators=[MinValueValidator(date(1900,1,1)),MaxValueValidator(fecha_limite)], null=False, help_text='Introduzca su fecha de nacimiento.')
 
 
-    rol = models.CharField(max_length=20, choices=ROLES_DE_USUARIO, blank=False, null=False, help_text='Seleccione su rol.')
     foto_de_perfil = models.ImageField(upload_to='fotos_de_perfil/', blank=True, null=True, default=None, help_text='Suba una foto de perfil.')
 
     # Características

@@ -24,7 +24,6 @@ const Register = () => {
     direccion: "",
     biografia: "",
     fecha_de_nacimiento: "",
-    rol: "Huesped",
     foto_de_perfil: null,
   });
   const [message, setMessage] = useState("");
@@ -85,9 +84,6 @@ const Register = () => {
         "Debes ser mayor de 18 años para registrarte";
     }
 
-    if (formData.rol !== "Huesped" && formData.rol !== "Anfitrion") {
-      errors.rol = "El rol debe ser Huesped o Anfitrion";
-    }
 
     if (formData.password.length < 8) {
       errors.password = "La contraseña debe tener al menos 8 caracteres";
@@ -166,7 +162,7 @@ const Register = () => {
       localStorage.setItem("accessToken", access);
       localStorage.setItem("refreshToken", refresh);
 
-      navigate("/");
+      navigate("/inicio-de-sesion");
 
       setMessage("Registro exitoso");
     } else {
@@ -342,24 +338,7 @@ const Register = () => {
                     },
                   }}
                 />
-                <TextField
-                  fullWidth
-                  label="Rol"
-                  name="rol"
-                  select
-                  variant="outlined"
-                  margin="normal"
-                  size="small"
 
-                  onChange={handleChange}
-                  required
-                  SelectProps={{
-                    native: true,
-                  }}
-                >
-                  <option value="Huesped">Huesped</option>
-                  <option value="Anfitrion">Anfitrion</option>
-                </TextField>
               </Box>
             </Box>
 
