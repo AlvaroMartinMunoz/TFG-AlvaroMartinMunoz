@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
-import { Box, Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography } from "@mui/material";
+import { Box, Container, FormControl, InputLabel, MenuItem, Select, Slider, Typography, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers";
 import { Button, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
@@ -11,6 +11,7 @@ import { useState } from "react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { es } from "date-fns/locale";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 
 const Explorer = () => {
@@ -95,7 +96,7 @@ const Explorer = () => {
       <div style={{ backgroundColor: "#f4f7fc", minHeight: "100vh" }}>
         <NavBar />
         <Container
-          maxWidth="xl"
+          maxWidth={false}
           sx={{
             minHeight: "80vh",
             display: "flex",
@@ -178,61 +179,157 @@ const Explorer = () => {
             </Button>
           </Box>
 
-          <Box sx={{ bgcolor: "white", width: "74% ", padding: 2, marginBottom: 0, marginTop: 3, borderRadius: "8px", }}>
-            <Typography variant="h8" gutterBottom>Filtros</Typography>
-            <Box style={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center", justifyContent: "center" }}>
-              <Box >
-                <Typography> Rango de precio (€) </Typography>
-                <Slider value={precioRango} onChange={(e, newValue) => setPrecioRango(newValue)} valueLabelDisplay="auto" min={0} max={1000} />
+          <Accordion
+            sx={{
+              width: { xs: '100%', md: '74%' },
+              marginBottom: 3,
+              marginTop: 3,
+              borderRadius: '8px',
+              boxShadow: 3,
+              transition: 'all 0.3s ease',
+              '&:hover': {
+                boxShadow: 5
+              }
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreIcon sx={{ color: 'primary.main' }} />}
+              aria-controls="panel1a-content"
+              id="panel1a-header"
+              sx={{
+                backgroundColor: (theme) => theme.palette.grey[100],
+                '&:hover': {
+                  backgroundColor: (theme) => theme.palette.grey[200]
+                }
+              }}
+            >
+              <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                Filtros
+              </Typography>
+            </AccordionSummary>
+
+            <AccordionDetails sx={{ padding: 3 }}>
+              <Box
+                sx={{
+                  display: 'flex',
+                  gap: 3,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  alignContent: 'center',
+
+
+                }}
+              >
+                {/* Sección Precio */}
+                <Box sx={{ flex: '1 1 300px', minWidth: 280 }}>
+                  <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
+                    Rango de precio (€)
+                  </Typography>
+                  <Slider
+                    value={precioRango}
+                    onChange={(e, newValue) => setPrecioRango(newValue)}
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={1000}
+                    sx={{ marginTop: 2 }}
+                    color="primary"
+                  />
+                </Box>
+
+                {/* Selector Tipo Propiedad */}
+                <FormControl sx={{ minWidth: 200, flex: '0 1 auto' }}>
+                  <InputLabel id="filtro-tipo-propiedad-label">Tipo de Propiedad</InputLabel>
+                  <Select
+                    labelId="filtro-tipo-propiedad-label"
+                    value={tipoPropiedad}
+                    label="Tipo de Propiedad"
+                    onChange={(e) => setTipoPropiedad(e.target.value)}
+                    variant="outlined"
+                    size="medium"
+                  >
+                    <MenuItem value="">Todos</MenuItem>
+                    <MenuItem value="Apartamento">Apartamento</MenuItem>
+                    <MenuItem value="Casa">Casa</MenuItem>
+                    <MenuItem value="Villa">Villa</MenuItem>
+                  </Select>
+                </FormControl>
+
+                {[
+                  { label: 'Habitaciones', value: habitaciones, setter: setHabitaciones },
+                  { label: 'Camas', value: camas, setter: setCamas }
+                ].map((counter, index) => (
+                  <Box key={index} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, borderRadius: 1, border: 1, borderColor: 'grey.300', padding: 1.5 }}>
+                    <Typography variant="body1" sx={{ minWidth: 90, fontWeight: 500 }}>
+                      {counter.label}
+                    </Typography>
+                    <Button
+                      onClick={() => counter.setter(Math.max(0, counter.value - 1))}
+                      disabled={counter.value === 0}
+                      sx={{
+                        minWidth: 40,
+                        minHeight: 40,
+                        borderRadius: '50%',
+                        backgroundColor: (theme) => theme.palette.grey[100],
+                        color: (theme) => theme.palette.text.primary,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.grey[300]
+                        },
+                        '&:disabled': {
+                          backgroundColor: (theme) => theme.palette.grey[50],
+                          color: (theme) => theme.palette.grey[500]
+                        }
+                      }}
+                    >
+                      <RemoveIcon />
+                    </Button>
+                    <Typography variant="body1" sx={{ minWidth: 30, textAlign: 'center' }}>
+                      {counter.value}
+                    </Typography>
+                    <Button
+                      onClick={() => counter.setter(Math.min(15, counter.value + 1))}
+                      disabled={counter.value === 15}
+                      sx={{
+                        minWidth: 40,
+                        minHeight: 40,
+                        borderRadius: '50%',
+                        backgroundColor: (theme) => theme.palette.grey[100],
+                        color: (theme) => theme.palette.text.primary,
+                        '&:hover': {
+                          backgroundColor: (theme) => theme.palette.grey[300]
+                        },
+                        '&:disabled': {
+                          backgroundColor: (theme) => theme.palette.grey[50],
+                          color: (theme) => theme.palette.grey[500]
+                        }
+                      }}
+                    >
+                      <AddIcon />
+                    </Button>
+                  </Box>
+                ))}
+
+                {/* Orden por Precio */}
+                <FormControl sx={{ minWidth: 200 }}>
+                  <InputLabel id="orden-precio-label">Ordenar por precio</InputLabel>
+                  <Select
+                    labelId="orden-precio-label"
+                    value={ordenPrecio}
+                    label="Ordenar por precio"
+                    onChange={(e) => setOrdenPrecio(e.target.value)}
+                    variant="outlined"
+                    size="small"
+                  >
+                    <MenuItem value="asc">Ascendente</MenuItem>
+                    <MenuItem value="desc">Descendente</MenuItem>
+                  </Select>
+                </FormControl>
               </Box>
-              <FormControl sx={{ minWidth: 120, marginRight: 2, marginLeft: 2 }}>
-                <InputLabel id="filtro-tipo-propiedad-label"> Tipo de Propiedad</InputLabel>
-                <Select
-                  labelId="filtro-tipo-propiedad-label"
-                  id="filtro-tipo-propiedad"
-                  value={tipoPropiedad}
-                  label="Tipo de Propiedad"
-                  onChange={(e) => setTipoPropiedad(e.target.value)}
-                >
-                  <MenuItem value="">
-                    Todos
-                  </MenuItem>
-                  <MenuItem value="Apartamento">Apartamento</MenuItem>
-                  <MenuItem value="Casa">Casa</MenuItem>
-                  <MenuItem value="Villa">Villa</MenuItem>
-                </Select>
-              </FormControl>
+            </AccordionDetails>
+          </Accordion>
 
-              <TextField style={{ maxWidth: 100, marginRight: 2 }}
-                id="habitaciones"
-                label="Habitaciones"
-                type="number"
-                value={habitaciones}
-                onChange={(e) => setHabitaciones(parseInt(e.target.value) || 0)}
-              />
-              <TextField style={{ maxWidth: 60, marginLeft: 10 }}
-                id="camas"
-                label="Camas"
-                type="number"
-                value={camas}
-                onChange={(e) => setCamas(parseInt(e.target.value) || 0)}
-              />
-              <FormControl sx={{ minWidth: 120, marginRight: 2, marginLeft: 2 }}>
-                <InputLabel id="orden-precio-label">Ordenar por precio</InputLabel>
-                <Select
-                  labelId="orden-precio-label"
-                  id="orden-precio"
-                  value={ordenPrecio}
-                  label="Ordenar por precio"
-                  onChange={(e) => setOrdenPrecio(e.target.value)}
-                >
-                  <MenuItem value="asc">Ascendente</MenuItem>
-                  <MenuItem value="desc">Descendente</MenuItem>
-                </Select>
-              </FormControl>
 
-            </Box>
-          </Box>
+
 
           <Box
             sx={{
@@ -260,6 +357,7 @@ const Explorer = () => {
                   justifyContent: "center",
                   alignItems: "center",
                   borderRadius: "8px",
+                  mb: "20px"
                 }}
               > <img src={require("../assets/Designer.jpeg")} alt={propiedad.nombre} style={{ width: "100%", height: "auto", borderRadius: "8px" }} />
                 <Typography variant="h9" sx={{ marginTop: 1, fontSize: 15 }} > <a href="/explorar" style={{ textDecoration: "none", color: "inherit", fontWeight: "bold" }}>{propiedad.nombre}</a> </Typography>
@@ -269,11 +367,11 @@ const Explorer = () => {
             ))}
           </Box>
         </Container>
-        <Box sx={{ marginTop: "20px" }}>
+        <Box sx={{ mt: "auto" }}>
           <Footer />
         </Box>
       </div>
-    </LocalizationProvider>
+    </LocalizationProvider >
   );
 };
 

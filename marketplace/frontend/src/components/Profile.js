@@ -160,7 +160,9 @@ const Profile = () => {
 
     return (
         <Box sx={{ minHeight: '100vh', display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc" }}>
-            <NavBar />
+            <Box sx={{ flexGrow: 1 }}>
+                <NavBar />
+            </Box>
             <Container maxWidth="sm" sx={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
                 <Box>
                     <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: "bold", marginTop: 2 }} >
@@ -277,7 +279,8 @@ const Profile = () => {
                     }}>{loading ? <CircularProgress size={24} color='inherit' /> : "Cerrar Sesión"}</Button>
                 </Box>
             </Container >
-            <Footer />
+            <Box sx={{ mt: "auto" }}><Footer /></Box>
+
         </Box >
     );
 }

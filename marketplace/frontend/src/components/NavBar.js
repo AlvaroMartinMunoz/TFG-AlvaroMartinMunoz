@@ -146,7 +146,7 @@ const NavBar = () => {
         zIndex: 2,
       }}
     >
-      <Toolbar>
+      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
         <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
           <img
             src={logo}

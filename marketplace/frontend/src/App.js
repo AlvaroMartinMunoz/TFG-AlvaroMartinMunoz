@@ -6,7 +6,7 @@ import Login from "./components/Login";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { DatePicker } from "@mui/x-date-pickers";
-import { Button, TextField } from "@mui/material";
+import { Box, Button, TextField, Container, Typography } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { es } from "date-fns/locale";
@@ -17,7 +17,7 @@ import Explorer from "./components/Explorer";
 import Profile from "./components/Profile";
 import MyProperties from "./components/MyProperties";
 import PrivateRoute from "./components/PrivateRoute";
-import CreatePropertie from "./components/CreatePropertie";
+import CreateProperty from "./components/CreateProperty";
 
 function App() {
   const [fechaLlegada, setFechaLlegada] = useState(null);
@@ -42,19 +42,19 @@ function App() {
           <Route
             path="/"
             element={
-              <div style={{ flexDirection: "column", display: "flex" }}>
-                <div className="navbar" >
+              <Box sx={{ flexDirection: "column", display: "flex", minHeight: "100vh", backgroundColor: "#f4f7fc" }}>
+                <Box sx={{ flexGrow: 1, mb: 0 }}>
                   <Navbar />
-                  <div className="overlay"></div>
-                  <div className="contenedor-centrado">
-                    <div className="texto-central">
+                </Box>
+                <Container maxWidth={false} sx={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center", mt: 0 }}>
+                  <Box className="contenedor-centrado" sx={{ display: "flex", flexDirection: "column", gap: 2, minHeight: "80vh" }}>
+                    <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: "bold", marginTop: 2 }}>
                       Descubre las mejores playas
-                    </div>
-                    <div className="texto-central-pequeño">
-                      Vive tus sueños frente al mar, en los mejores pisos y al
-                      mejor precio
-                    </div>
-                    <div className="filtro-inicio">
+                    </Typography>
+                    <Typography variant="h6" align="center" gutterBottom>
+                      Vive tus sueños frente al mar, en los mejores pisos y al mejor precio
+                    </Typography>
+                    <Box className="filtro-inicio" sx={{ display: "flex", flexDirection: "row", gap: 2, justifyContent: "center", alignItems: "center" }}>
                       <DatePicker
                         label="Llegada"
                         value={fechaLlegada}
@@ -62,7 +62,6 @@ function App() {
                         renderInput={(params) => <TextField {...params} />}
                         disablePast
                       />
-                      <div className="separador"></div>
                       <DatePicker
                         label="Salida"
                         value={fechaSalida}
@@ -71,23 +70,16 @@ function App() {
                         disablePast
                         minDate={fechaLlegada}
                       />
-                      <div className="separador"></div>
-                      <div>
-                        <Button
-                          className="circular-button"
-                          onClick={handleDecrement}
-                        >
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <Button className="circular-button" onClick={handleDecrement}>
                           <RemoveIcon style={{ color: "black" }} />
                         </Button>
-                        <span>{numPersonas}</span>
-                        <Button
-                          className="circular-button"
-                          onClick={handleIncrement}
-                        >
+                        <Typography variant="body1" sx={{ mx: 2 }}>{numPersonas}</Typography>
+                        <Button className="circular-button" onClick={handleIncrement}>
                           <AddIcon style={{ color: "black" }} />
                         </Button>
-                      </div>
-                      <div>Personas</div>
+                      </Box>
+                      <Typography variant="body1">Personas</Typography>
                       <Button color="primary">
                         <SearchIcon
                           style={{
@@ -99,13 +91,13 @@ function App() {
                           }}
                         />
                       </Button>
-                    </div>
-                  </div>
-                </div>
-                <div style={{ mt: " auto" }}>
+                    </Box>
+                  </Box>
+                </Container>
+                <Box sx={{ mt: "auto" }}>
                   <Footer />
-                </div>
-              </div>
+                </Box>
+              </Box>
             }
           />
           <Route path="/inicio-de-sesion" element={<Login />} />
@@ -113,10 +105,10 @@ function App() {
           <Route path="/explorar" element={<Explorer />} />
           <Route path="/perfil" element={<PrivateRoute component={Profile} />} />
           <Route path="/mis-propiedades" element={<PrivateRoute component={MyProperties} />} />
-          <Route path="/crear-propiedad" element={<PrivateRoute component={CreatePropertie} />} />
+          <Route path="/crear-propiedad" element={<PrivateRoute component={CreateProperty} />} />
         </Routes>
-      </Router>
-    </LocalizationProvider>
+      </Router >
+    </LocalizationProvider >
   );
 }
 

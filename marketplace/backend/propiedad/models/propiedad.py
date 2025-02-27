@@ -5,6 +5,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
 from usuario.models.usuario import Usuario
+from django.utils import timezone
 
 class Propiedad(models.Model):
 
@@ -33,8 +34,6 @@ class Propiedad(models.Model):
 
     # PRECIOS Y DISPONIBILIDAD
     precio_por_noche = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(1)], help_text='Introduzca el precio por noche en EUR.')
-    disponible_desde = models.DateField(help_text='Introduzca la fecha de inicio de disponibilidad.')
-    disponible_hasta = models.DateField(help_text='Introduzca la fecha de fin de disponibilidad.')
     maximo_huespedes = models.PositiveIntegerField(validators=[MinValueValidator(1)], help_text='Introduzca el número máximo de huéspedes permitidos.')
 
     # CARACTERISTICAS GENERALES
@@ -74,3 +73,27 @@ class Propiedad(models.Model):
     
     class Meta:
         unique_together = ['latitud', 'longitud', 'direccion', 'ciudad', 'pais', 'codigo_postal', 'nombre']
+
+class FechaBloqueada(models.Model):
+    propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='fechas_bloqueadas')
+    fecha = models.DateField(help_text='Introduzca la fecha que desea bloquear.')
+
+    class Meta:
+        unique_together = ['propiedad', 'fecha']
+
+    def clean(self):
+        if self.fecha < timezone.now().date():
+            raise ValidationError('La fecha de bloqueo no puede ser anterior a la fecha actual.')
+
+    def __str__(self):
+        return f'{self.propiedad.nombre} - {self.fecha}'
+
+class FotoPropiedad(models.Model):
+    propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='fotos')
+    foto = models.ImageField(upload_to='fotos_propiedades/', help_text='Seleccione una foto de su propiedad.')
+
+    def __str__(self):
+        return f'{self.propiedad.nombre} - {self.foto}'
+    
+    class Meta:
+        unique_together = ['propiedad', 'foto']

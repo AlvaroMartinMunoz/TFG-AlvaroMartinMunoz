@@ -1,15 +1,18 @@
 import React, { useEffect } from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
-import { Box, Button, Container, Typography } from "@mui/material";
+import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
 import { useState } from "react";
 import refreshAccessToken from "./RefreshToken";
-import { Navigate } from "react-router-dom";
+import { set } from "date-fns";
+
 
 
 const MyProperties = () => {
 
     const [mispropiedades, setMisPropiedades] = useState([]);
+    const [open, setOpen] = useState(false);
+    const [selectedProperty, setSelectedProperty] = useState(null);
 
     useEffect(() => {
         fetchMyProperties();
@@ -20,6 +23,53 @@ const MyProperties = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
+    }
+
+    const handleClickOpen = (propertyId) => {
+        setSelectedProperty(propertyId);
+        setOpen(true);
+    }
+
+    const handleClose = () => {
+        setOpen(false);
+        setSelectedProperty(null);
+    }
+
+    const handleConfirmDelete = () => {
+        if (selectedProperty) {
+            handleDeleteProperty(selectedProperty);
+            setOpen(false);
+        }
+    };
+
+    const handleDeleteProperty = async (propertyId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/${propertyId}/`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                }
+            });
+            if (response.status === 401) {
+                console.log("Token expirado");
+                const token = await refreshAccessToken();
+                if (token) {
+                    handleDeleteProperty(propertyId);
+                } else {
+                    console.log("Token inválido, cerrando sesión...");
+                    handleLogOut();
+                }
+            }
+            if (response.ok) {
+                setMisPropiedades(mispropiedades.filter(propiedad => propiedad.id !== propertyId));
+            } else {
+                console.log("Error al eliminar la propiedad");
+            }
+
+        } catch (error) {
+            console.error("Error al eliminar la propiedad", error);
+        }
     }
 
     const fetchMyProperties = async () => {
@@ -63,8 +113,10 @@ const MyProperties = () => {
 
     return (
         <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc" }}>
+
             <NavBar />
-            <Container maxWidth="lg" sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", }}>
+
+            <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
                 <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
                     <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
                     <p>En esta sección podrás ver todas tus propiedades publicadas</p>
@@ -89,15 +141,38 @@ const MyProperties = () => {
                         }}>
                             <Typography variant="h6" gutterBottom> {propiedad.nombre}</Typography>
                             <p>Descripción de la propiedad 1</p>
+                            <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)}>Eliminar</Button>
                         </Box>
                     ))}
 
 
                 </Box>
-                <Box> <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button></Box>
+                <Box>
+                    <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button>
+                </Box>
             </Container>
-            <Footer />
-
+            <Dialog
+                open={open}
+                onClose={handleClose}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">Eliminar propiedad</DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
+                        ¿Estás seguro de que deseas eliminar esta propiedad?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose}>Cancelar</Button>
+                    <Button onClick={handleConfirmDelete} autoFocus>
+                        Eliminar
+                    </Button>
+                </DialogActions>
+            </Dialog>
+            <Box sx={{ mt: "auto" }}>
+                <Footer />
+            </Box>
         </Box>
     )
 }
