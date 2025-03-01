@@ -20,9 +20,10 @@ const Explorer = () => {
   const [numPersonas, setNumPersonas] = useState(1);
   const [propiedades, setPropiedades] = useState([]);
   const [propiedadesFiltradas, setPropiedadesFiltradas] = useState([]);
+  const [url, setUrl] = useState("https://source.unsplash.com/1600x900/?house");
 
   // FILTROS AVANZADOS
-  const [precioRango, setPrecioRango] = useState([0, 1000]);
+  const [precioRango, setPrecioRango] = useState([0, 5000]);
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [habitaciones, setHabitaciones] = useState(0);
   const [camas, setCamas] = useState(0);
@@ -66,7 +67,22 @@ const Explorer = () => {
     }
   };
 
+  const fetchPropertyPhotos = async (propiedadId) => {
+    try {
+      const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+      if (response.ok) {
+        const data = await response.json();
+        const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
+        const portadaFoto = filteredData.find((foto) => foto.es_portada);
+        const url = await portadaFoto ? portadaFoto.foto : "https://source.unsplash.com/1600x900/?house";
+        console.log(url);
 
+        return url;
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const fetchAllProperties = async () => {
 
@@ -230,7 +246,7 @@ const Explorer = () => {
                     onChange={(e, newValue) => setPrecioRango(newValue)}
                     valueLabelDisplay="auto"
                     min={0}
-                    max={1000}
+                    max={5000}
                     sx={{ marginTop: 2 }}
                     color="primary"
                   />
@@ -356,7 +372,7 @@ const Explorer = () => {
                   borderRadius: "8px",
                   mb: "20px"
                 }}
-              > <img src={require("../assets/Designer.jpeg")} alt={propiedad.nombre} style={{ width: "100%", height: "auto", borderRadius: "8px" }} />
+              > <img src={fetchPropertyPhotos(propiedad.id)} alt={propiedad.nombre} style={{ width: "100%", height: "auto", borderRadius: "8px" }} />
                 <Typography variant="h9" sx={{ marginTop: 1, fontSize: 15 }} > <a href={`/detalles/${propiedad.id}`} style={{ textDecoration: "none", color: "inherit", fontWeight: "bold" }}>{propiedad.nombre}</a> </Typography>
                 <Typography variant="body2" style={{ fontWeight: "bold", marginTop: 1 }}>   {propiedad.precio_por_noche}€/noche </Typography>
                 {/* <Typography variant="body2"> {propiedad.valoraciones} </Typography> */}

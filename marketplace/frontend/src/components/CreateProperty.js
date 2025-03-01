@@ -123,12 +123,16 @@ const CreateProperty = () => {
                     formValues.fotos.forEach((foto, index) => {
                         formData.append("fotos", foto);
                         if (index === formValues.portada) {
-                            formData.append("es_portada", true);
+                            formData.append("es_portada", "true");
                         } else {
-                            formData.append("es_portada", false);
+                            formData.append("es_portada", "false");
                         }
                     });
                     formData.append("propiedadId", propiedadId);
+
+                    for (let pair of formData.entries()) {
+                        console.log(pair[0] + ': ' + pair[1]);
+                    }
 
                     const uploadResponse = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/upload_photos/", {
                         method: "POST",
@@ -137,7 +141,6 @@ const CreateProperty = () => {
                         },
                         body: formData
                     });
-
                     if (!uploadResponse.ok) {
                         console.error("Error al subir las fotos", await uploadResponse.text());
                         return;
@@ -204,28 +207,28 @@ const CreateProperty = () => {
             errors.tipo_de_propiedad = "El tipo de propiedad es obligatorio";
         }
 
-        if (!formValues.precio_por_noche || formValues.precio_por_noche < 1) {
-            errors.precio_por_noche = "El precio por noche es obligatorio y debe ser mayor que 0";
+        if (!formValues.precio_por_noche || formValues.precio_por_noche < 1 || formValues.precio_por_noche > 5000) {
+            errors.precio_por_noche = "El precio por noche es obligatorio, debe ser mayor que 0 y menor que 5000";
         }
 
-        if (!formValues.maximo_huespedes || formValues.maximo_huespedes < 1) {
-            errors.maximo_huespedes = "El máximo de huéspedes es obligatorio y debe ser mayor que 0";
+        if (!formValues.maximo_huespedes || formValues.maximo_huespedes < 1 || formValues.maximo_huespedes > 10) {
+            errors.maximo_huespedes = "El máximo de huéspedes es obligatorio, debe ser mayor que 0 y menor que 10";
         }
 
-        if (!formValues.numero_de_habitaciones || formValues.numero_de_habitaciones < 1) {
-            errors.numero_de_habitaciones = "El número de habitaciones es obligatorio y debe ser mayor que 0";
+        if (!formValues.numero_de_habitaciones || formValues.numero_de_habitaciones < 1 || formValues.numero_de_habitaciones > 10) {
+            errors.numero_de_habitaciones = "El número de habitaciones es obligatorio, debe ser mayor que 0 y menor que 10";
         }
 
-        if (!formValues.numero_de_banos || formValues.numero_de_banos < 1) {
-            errors.numero_de_banos = "El número de baños es obligatorio y debe ser mayor que 0";
+        if (!formValues.numero_de_banos || formValues.numero_de_banos < 1 || formValues.numero_de_banos > 10) {
+            errors.numero_de_banos = "El número de baños es obligatorio, debe ser mayor que 0 y menor que 10";
         }
 
-        if (!formValues.numero_de_camas || formValues.numero_de_camas < 1) {
-            errors.numero_de_camas = "El número de camas es obligatorio y debe ser mayor que 0";
+        if (!formValues.numero_de_camas || formValues.numero_de_camas < 1 || formValues.numero_de_camas > 10) {
+            errors.numero_de_camas = "El número de camas es obligatorio, debe ser mayor que 0 y menor que 10";
         }
 
-        if (!formValues.tamano || formValues.tamano < 10) {
-            errors.tamano = "El tamaño es obligatorio y debe ser mayor que 10 m²";
+        if (!formValues.tamano || formValues.tamano < 10 || formValues.tamano > 1000) {
+            errors.tamano = "El tamaño es obligatorio, debe ser mayor que 10 y menor que 1000";
         }
 
         if (formValues.latitud && !latitudValida(formValues.latitud)) {

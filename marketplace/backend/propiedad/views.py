@@ -28,7 +28,14 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
             propiedad = Propiedad.objects.get(id=propiedad_id)
         except Propiedad.DoesNotExist:
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        es_portada_list = request.data.getlist('es_portada')
+        print(f"es_portada_list recibido: {es_portada_list}")
 
-        for file in request.FILES.getlist('fotos'):
-            FotoPropiedad.objects.create(propiedad=propiedad, foto=file)
+
+        for index, file in enumerate(request.FILES.getlist('fotos')):
+            
+            es_portada = es_portada_list[index].lower() == 'true' if index < len(es_portada_list) else False
+
+            FotoPropiedad.objects.create(propiedad=propiedad, foto=file, es_portada=es_portada)
         return Response({'status': 'fotos subidas'}, status=status.HTTP_201_CREATED)
