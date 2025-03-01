@@ -87,13 +87,3 @@ class FechaBloqueada(models.Model):
 
     def __str__(self):
         return f'{self.propiedad.nombre} - {self.fecha}'
-
-class FotoPropiedad(models.Model):
-    propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='fotos')
-    foto = models.ImageField(upload_to='fotos_propiedades/', help_text='Seleccione una foto de su propiedad.')
-
-    def __str__(self):
-        return f'{self.propiedad.nombre} - {self.foto}'
-    
-    class Meta:
-        unique_together = ['propiedad', 'foto']

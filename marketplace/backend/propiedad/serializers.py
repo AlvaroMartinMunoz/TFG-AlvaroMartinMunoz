@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models.propiedad import Propiedad
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
-
+from .models.fotoPropiedad import FotoPropiedad
 
 class PropiedadSerializer(serializers.ModelSerializer):
     valoracion_promedio = serializers.SerializerMethodField()
@@ -17,4 +17,9 @@ class ValoracionPropiedadSerializer(serializers.ModelSerializer):
     propiedad = serializers.StringRelatedField()
     class Meta:
         model =  ValoracionPropiedad
+        fields = '__all__'
+
+class FotoPropiedadSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FotoPropiedad
         fields = '__all__'

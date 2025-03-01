@@ -72,7 +72,7 @@ const Explorer = () => {
 
     try {
 
-      const response = await fetch("http://localhost:8000/api/propiedades/", {
+      const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
         method: "GET",
 
       });
@@ -221,7 +221,6 @@ const Explorer = () => {
 
                 }}
               >
-                {/* Sección Precio */}
                 <Box sx={{ flex: '1 1 300px', minWidth: 280 }}>
                   <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
                     Rango de precio (€)
@@ -237,7 +236,6 @@ const Explorer = () => {
                   />
                 </Box>
 
-                {/* Selector Tipo Propiedad */}
                 <FormControl sx={{ minWidth: 200, flex: '0 1 auto' }}>
                   <InputLabel id="filtro-tipo-propiedad-label">Tipo de Propiedad</InputLabel>
                   <Select
@@ -309,7 +307,6 @@ const Explorer = () => {
                   </Box>
                 ))}
 
-                {/* Orden por Precio */}
                 <FormControl sx={{ minWidth: 200 }}>
                   <InputLabel id="orden-precio-label">Ordenar por precio</InputLabel>
                   <Select
@@ -360,7 +357,7 @@ const Explorer = () => {
                   mb: "20px"
                 }}
               > <img src={require("../assets/Designer.jpeg")} alt={propiedad.nombre} style={{ width: "100%", height: "auto", borderRadius: "8px" }} />
-                <Typography variant="h9" sx={{ marginTop: 1, fontSize: 15 }} > <a href="/explorar" style={{ textDecoration: "none", color: "inherit", fontWeight: "bold" }}>{propiedad.nombre}</a> </Typography>
+                <Typography variant="h9" sx={{ marginTop: 1, fontSize: 15 }} > <a href={`/detalles/${propiedad.id}`} style={{ textDecoration: "none", color: "inherit", fontWeight: "bold" }}>{propiedad.nombre}</a> </Typography>
                 <Typography variant="body2" style={{ fontWeight: "bold", marginTop: 1 }}>   {propiedad.precio_por_noche}€/noche </Typography>
                 {/* <Typography variant="body2"> {propiedad.valoraciones} </Typography> */}
               </Box>

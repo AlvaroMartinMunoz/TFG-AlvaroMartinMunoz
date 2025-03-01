@@ -18,6 +18,7 @@ import Profile from "./components/Profile";
 import MyProperties from "./components/MyProperties";
 import PrivateRoute from "./components/PrivateRoute";
 import CreateProperty from "./components/CreateProperty";
+import PropertyDetails from "./components/PropertyDetails";
 
 function App() {
   const [fechaLlegada, setFechaLlegada] = useState(null);
@@ -106,6 +107,7 @@ function App() {
           <Route path="/perfil" element={<PrivateRoute component={Profile} />} />
           <Route path="/mis-propiedades" element={<PrivateRoute component={MyProperties} />} />
           <Route path="/crear-propiedad" element={<PrivateRoute component={CreateProperty} />} />
+          <Route path="/detalles/:propiedadId" element={<PropertyDetails />} />
         </Routes>
       </Router >
     </LocalizationProvider >

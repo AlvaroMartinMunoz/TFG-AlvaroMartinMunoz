@@ -1,15 +1,17 @@
-import { Box, Container, Typography, TextField, FormControlLabel, Checkbox, FormControl, InputLabel, Select, MenuItem, Button, FormHelperText } from "@mui/material";
+import { Box, Container, Typography, TextField, FormControlLabel, Checkbox, FormControl, InputLabel, Select, MenuItem, Button, FormHelperText, Radio } from "@mui/material";
 import React from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
 import { useState } from "react";
 import refreshAccessToken from "./RefreshToken";
 import { useNavigate } from "react-router-dom";
+import CloseIcon from '@mui/icons-material/Close';
 
 const CreateProperty = () => {
 
     const storedInfo = localStorage.getItem("additionalInfo");
     const anfitrion = storedInfo ? JSON.parse(storedInfo).usuarioId : null;
+    const [photoPreviews, setPhotoPreviews] = useState([]);
 
     const [formValues, setFormValues] = useState({
         anfitrion: anfitrion,
@@ -34,16 +36,45 @@ const CreateProperty = () => {
         permitido_fumar: false,
         latitud: "",
         longitud: "",
-        politica_de_cancelacion: ""
+        politica_de_cancelacion: "",
+        fotos: [],
+        portada: null
     });
 
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
 
+    const handleRemovePhoto = (index) => {
+        const newPhotos = formValues.fotos.filter((photo, i) => i !== index);
+        const newPhotoPreviews = photoPreviews.filter((photo, i) => i !== index);
+
+        if (formValues.portada === index) {
+            setFormValues({ ...formValues, fotos: newPhotos, portada: null });
+        } else {
+            const newPortada = formValues.portada > index ? formValues.portada - 1 : formValues.portada;
+            setFormValues({ ...formValues, fotos: newPhotos, portada: newPortada });
+
+            setFormValues({ ...formValues, fotos: newPhotos });
+            setPhotoPreviews(newPhotoPreviews);
+        }
+
+    }
+
+    const handlePortadaChange = (index) => {
+        setFormValues(prevState => ({ ...prevState, portada: index }));
+    }
+
     const handleChange = (e) => {
-        const { name, value, type, checked } = e.target;
+        const { name, value, type, checked, files } = e.target;
         const newValue = type === "checkbox" ? checked : value;
-        setFormValues({ ...formValues, [name]: newValue });
+        if (name === "fotos") {
+            const filesArray = Array.from(files);
+            const uniqueFilesArray = filesArray.filter(file => !formValues.fotos.some(photo => photo.name === file.name && photo.size === file.size));
+            setFormValues(prevState => ({ ...prevState, [name]: [...prevState[name], ...uniqueFilesArray] }));
+            setPhotoPreviews(prevState => ([...prevState, ...uniqueFilesArray.map(file => URL.createObjectURL(file))]));
+        } else {
+            setFormValues({ ...formValues, [name]: newValue });
+        }
     }
 
     const handleLogOut = () => {
@@ -54,9 +85,10 @@ const CreateProperty = () => {
 
     const handleSubmit = async (e, retried = false) => {
         e.preventDefault();
+
         if (await validateForm()) {
             try {
-                const response = await fetch("http://localhost:8000/api/propiedades/", {
+                const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -69,27 +101,57 @@ const CreateProperty = () => {
                     console.log("Token expirado");
                     const token = await refreshAccessToken();
                     if (token) {
-                        await handleSubmit(e, true);
+                        await handleSubmit(new Event("submit"), true);
+                        return;
                     } else {
                         console.log("Token inválido, cerrando sesión...");
-                        handleLogOut();
+                        await handleLogOut();
+                        return;
                     }
                 }
 
-                if (response.ok) {
-                    console.log("Propiedad creada con éxito");
-                    navigate("/mis-propiedades");
-                }
-                else {
-                    console.error("Error al crear la propiedad");
+                if (!response.ok) {
+                    console.error("Error en la creación de la propiedad", await response.text());
+                    return;
                 }
 
+                const data = await response.json();
+                const propiedadId = data.id;
+
+                if (formValues.fotos.length > 0) {
+                    const formData = new FormData();
+                    formValues.fotos.forEach((foto, index) => {
+                        formData.append("fotos", foto);
+                        if (index === formValues.portada) {
+                            formData.append("es_portada", true);
+                        } else {
+                            formData.append("es_portada", false);
+                        }
+                    });
+                    formData.append("propiedadId", propiedadId);
+
+                    const uploadResponse = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/upload_photos/", {
+                        method: "POST",
+                        headers: {
+                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                        },
+                        body: formData
+                    });
+
+                    if (!uploadResponse.ok) {
+                        console.error("Error al subir las fotos", await uploadResponse.text());
+                        return;
+                    }
+                }
+
+                navigate("/mis-propiedades");
 
             } catch (error) {
                 console.error("Error al crear la propiedad", error);
-            };
+            }
         }
-    }
+    };
+
 
     const validateForm = async () => {
         const errors = {};
@@ -99,7 +161,7 @@ const CreateProperty = () => {
         const empiezaConLetraRegex = /^[a-zA-Z]/;
 
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/")
+            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/")
             const propiedades = await response.json();
             const existeNombrePropiedad = propiedades.some(propiedad => propiedad.nombre === formValues.nombre);
             if (existeNombrePropiedad) {
@@ -108,6 +170,10 @@ const CreateProperty = () => {
             setErrors(errors);
         } catch (error) {
             console.error("Error al validar el nombre de la propiedad", error);
+        }
+
+        if (formValues.portada === null) {
+            errors.portada = "Debes seleccionar una foto como portada";
         }
 
         if (!formValues.nombre || formValues.nombre.length > 100 || !empiezaConLetraRegex.test(formValues.nombre)) {
@@ -173,6 +239,9 @@ const CreateProperty = () => {
         if (!formValues.politica_de_cancelacion) {
             errors.politica_de_cancelacion = "La política de cancelación es obligatoria";
         }
+        if (formValues.fotos.length < 4) {
+            errors.fotos = "Debes subir al menos 4 fotos";
+        }
 
         setErrors(errors);
         return Object.keys(errors).length === 0;
@@ -231,11 +300,41 @@ const CreateProperty = () => {
                         <FormControlLabel control={<Checkbox name="parking" checked={formValues.parking} onChange={handleChange} />} label="Parking" />
                         <FormControlLabel control={<Checkbox name="mascotas" checked={formValues.mascotas} onChange={handleChange} />} label="Mascotas" />
                         <FormControlLabel control={<Checkbox name="permitido_fumar" checked={formValues.permitido_fumar} onChange={handleChange} />} label="Permitido Fumar" />
+                        <input accept="image/*" style={{ display: "none" }} id="fotos" name="fotos" type="file" multiple onChange={handleChange} />
+                        <label htmlFor="fotos">
+                            <Button variant="contained" component="span" sx={{ mt: "20px" }}>
+                                Subir Fotos
+                            </Button>
+                        </label>
+
+                        {errors.fotos && <FormHelperText error>{errors.fotos}</FormHelperText>}
                         <Button type="submit" sx={{ bgcolor: "#1976d2", mt: "135px", color: "white", padding: "10px 20px", borderRadius: "8px", '&:hover': { backgroundColor: "#1565c0" } }}>
                             Crear propiedad
                         </Button>
                     </Box>
+
                 </Box>
+                {photoPreviews.length > 0 && <Typography variant="h6" gutterBottom sx={{ marginTop: "20px" }}>Selecciona la foto de portada:</Typography>}
+                <Box sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px" }}>
+                    {photoPreviews.length > 0 && (
+                        <>
+                            <Box sx={{ display: "flex", flexWrap: "wrap" }}>
+                                {photoPreviews.map((photo, index) => (
+                                    <Box key={index} sx={{ position: 'relative', margin: '10px', display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: "center" }}>
+                                        <img src={photo} alt={`Foto ${index + 1}`} style={{ width: "150px", height: "auto", objectFit: "cover", borderRadius: "8px" }} />
+                                        <Button onClick={() => handleRemovePhoto(index)} sx={{ position: 'absolute', top: '5px', right: '5px', minWidth: "16px", minHeight: "16px", backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: "50%" }}><CloseIcon sx={{ fontSize: "16px", color: "red" }} /></Button>
+                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                            <FormControlLabel value={index} control={<Radio />} checked={formValues.portada === index} onChange={() => handlePortadaChange(index)} sx={{ alignSelf: "center", ml: "15px" }} />
+                                        </Box>
+                                    </Box>
+                                ))}
+                            </Box>
+                        </>
+                    )}
+                </Box>
+                {errors.portada && <FormHelperText error>{errors.portada}</FormHelperText>}
+
+
             </Container >
             <Box sx={{ mt: "auto" }}>
                 <Footer />

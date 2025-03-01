@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'usuario',
     'corsheaders',
     'rest_framework_simplejwt',
+    'django_extensions',
 ]
 
 MIDDLEWARE = [

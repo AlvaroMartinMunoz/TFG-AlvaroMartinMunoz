@@ -44,7 +44,7 @@ const MyProperties = () => {
 
     const handleDeleteProperty = async (propertyId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/${propertyId}/`, {
+            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propertyId}/`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -78,7 +78,7 @@ const MyProperties = () => {
 
         try {
 
-            const response = await fetch("http://localhost:8000/api/propiedades/", {
+            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
