@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
-import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
+import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper } from "@mui/material";
 import { useState } from "react";
 import refreshAccessToken from "./RefreshToken";
 import { set } from "date-fns";
@@ -13,11 +13,36 @@ const MyProperties = () => {
     const [mispropiedades, setMisPropiedades] = useState([]);
     const [open, setOpen] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState(null);
+    const [url, setUrl] = useState([]);
 
     useEffect(() => {
         fetchMyProperties();
     }
         , []);
+
+    useEffect(() => {
+
+        mispropiedades.forEach((propiedad) => {
+            fetchPropertyPhotos(propiedad.id);
+        });
+
+    }, [mispropiedades]);
+
+
+    const fetchPropertyPhotos = async (propiedadId) => {
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            if (response.ok) {
+                const data = await response.json();
+                const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
+                const portadaFoto = filteredData.find((foto) => foto.es_portada);
+                const url = await portadaFoto ? portadaFoto.foto : "https://source.unsplash.com/1600x900/?house";
+                setUrl((prev) => ({ ...prev, [propiedadId]: url }));
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    };
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
@@ -112,37 +137,43 @@ const MyProperties = () => {
 
 
     return (
-        <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc" }}>
-
-            <NavBar />
+        <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc", width: "100%" }}>
 
             <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
                 <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
                     <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
                     <p>En esta sección podrás ver todas tus propiedades publicadas</p>
                 </Box>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", marginTop: "20px", borderRadius: "10px", overflow: "auto", }}>
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
                     {mispropiedades.map((propiedad, index) => (
 
-                        <Box key={index} sx={{
-                            backgroundColor: "white",
-                            border: "1px solid #ccc",
-                            padding: 2,
-                            width: "calc( 20vw - 16px)",
-                            boxSizing: "border-box",
-                            aspectRatio: "1/1",
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            borderRadius: "8px",
-                            margin: "0 20px",
-                            mb: 4
-                        }}>
-                            <Typography variant="h6" gutterBottom> {propiedad.nombre}</Typography>
-                            <p>Descripción de la propiedad 1</p>
-                            <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)}>Eliminar</Button>
-                        </Box>
+                        <Paper key={index}
+                            elevation={3}
+                            sx={{
+                                backgroundColor: "white",
+                                flex: "0 0 calc(33.333% - 16px)",
+                                display: "flex",
+                                flexDirection: "column",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                borderRadius: 2,
+                                overflow: "hidden",
+                                mr: 2,
+                                ml: 2,
+
+                            }}>
+                            <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+                            <Typography variant="h6" gutterBottom> <a
+                                href={`/detalles/${propiedad.id}`}
+                                style={{ textDecoration: "none", color: "inherit" }}>{propiedad.nombre}</a></Typography>
+                            <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                                {propiedad.precio_por_noche}€/noche
+                            </Typography>
+                            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", padding: "10px" }}>
+                                <Button variant="contained" color="primary" onClick={() => window.location.href = `/editar-propiedad/${propiedad.id}`} sx={{ mr: 1 }}>Editar</Button>
+                                <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)} sx={{ ml: 1 }}>Eliminar</Button>
+                            </Box>
+                        </Paper>
                     ))}
 
 
@@ -150,7 +181,7 @@ const MyProperties = () => {
                 <Box>
                     <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button>
                 </Box>
-            </Container>
+            </Container >
             <Dialog
                 open={open}
                 onClose={handleClose}
@@ -170,10 +201,8 @@ const MyProperties = () => {
                     </Button>
                 </DialogActions>
             </Dialog>
-            <Box sx={{ mt: "auto" }}>
-                <Footer />
-            </Box>
-        </Box>
+
+        </Box >
     )
 }
 

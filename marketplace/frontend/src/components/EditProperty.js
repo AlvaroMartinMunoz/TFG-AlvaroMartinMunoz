@@ -1,20 +1,18 @@
-import { Box, Container, Typography, TextField, FormControlLabel, Checkbox, FormControl, InputLabel, Select, MenuItem, Button, FormHelperText, Radio } from "@mui/material";
-import React from "react";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
-import { useState } from "react";
-import refreshAccessToken from "./RefreshToken";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import refreshAccessToken from "./RefreshToken";
+import { Box, Container, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Button, FormControlLabel, Checkbox, Radio } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 
-const CreateProperty = () => {
+const EditProperty = (id) => {
 
     const storedInfo = localStorage.getItem("additionalInfo");
-    const anfitrion = storedInfo ? JSON.parse(storedInfo).usuarioId : null;
+    const usuarioId = storedInfo ? JSON.parse(storedInfo).usuarioId : null;
     const [photoPreviews, setPhotoPreviews] = useState([]);
-
+    const [errors, setErrors] = useState({});
+    const navigate = useNavigate();
     const [formValues, setFormValues] = useState({
-        anfitrion: anfitrion,
+        anfitrion: usuarioId,
         nombre: "",
         descripcion: "",
         direccion: "",
@@ -41,119 +39,64 @@ const CreateProperty = () => {
         portada: null
     });
 
-    const [errors, setErrors] = useState({});
-    const navigate = useNavigate();
-
-    const handleRemovePhoto = (index) => {
-        const newPhotos = formValues.fotos.filter((photo, i) => i !== index);
-        const newPhotoPreviews = photoPreviews.filter((photo, i) => i !== index);
-
-        if (formValues.portada === index) {
-            setFormValues({ ...formValues, fotos: newPhotos, portada: null });
-        } else {
-            const newPortada = formValues.portada > index ? formValues.portada - 1 : formValues.portada;
-            setFormValues({ ...formValues, fotos: newPhotos, portada: newPortada });
-
-            setFormValues({ ...formValues, fotos: newPhotos });
-            setPhotoPreviews(newPhotoPreviews);
-        }
-
+    useEffect(() => {
+        fetchPropertyDetails();
     }
-
-    const handlePortadaChange = (index) => {
-        setFormValues(prevState => ({ ...prevState, portada: index }));
-    }
-
-    const handleChange = (e) => {
-        const { name, value, type, checked, files } = e.target;
-        const newValue = type === "checkbox" ? checked : value;
-        if (name === "fotos") {
-            const filesArray = Array.from(files);
-            const uniqueFilesArray = filesArray.filter(file => !formValues.fotos.some(photo => photo.name === file.name && photo.size === file.size));
-            setFormValues(prevState => ({ ...prevState, [name]: [...prevState[name], ...uniqueFilesArray] }));
-            setPhotoPreviews(prevState => ([...prevState, ...uniqueFilesArray.map(file => URL.createObjectURL(file))]));
-        } else {
-            setFormValues({ ...formValues, [name]: newValue });
-        }
-    }
+        , []);
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("additionalInfo");
         window.location.reload();
     }
 
-    const handleSubmit = async (e, retried = false) => {
-        e.preventDefault();
+    const handleRemovePhoto = (index) => {
+        const newPhotos = photoPreviews.filter((photo, i) => i !== index);
+        setPhotoPreviews(newPhotos);
+    }
 
-        if (await validateForm()) {
-            try {
-                const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                    },
-                    body: JSON.stringify(formValues)
-                });
+    const handlePortadaChange = (index) => {
+        setFormValues((prev) => ({ ...prev, portada: index }));
+    }
 
-                if (response.status === 401 && !retried) {
-                    console.log("Token expirado");
-                    const token = await refreshAccessToken();
-                    if (token) {
-                        await handleSubmit(new Event("submit"), true);
-                        return;
-                    } else {
-                        console.log("Token inválido, cerrando sesión...");
-                        await handleLogOut();
-                        return;
-                    }
+    const handleChange = (e) => {
+        const { name, value, type, checked } = e.target;
+
+        setFormValues({ ...formValues, [name]: type === "checkbox" ? checked : value });
+    }
+
+
+
+    const fetchPropertyDetails = async (id, retried = false) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${id}/`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
                 }
-
-                if (!response.ok) {
-                    console.error("Error en la creación de la propiedad", await response.text());
-                    return;
+            });
+            if (response.status === 401 && retried === false) {
+                console.log("Token expirado");
+                const token = await refreshAccessToken();
+                if (token) {
+                    fetchPropertyDetails(id, true);
+                } else {
+                    console.log("Token inválido, cerrando sesión...");
+                    handleLogOut();
                 }
-
-                const data = await response.json();
-                const propiedadId = data.id;
-
-                if (formValues.fotos.length > 0) {
-                    const formData = new FormData();
-                    formValues.fotos.forEach((foto, index) => {
-                        formData.append("fotos", foto);
-                        if (index === formValues.portada) {
-                            formData.append("es_portada", "true");
-                        } else {
-                            formData.append("es_portada", "false");
-                        }
-                    });
-                    formData.append("propiedadId", propiedadId);
-
-                    for (let pair of formData.entries()) {
-                        console.log(pair[0] + ': ' + pair[1]);
-                    }
-
-                    const uploadResponse = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/upload_photos/", {
-                        method: "POST",
-                        headers: {
-                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                        },
-                        body: formData
-                    });
-                    if (!uploadResponse.ok) {
-                        console.error("Error al subir las fotos", await uploadResponse.text());
-                        return;
-                    }
-                }
-
-                navigate("/mis-propiedades");
-
-            } catch (error) {
-                console.error("Error al crear la propiedad", error);
             }
+            if (response.ok) {
+                const data = await response.json();
+                setFormValues(data);
+                setPhotoPreviews(data.fotos);
+            } else {
+                console.log("Error al obtener la propiedad");
+            }
+        } catch (error) {
+            console.error("Error al obtener la propiedad", error);
         }
-    };
+    }
 
 
     const validateForm = async () => {
@@ -246,15 +189,50 @@ const CreateProperty = () => {
             errors.fotos = "Debes subir al menos 4 fotos";
         }
 
+
         setErrors(errors);
         return Object.keys(errors).length === 0;
+    };
+
+    const handleSubmit = async (e, retried = false) => {
+        e.preventDefault();
+        if (await validateForm()) {
+            try {
+                const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${id}/`, {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                    },
+                    body: JSON.stringify(formValues)
+                });
+                if (response.status === 401 && retried === false) {
+                    console.log("Token expirado");
+                    const token = await refreshAccessToken();
+                    if (token) {
+                        handleSubmit(e, true);
+                    } else {
+                        console.log("Token inválido, cerrando sesión...");
+                        handleLogOut();
+                    }
+                }
+                if (response.ok) {
+                    navigate("/mis-propiedades");
+                } else {
+                    console.log("Error al editar la propiedad");
+                }
+            }
+            catch (error) {
+                console.error("Error al editar la propiedad", error);
+            }
+        }
     };
 
     return (
         <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", bgcolor: "#f4f7fc" }}>
 
             <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                <Box sx={{ mt: "20px" }}><Typography variant="h4" gutterBottom> Crear nueva propiedad</Typography></Box>
+                <Box sx={{ mt: "20px" }}><Typography variant="h4" gutterBottom> Editar propiedad</Typography></Box>
                 <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px" }}>
                     <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
                         <TextField label="Nombre" name="nombre" variant="outlined" value={formValues.nombre} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.nombre} helperText={errors.nombre} />
@@ -309,10 +287,9 @@ const CreateProperty = () => {
 
                         {errors.fotos && <FormHelperText error>{errors.fotos}</FormHelperText>}
                         <Button type="submit" sx={{ bgcolor: "#1976d2", mt: "135px", color: "white", padding: "10px 20px", borderRadius: "8px", '&:hover': { backgroundColor: "#1565c0" } }}>
-                            Crear propiedad
+                            Guardar cambios
                         </Button>
                     </Box>
-
                 </Box>
                 {photoPreviews.length > 0 && <Typography variant="h6" gutterBottom sx={{ marginTop: "20px" }}>Selecciona la foto de portada:</Typography>}
                 {errors.portada && <FormHelperText error>{errors.portada}</FormHelperText>}
@@ -333,12 +310,9 @@ const CreateProperty = () => {
                         </>
                     )}
                 </Box>
-
-
-            </Container >
-
-        </Box >
+            </Container>
+        </Box>
     );
 }
 
-export default CreateProperty;
+export default EditProperty;

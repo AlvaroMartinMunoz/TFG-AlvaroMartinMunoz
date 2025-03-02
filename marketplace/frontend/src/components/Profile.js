@@ -159,12 +159,10 @@ const Profile = () => {
     };
 
     return (
-        <Box sx={{ minHeight: '100vh', display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc" }}>
-            <Box sx={{ flexGrow: 1 }}>
-                <NavBar />
-            </Box>
-            <Container maxWidth="sm" sx={{ minHeight: "80vh", display: "flex", justifyContent: "center", alignItems: "center" }}>
-                <Box>
+        <Box sx={{ minHeight: '80vh', display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc" }}>
+
+            <Container maxWidth="sm" sx={{ display: "flex", justifyContent: "center", alignItems: "center", }}>
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flexDirection: "column", width: "100%" }}>
                     <Typography variant="h4" align="center" gutterBottom sx={{ fontWeight: "bold", marginTop: 2 }} >
                         Mi Perfil
                     </Typography>
@@ -279,8 +277,6 @@ const Profile = () => {
                     }}>{loading ? <CircularProgress size={24} color='inherit' /> : "Cerrar Sesión"}</Button>
                 </Box>
             </Container >
-            <Box sx={{ mt: "auto" }}><Footer /></Box>
-
         </Box >
     );
 }

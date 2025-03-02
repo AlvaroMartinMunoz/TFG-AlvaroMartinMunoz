@@ -177,13 +177,12 @@ const Register = () => {
     <div
       style={{
         backgroundColor: "#f4f7fc",
-        minHeight: "100vh",
+        minHeight: "80vh",
         display: "flex",
         flexDirection: "column",
         flex: "1",
       }}
     >
-      <NavBar />
       <Container
         maxWidth="md"
         sx={{
@@ -357,9 +356,6 @@ const Register = () => {
           </form>
         </Box>
       </Container>
-      <Box sx={{ mt: "auto" }}>
-        <Footer />
-      </Box>
     </div>
   );
 };

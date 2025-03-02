@@ -233,7 +233,7 @@ const NavBar = () => {
           {isAuthenticated() && (
             <Typography
               variant="body1"
-              sx={{ color: "black", marginRight: "1rem", width: "200px" }}
+              sx={{ color: "black", width: "200px", ml: -1 }}
             >
               Bienvenido, {username}
             </Typography>

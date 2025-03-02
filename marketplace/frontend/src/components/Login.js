@@ -79,12 +79,11 @@ const Login = () => {
     <div
       style={{
         backgroundColor: "#f4f7fc",
-        minHeight: "100vh",
+        minHeight: "80vh",
         flexDirection: "column",
         display: "flex",
       }}
     >
-      <NavBar />
       <Container
         maxWidth="xs"
         sx={{
@@ -146,9 +145,7 @@ const Login = () => {
           </form>
         </Box>
       </Container>
-      <Box sx={{ mt: "auto" }}>
-        <Footer />
-      </Box>
+
     </div>
   );
 };
