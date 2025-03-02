@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
-import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper } from "@mui/material";
+import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, CircularProgress } from "@mui/material";
 import { useState } from "react";
 import refreshAccessToken from "./RefreshToken";
 import { set } from "date-fns";
@@ -14,17 +14,22 @@ const MyProperties = () => {
     const [open, setOpen] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [url, setUrl] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+
         fetchMyProperties();
     }
         , []);
 
     useEffect(() => {
 
-        mispropiedades.forEach((propiedad) => {
-            fetchPropertyPhotos(propiedad.id);
-        });
+        const fetchData = async () => {
+            const photoPromises = mispropiedades.map((propiedad) => fetchPropertyPhotos(propiedad.id));
+            await Promise.all(photoPromises);
+            setLoading(false);
+        }
+        fetchData();
 
     }, [mispropiedades]);
 
@@ -138,50 +143,56 @@ const MyProperties = () => {
 
     return (
         <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc", width: "100%" }}>
+            {loading ? (
+                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                    <CircularProgress />
+                </Container>
+            ) : (
 
-            <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
-                    <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
-                    <p>En esta sección podrás ver todas tus propiedades publicadas</p>
-                </Box>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
-                    {mispropiedades.map((propiedad, index) => (
+                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                    <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
+                        <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
+                        <p>En esta sección podrás ver todas tus propiedades publicadas</p>
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
+                        {mispropiedades.map((propiedad, index) => (
 
-                        <Paper key={index}
-                            elevation={3}
-                            sx={{
-                                backgroundColor: "white",
-                                flex: "0 0 calc(33.333% - 16px)",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                borderRadius: 2,
-                                overflow: "hidden",
-                                mr: 2,
-                                ml: 2,
+                            <Paper key={index}
+                                elevation={3}
+                                sx={{
+                                    backgroundColor: "white",
+                                    flex: "0 0 calc(33.333% - 16px)",
+                                    display: "flex",
+                                    flexDirection: "column",
+                                    justifyContent: "center",
+                                    alignItems: "center",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                    mr: 2,
+                                    ml: 2,
 
-                            }}>
-                            <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
-                            <Typography variant="h6" gutterBottom> <a
-                                href={`/detalles/${propiedad.id}`}
-                                style={{ textDecoration: "none", color: "inherit" }}>{propiedad.nombre}</a></Typography>
-                            <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                                {propiedad.precio_por_noche}€/noche
-                            </Typography>
-                            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", padding: "10px" }}>
-                                <Button variant="contained" color="primary" onClick={() => window.location.href = `/editar-propiedad/${propiedad.id}`} sx={{ mr: 1 }}>Editar</Button>
-                                <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)} sx={{ ml: 1 }}>Eliminar</Button>
-                            </Box>
-                        </Paper>
-                    ))}
+                                }}>
+                                <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+                                <Typography variant="h6" gutterBottom> <a
+                                    href={`/detalles/${propiedad.id}`}
+                                    style={{ textDecoration: "none", color: "inherit" }}>{propiedad.nombre}</a></Typography>
+                                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+                                    {propiedad.precio_por_noche}€/noche
+                                </Typography>
+                                <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", padding: "10px" }}>
+                                    <Button variant="contained" color="primary" onClick={() => window.location.href = `/editar-propiedad/${propiedad.id}`} sx={{ mr: 1 }}>Editar</Button>
+                                    <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)} sx={{ ml: 1 }}>Eliminar</Button>
+                                </Box>
+                            </Paper>
+                        ))}
 
 
-                </Box>
-                <Box>
-                    <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button>
-                </Box>
-            </Container >
+                    </Box>
+                    <Box>
+                        <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button>
+                    </Box>
+                </Container >
+            )}
             <Dialog
                 open={open}
                 onClose={handleClose}

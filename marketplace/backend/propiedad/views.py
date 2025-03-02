@@ -8,6 +8,8 @@ from .serializers import ValoracionPropiedadSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
+from .models.propiedad import FechaBloqueada
+from .serializers import FechaBloqueadaSerializer
 
 class PropiedadViewSet(viewsets.ModelViewSet):
     queryset = Propiedad.objects.all()
@@ -39,3 +41,7 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
 
             FotoPropiedad.objects.create(propiedad=propiedad, foto=file, es_portada=es_portada)
         return Response({'status': 'fotos subidas'}, status=status.HTTP_201_CREATED)
+    
+class FechaBloqueadaViewSet(viewsets.ModelViewSet):
+    queryset = FechaBloqueada.objects.all()
+    serializer_class = FechaBloqueadaSerializer

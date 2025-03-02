@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, IconButton, Button } from '@mui/material';
 import NavBar from './NavBar';
 import Footer from './Footer';
 import { useParams } from 'react-router-dom';
@@ -7,6 +7,7 @@ import Carousel from 'react-material-ui-carousel';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import refreshAccessToken from './RefreshToken';
 
 const PropertyDetails = () => {
     const { propiedadId } = useParams();
@@ -14,6 +15,9 @@ const PropertyDetails = () => {
     const [fotos, setFotos] = useState([]);
     const [open, setOpen] = useState(false);
     const [selectedFotoIndex, setSelectedFotoIndex] = useState(0);
+    const [esAnfitrion, setEsAnfitrion] = useState(false);
+    const [openManageDates, setOpenManageDates] = useState(false);
+    const [blockedDates, setBlockedDates] = useState([]);
 
     useEffect(() => {
         fetchPropertyDetails();
@@ -38,12 +42,77 @@ const PropertyDetails = () => {
         setSelectedFotoIndex((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
     };
 
+    const fetchBlockedDates = async () => {
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/");
+            if (response.ok) {
+                const data = await response.json();
+                const filteredData = data.filter((fecha) => fecha.propiedad === parseInt(propiedadId));
+                setBlockedDates(filteredData);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleBlockDate = async (date) => {
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    fecha: date,
+                    propiedad: propiedadId,
+                }),
+            });
+            if (response.ok) {
+                fetchBlockedDates();
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleUnblockDate = async (date, retried = false) => {
+        try {
+            const fechaBloqueada = blockedDates.find((fecha) => fecha.fecha === date);
+            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas/${fechaBloqueada.id}/`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                },
+            });
+            if (response.status === 401) {
+                const token = await refreshAccessToken();
+                if (token && !retried) {
+                    handleUnblockDate(date, true);
+                }
+            }
+
+            if (response.ok) {
+                fetchBlockedDates();
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
     const fetchPropertyDetails = async () => {
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`);
             if (response.ok) {
                 const data = await response.json();
                 setPropiedad(data);
+                const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
+                const usuarioID = storedInfo ? storedInfo.usuarioId : null;
+                if (usuarioID === data.anfitrion) {
+                    setEsAnfitrion(true);
+                    console.log(esAnfitrion);
+                }
             }
         } catch (error) {
             console.error(error);
@@ -130,6 +199,9 @@ const PropertyDetails = () => {
                         <Typography variant="body1" color="text.secondary">
                             {propiedad?.direccion}, {propiedad?.ciudad}, {propiedad?.pais}
                         </Typography>
+                        {esAnfitrion && (
+                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)}
+
                     </Box>
                 </Box>
 
@@ -234,6 +306,30 @@ const PropertyDetails = () => {
                         )}
                     </Box>
 
+                </Modal>
+                <Modal open={openManageDates} onClose={() => setOpenManageDates(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                        <IconButton onClick={() => setOpenManageDates(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                            Gestionar Fechas Disponibles
+                        </Typography>
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                            <Typography variant="body1" gutterBottom>Fechas Bloqueadas:</Typography>
+                            <ul>
+                                {blockedDates.map((date) => (
+                                    <li key={date.id}>
+                                        {date.fecha}
+                                        <Button variant="contained" color="error" onClick={() => handleUnblockDate(date.fecha)}>Desbloquear</Button>
+                                    </li>
+                                ))}
+                            </ul>
+                            <Button variant="contained" color="primary" onClick={() => handleBlockDate(new Date().toISOString().split('T')[0])}>
+                                Bloquear Hoy
+                            </Button>
+                        </Box>
+                    </Box>
                 </Modal>
             </Container>
         </Box>

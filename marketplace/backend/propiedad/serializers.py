@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models.propiedad import Propiedad
+from .models.propiedad import Propiedad, FechaBloqueada
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
 from .models.fotoPropiedad import FotoPropiedad
 
@@ -23,3 +23,8 @@ class FotoPropiedadSerializer(serializers.ModelSerializer):
     class Meta:
         model = FotoPropiedad
         fields = '__all__'
+
+class FechaBloqueadaSerializer(serializers.ModelSerializer):
+   class Meta:
+       model = FechaBloqueada
+       fields = '__all__'
