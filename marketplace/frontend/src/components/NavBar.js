@@ -12,6 +12,7 @@ import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
+import { is } from "date-fns/locale";
 
 
 const NavBar = () => {
@@ -27,9 +28,11 @@ const NavBar = () => {
 
         if (decodedToken && decodedToken.user_id) {
           fetchAllUsers(decodedToken.user_id);
+
         } else {
           console.log("Token inválido, cerrando sesión...");
           handleLogOut();
+
         }
       } catch (error) {
         console.error("Error al decodificar el token:", error);

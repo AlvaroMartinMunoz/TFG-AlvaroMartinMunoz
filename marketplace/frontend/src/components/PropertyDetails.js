@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton, Button } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, Icon } from '@mui/material';
 import NavBar from './NavBar';
 import Footer from './Footer';
 import { useParams } from 'react-router-dom';
@@ -8,6 +8,10 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import refreshAccessToken from './RefreshToken';
+import { LocalizationProvider, PickersDay } from '@mui/x-date-pickers';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { DatePicker } from '@mui/x-date-pickers';
+import { StaticDatePicker } from '@mui/x-date-pickers-pro';
 
 const PropertyDetails = () => {
     const { propiedadId } = useParams();
@@ -18,11 +22,72 @@ const PropertyDetails = () => {
     const [esAnfitrion, setEsAnfitrion] = useState(false);
     const [openManageDates, setOpenManageDates] = useState(false);
     const [blockedDates, setBlockedDates] = useState([]);
+    const [openDatePicker, setOpenDatePicker] = useState(false);
+    const [selectedDates, setSelectedDates] = useState([]);
+    const [openUnblockDatePicker, setOpenUnblockDatePicker] = useState(false);
+    const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
 
     useEffect(() => {
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
+        fetchBlockedDates();
     }, [propiedadId]);
+
+    const handleLogout = () => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        window.location.reload();
+    };
+
+    const handleOpenUnblockDatePicker = () => {
+        setOpenUnblockDatePicker(true);
+    };
+
+    const handleCloseUnblockDatePicker = () => {
+        setOpenUnblockDatePicker(false);
+    };
+
+    const handleUnblockDateChange = (date) => {
+        setSelectedUnblockDates((prevDates) => {
+            const dateStr = date.toISOString().split('T')[0];
+            if (prevDates.some((d) => d.toISOString().split('T')[0] === dateStr)) {
+                return prevDates.filter((d) => d.toISOString().split('T')[0] !== dateStr);
+            } else {
+                return [...prevDates, date];
+            }
+        });
+    };
+
+    const handleConfirmUnblockDate = () => {
+        selectedUnblockDates.forEach((date) => handleUnblockDate(date.toISOString().split('T')[0]));
+        handleCloseUnblockDatePicker();
+    };
+
+    const handleOpenDatePicker = () => {
+        setOpenDatePicker(true);
+    };
+
+    const handleCloseDatePicker = () => {
+        setOpenDatePicker(false);
+    };
+
+    const handleDateChange = (date) => {
+        setSelectedDates((prevDates) => {
+            const dateStr = date.toISOString().split('T')[0];
+            if (prevDates.some((d) => d.toISOString().split('T')[0] === dateStr)) {
+                return prevDates.filter((d) => d.toISOString().split('T')[0] !== dateStr);
+            } else {
+                return [...prevDates, date];
+            }
+        });
+    };
+
+    const handleConfirmBlockDate = () => {
+        selectedDates.forEach((date) => handleBlockDate(date.toISOString().split('T')[0]));
+        handleCloseDatePicker();
+    }
+
+
 
     const handleClickOpen = (index) => {
         setSelectedFotoIndex(index);
@@ -55,7 +120,7 @@ const PropertyDetails = () => {
         }
     };
 
-    const handleBlockDate = async (date) => {
+    const handleBlockDate = async (date, retried = false) => {
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
                 method: "POST",
@@ -68,8 +133,17 @@ const PropertyDetails = () => {
                     propiedad: propiedadId,
                 }),
             });
+            if (response.status === 401 && retried === false) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    handleBlockDate(date, true);
+                }
+                else {
+                    handleLogout();
+                }
+            }
             if (response.ok) {
-                fetchBlockedDates();
+                await fetchBlockedDates();
             }
         } catch (error) {
             console.error(error);
@@ -308,27 +382,79 @@ const PropertyDetails = () => {
 
                 </Modal>
                 <Modal open={openManageDates} onClose={() => setOpenManageDates(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
                         <IconButton onClick={() => setOpenManageDates(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
                         <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
                             Gestionar Fechas Disponibles
                         </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                            <Typography variant="body1" gutterBottom>Fechas Bloqueadas:</Typography>
-                            <ul>
-                                {blockedDates.map((date) => (
-                                    <li key={date.id}>
-                                        {date.fecha}
-                                        <Button variant="contained" color="error" onClick={() => handleUnblockDate(date.fecha)}>Desbloquear</Button>
-                                    </li>
-                                ))}
-                            </ul>
-                            <Button variant="contained" color="primary" onClick={() => handleBlockDate(new Date().toISOString().split('T')[0])}>
-                                Bloquear Hoy
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 6 }}>
+                            <Button variant="contained" color="primary" onClick={() => handleOpenDatePicker()}>
+                                Bloquear Fecha
+                            </Button>
+                            <Button variant="contained" color="error" onClick={handleOpenUnblockDatePicker}>
+                                Desbloquear Fecha
                             </Button>
                         </Box>
+                    </Box>
+                </Modal>
+                <Modal open={openDatePicker} onClose={handleCloseDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
+                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                        <IconButton onClick={handleCloseDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                            Seleccionar fecha para Bloquear
+                        </Typography>
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <StaticDatePicker
+                                displayStaticWrapperAs="desktop"
+                                openTo='day'
+                                value={selectedDates}
+                                onChange={handleDateChange}
+                                renderInput={(params) => <TextField {...params} />}
+                                disablePast
+                                shouldDisableDate={(date) => blockedDates.some((fecha) => fecha.fecha === date.toISOString().split('T')[0])}
+                                renderDay={(day, _value, DayComponentProps) => {
+                                    const dateStr = day.toISOString().split('T')[0];
+                                    const isSelected = selectedDates.some((date) => date.toISOString().split('T')[0] === dateStr);
+                                    return (<PickersDay {...DayComponentProps} selected={isSelected} />);
+                                }}
+                            />
+                        </LocalizationProvider>
+                        <Button variant="contained" color="primary" onClick={handleConfirmBlockDate}>
+                            Confirmar
+                        </Button>
+                    </Box>
+                </Modal>
+                <Modal open={openUnblockDatePicker} onClose={handleCloseUnblockDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
+                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                        <IconButton onClick={handleCloseUnblockDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                            Seleccionar fecha para Desbloquear
+                        </Typography>
+                        <LocalizationProvider dateAdapter={AdapterDateFns}>
+                            <StaticDatePicker
+                                displayStaticWrapperAs="desktop"
+                                openTo='day'
+                                value={selectedUnblockDates}
+                                onChange={handleUnblockDateChange}
+                                renderInput={(params) => <TextField {...params} />}
+                                disablePast
+                                shouldDisableDate={(date) => !blockedDates.some((fecha) => fecha.fecha === date.toISOString().split('T')[0])}
+                                renderDay={(day, _value, DayComponentProps) => {
+                                    const dateStr = day.toISOString().split('T')[0];
+                                    const isSelected = selectedUnblockDates?.some((date) => date.toISOString().split('T')[0] === dateStr);
+                                    return (<PickersDay {...DayComponentProps} selected={isSelected} />);
+                                }}
+                            />
+                        </LocalizationProvider>
+                        <Button variant="contained" color="primary" onClick={handleConfirmUnblockDate}>
+                            Confirmar
+                        </Button>
                     </Box>
                 </Modal>
             </Container>

@@ -25,6 +25,7 @@ const Login = () => {
     const token = localStorage.getItem("accessToken");
     if (token) {
       navigate("/");
+      window.location.reload();
     }
   }, [navigate]);
 
