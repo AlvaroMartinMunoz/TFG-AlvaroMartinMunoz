@@ -15,6 +15,7 @@ const MyProperties = () => {
     const [selectedProperty, setSelectedProperty] = useState(null);
     const [url, setUrl] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [imageLoading, setImageLoading] = useState({});
 
     useEffect(() => {
 
@@ -35,6 +36,7 @@ const MyProperties = () => {
 
 
     const fetchPropertyPhotos = async (propiedadId) => {
+        setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
             if (response.ok) {
@@ -43,6 +45,7 @@ const MyProperties = () => {
                 const portadaFoto = filteredData.find((foto) => foto.es_portada);
                 const url = await portadaFoto ? portadaFoto.foto : "https://source.unsplash.com/1600x900/?house";
                 setUrl((prev) => ({ ...prev, [propiedadId]: url }));
+                setImageLoading((prev) => ({ ...prev, [propiedadId]: false }));
             }
         } catch (error) {
             console.log(error);
@@ -172,7 +175,11 @@ const MyProperties = () => {
                                     ml: 2,
 
                                 }}>
-                                <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+
+                                {imageLoading[propiedad.id] ? (
+                                    <CircularProgress />
+                                ) : (
+                                    <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />)}
                                 <Typography variant="h6" gutterBottom> <a
                                     href={`/detalles/${propiedad.id}`}
                                     style={{ textDecoration: "none", color: "inherit" }}>{propiedad.nombre}</a></Typography>

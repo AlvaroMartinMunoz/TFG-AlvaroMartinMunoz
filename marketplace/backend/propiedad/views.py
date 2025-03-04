@@ -1,5 +1,6 @@
 from rest_framework import viewsets
-from .models.propiedad import Propiedad
+from .models.propiedad import Propiedad, Reserva
+from .serializers import ReservaSerializer
 from .models.fotoPropiedad import FotoPropiedad
 from .serializers import FotoPropiedadSerializer
 from .serializers import PropiedadSerializer
@@ -45,3 +46,8 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
 class FechaBloqueadaViewSet(viewsets.ModelViewSet):
     queryset = FechaBloqueada.objects.all()
     serializer_class = FechaBloqueadaSerializer
+
+class ReservaViewSet(viewsets.ModelViewSet):
+    queryset = Reserva.objects.all()
+    serializer_class = ReservaSerializer
+    

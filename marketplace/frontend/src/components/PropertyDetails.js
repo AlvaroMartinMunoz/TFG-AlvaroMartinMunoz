@@ -33,6 +33,10 @@ const PropertyDetails = () => {
         fetchBlockedDates();
     }, [propiedadId]);
 
+    const isAuthenticated = () => {
+        return localStorage.getItem("accessToken") && localStorage.getItem("refreshToken");
+    };
+
     const handleLogout = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
@@ -49,9 +53,9 @@ const PropertyDetails = () => {
 
     const handleUnblockDateChange = (date) => {
         setSelectedUnblockDates((prevDates) => {
-            const dateStr = date.toISOString().split('T')[0];
-            if (prevDates.some((d) => d.toISOString().split('T')[0] === dateStr)) {
-                return prevDates.filter((d) => d.toISOString().split('T')[0] !== dateStr);
+            const dateStr = date.toLocaleDateString('en-CA');
+            if (prevDates.some((d) => d.toLocaleDateString('en-CA') === dateStr)) {
+                return prevDates.filter((d) => d.toLocaleDateString('en-CA') !== dateStr);
             } else {
                 return [...prevDates, date];
             }
@@ -59,7 +63,8 @@ const PropertyDetails = () => {
     };
 
     const handleConfirmUnblockDate = () => {
-        selectedUnblockDates.forEach((date) => handleUnblockDate(date.toISOString().split('T')[0]));
+        selectedUnblockDates.forEach((date) => handleUnblockDate(date.toLocaleDateString('en-CA')));
+        setSelectedUnblockDates([]);
         handleCloseUnblockDatePicker();
     };
 
@@ -73,9 +78,9 @@ const PropertyDetails = () => {
 
     const handleDateChange = (date) => {
         setSelectedDates((prevDates) => {
-            const dateStr = date.toISOString().split('T')[0];
-            if (prevDates.some((d) => d.toISOString().split('T')[0] === dateStr)) {
-                return prevDates.filter((d) => d.toISOString().split('T')[0] !== dateStr);
+            const dateStr = date.toLocaleDateString('en-CA');
+            if (prevDates.some((d) => d.toLocaleDateString('en-CA') === dateStr)) {
+                return prevDates.filter((d) => d.toLocaleDateString('en-CA') !== dateStr);
             } else {
                 return [...prevDates, date];
             }
@@ -83,7 +88,8 @@ const PropertyDetails = () => {
     };
 
     const handleConfirmBlockDate = () => {
-        selectedDates.forEach((date) => handleBlockDate(date.toISOString().split('T')[0]));
+        selectedDates.forEach((date) => handleBlockDate(date.toLocaleDateString('en-CA')));
+        setSelectedDates([]);
         handleCloseDatePicker();
     }
 
@@ -160,10 +166,12 @@ const PropertyDetails = () => {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`
                 },
             });
-            if (response.status === 401) {
+            if (response.status === 401 && !retried) {
                 const token = await refreshAccessToken();
-                if (token && !retried) {
+                if (token) {
                     handleUnblockDate(date, true);
+                } else {
+                    handleLogout();
                 }
             }
 
@@ -273,7 +281,7 @@ const PropertyDetails = () => {
                         <Typography variant="body1" color="text.secondary">
                             {propiedad?.direccion}, {propiedad?.ciudad}, {propiedad?.pais}
                         </Typography>
-                        {esAnfitrion && (
+                        {esAnfitrion && isAuthenticated() && (
                             <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)}
 
                     </Box>
@@ -400,7 +408,7 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
                 <Modal open={openDatePicker} onClose={handleCloseDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
                         <IconButton onClick={handleCloseDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
@@ -411,14 +419,14 @@ const PropertyDetails = () => {
                             <StaticDatePicker
                                 displayStaticWrapperAs="desktop"
                                 openTo='day'
-                                value={selectedDates}
+                                value={selectedDates.length ? selectedDates[0] : new Date()}
                                 onChange={handleDateChange}
                                 renderInput={(params) => <TextField {...params} />}
                                 disablePast
-                                shouldDisableDate={(date) => blockedDates.some((fecha) => fecha.fecha === date.toISOString().split('T')[0])}
+                                shouldDisableDate={(date) => blockedDates.some((fecha) => fecha.fecha === date.toLocaleDateString('en-CA'))}
                                 renderDay={(day, _value, DayComponentProps) => {
-                                    const dateStr = day.toISOString().split('T')[0];
-                                    const isSelected = selectedDates.some((date) => date.toISOString().split('T')[0] === dateStr);
+                                    const dateStr = day.toLocaleDateString('en-CA');
+                                    const isSelected = selectedDates.some((date) => date.toLocaleDateString('en-CA') === dateStr);
                                     return (<PickersDay {...DayComponentProps} selected={isSelected} />);
                                 }}
                             />
@@ -429,7 +437,7 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
                 <Modal open={openUnblockDatePicker} onClose={handleCloseUnblockDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
                         <IconButton onClick={handleCloseUnblockDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
@@ -444,10 +452,10 @@ const PropertyDetails = () => {
                                 onChange={handleUnblockDateChange}
                                 renderInput={(params) => <TextField {...params} />}
                                 disablePast
-                                shouldDisableDate={(date) => !blockedDates.some((fecha) => fecha.fecha === date.toISOString().split('T')[0])}
+                                shouldDisableDate={(date) => !blockedDates.some((fecha) => fecha.fecha === date.toLocaleDateString('en-CA'))}
                                 renderDay={(day, _value, DayComponentProps) => {
-                                    const dateStr = day.toISOString().split('T')[0];
-                                    const isSelected = selectedUnblockDates?.some((date) => date.toISOString().split('T')[0] === dateStr);
+                                    const dateStr = day.toLocaleDateString('en-CA');
+                                    const isSelected = selectedUnblockDates?.some((date) => date.toLocaleDateString('en-CA') === dateStr);
                                     return (<PickersDay {...DayComponentProps} selected={isSelected} />);
                                 }}
                             />

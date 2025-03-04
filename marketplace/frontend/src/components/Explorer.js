@@ -16,6 +16,7 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  CircularProgress,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -35,6 +36,7 @@ const Explorer = () => {
   const [propiedades, setPropiedades] = useState([]);
   const [propiedadesFiltradas, setPropiedadesFiltradas] = useState([]);
   const [url, setUrl] = useState({});
+  const [imageLoading, setImageLoading] = useState({});
 
   // Filtros avanzados
   const [precioRango, setPrecioRango] = useState([0, 5000]);
@@ -80,6 +82,7 @@ const Explorer = () => {
   };
 
   const fetchPropertyPhotos = async (propiedadId) => {
+    setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
     try {
       const response = await fetch(
         "http://localhost:8000/api/propiedades/fotos-propiedades/"
@@ -97,6 +100,8 @@ const Explorer = () => {
       }
     } catch (error) {
       console.error(error);
+    } finally {
+      setImageLoading((prev) => ({ ...prev, [propiedadId]: false }));
     }
   };
 
@@ -121,7 +126,7 @@ const Explorer = () => {
       <Box
         sx={{
           backgroundColor: "#f4f7fc",
-          minHeight: "100vh",
+          minHeight: "80vh",
           display: "flex",
           flexDirection: "column",
         }}
@@ -294,16 +299,22 @@ const Explorer = () => {
                     mb: 2,
                   }}
                 >
-                  <Box
-                    component="img"
-                    src={url[propiedad.id]}
-                    alt={propiedad.nombre}
-                    sx={{
-                      width: "100%",
-                      height: "200px",
-                      objectFit: "cover",
-                    }}
-                  />
+                  {imageLoading[propiedad.id] ? (
+                    <CircularProgress />
+                  ) : (
+                    <Box
+                      component="img"
+                      src={url[propiedad.id]}
+                      alt={propiedad.nombre}
+                      sx={{
+                        width: "100%",
+                        height: "200px",
+                        objectFit: "cover",
+                      }}
+                    />
+                  )}
+
+
                   <Box sx={{ p: 2 }}>
                     <Typography variant="h6" sx={{ fontWeight: "bold", mb: 1 }}>
                       <a
