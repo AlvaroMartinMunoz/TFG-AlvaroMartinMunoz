@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, FormControl, Input, InputLabel, MenuItem, Select } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Carousel from 'react-material-ui-carousel';
@@ -12,6 +12,9 @@ import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
 import { DateRangePicker } from 'react-dates';
 import moment from 'moment';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
+import zIndex from '@mui/material/styles/zIndex';
 
 
 const PropertyDetails = () => {
@@ -31,13 +34,19 @@ const PropertyDetails = () => {
     const [reserveStartDate, setReserveStartDate] = useState(null);
     const [reserveEndDate, setReserveEndDate] = useState(null);
     const [focusedInput, setFocusedInput] = useState(null);
+    const [numPersonas, setNumPersonas] = useState(1);
+    const [metodoPago, setMetodoPago] = useState("Tarjeta de crédito");
+    const [comentarios_usuario, setComentariosUsuario] = useState("");
+    const [reservas, setReservas] = useState([]);
+
 
     useEffect(() => {
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
         fetchBlockedDates();
-        console.log(blockedDates)
-        console.log(propiedadId)
+        fetchReservas();
+        refreshAccessToken();
+
     }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
 
     const isAuthenticated = () => {
@@ -48,6 +57,16 @@ const PropertyDetails = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
+    };
+
+    const handleIncrement = () => {
+        if (numPersonas < propiedad.maximo_huespedes)
+            setNumPersonas((prev) => prev + 1);
+    };
+
+    const handleDecrement = () => {
+        if (numPersonas > 1)
+            setNumPersonas((prev) => prev - 1);
     };
 
     const handleOpenReserveDatePicker = () => {
@@ -136,7 +155,7 @@ const PropertyDetails = () => {
     const fetchBlockedDates = async (retried = false) => {
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/")
-            if (response.status === 401 && retried == false) {
+            if (response.status === 401 && !retried) {
                 const token = await refreshAccessToken();
                 if (token) {
                     fetchBlockedDates(retried = true);
@@ -148,7 +167,6 @@ const PropertyDetails = () => {
                 const data = await response.json();
                 const filteredData = data.filter((fecha) => fecha.propiedad === parseInt(propiedadId));
                 setBlockedDates(filteredData);
-                console.log(blockedDates);
             }
         } catch (error) {
             console.error(error);
@@ -168,7 +186,7 @@ const PropertyDetails = () => {
                     propiedad: propiedadId,
                 }),
             });
-            if (response.status === 401 && retried === false) {
+            if (response.status === 401 && !retried) {
                 const token = await refreshAccessToken();
                 if (token) {
                     handleBlockDate(date, true);
@@ -218,13 +236,15 @@ const PropertyDetails = () => {
             if (response.ok) {
                 const data = await response.json();
                 setPropiedad(data);
+
                 const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
                 const usuarioID = storedInfo ? storedInfo.usuarioId : null;
                 if (usuarioID === data.anfitrion) {
                     setEsAnfitrion(true);
-                    console.log(esAnfitrion);
                 }
             }
+
+            console.log(propiedad);
         } catch (error) {
             console.error(error);
         }
@@ -242,6 +262,107 @@ const PropertyDetails = () => {
             console.error(error);
         }
     };
+
+    const fetchReservas = async (retried = false) => {
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/reservas/");
+            if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    fetchReservas(true);
+                } else {
+                    handleLogout();
+                }
+            }
+            if (response.ok) {
+                const data = await response.json();
+                const filteredData = data.filter((reserva) => reserva.propiedad === parseInt(propiedadId));
+                setReservas(filteredData);
+                setReserveStartDate(null);
+                setReserveEndDate(null);
+                setFocusedInput(null);
+                setNumPersonas(1);
+                setMetodoPago("Tarjeta de crédito");
+                setComentariosUsuario("");
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const allBlockedDates = [
+        ...blockedDates.map((fecha) => fecha.fecha),
+        ...reservas.flatMap((reserva) => {
+            const startDate = moment(reserva.fecha_llegada);
+            const endDate = moment(reserva.fecha_salida);
+            const dates = [];
+            while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
+                dates.push(startDate.format('YYYY-MM-DD'));
+                startDate.add(1, 'day');
+            }
+            return dates;
+        })
+    ];
+
+    const handleConfirmReserve = async (retried = false) => {
+        if (!reserveStartDate || !reserveEndDate) {
+            return;
+        }
+
+
+        const formattedStartDate = moment(reserveStartDate).format('YYYY-MM-DD');
+        const formattedEndDate = moment(reserveEndDate).format('YYYY-MM-DD');
+
+        const numNoches = moment(reserveEndDate).diff(moment(reserveStartDate), 'days');
+
+        const precioTotalSinComision = propiedad.precio_por_noche * numNoches;
+
+        const porcentajeComision = 0.1;
+
+        const comision = precioTotalSinComision * porcentajeComision;
+
+        const precioTotal = precioTotalSinComision + comision;
+
+        const reservationData = {
+            usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
+            propiedad: propiedadId,
+            fecha_llegada: formattedStartDate,
+            fecha_salida: formattedEndDate,
+            estado: 'Pendiente',
+            precio_por_noche: propiedad.precio_por_noche,
+            numero_personas: numPersonas,
+            metodo_pago: metodoPago,
+            precio_total: precioTotal,
+        };
+
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify(reservationData),
+            });
+
+            if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    handleConfirmReserve(true);
+                } else {
+                    handleLogout();
+                }
+            } else if (response.ok) {
+                handleCloseReserveDatePicker();
+            } else {
+                console.error(response);
+            }
+
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
 
     return (
         <Box sx={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', bgcolor: '#f4f7fc' }}>
@@ -496,11 +617,11 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
                 <Modal open={openReserveDatePicker} onClose={handleCloseReserveDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2, flexDirection: 'column', display: "flex", alignItems: "center" }}>
                         <IconButton onClick={handleCloseReserveDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
-                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                        <Typography variant="h5" sx={{ mb: 4, fontWeight: 600 }}>
                             Seleccionar fecha para Reservar
                         </Typography>
                         <DateRangePicker
@@ -512,15 +633,69 @@ const PropertyDetails = () => {
                             focusedInput={focusedInput}
                             onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
                             minimumNights={1}
-                            isOutsideRange={(date) => date.isBefore(moment()) || blockedDates.some((fecha) => moment(fecha.fecha).isSame(date, 'day'))}
+                            isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
                         />
-                        <Button variant="contained" color="primary" onClick={handleCloseReserveDatePicker}>
-                            Confirmar
-                        </Button>
+                        <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                            <Typography variant="h8" component="span">Numero de huespedes:</Typography>
+
+                            <IconButton onClick={handleDecrement}>
+                                <RemoveIcon />
+                            </IconButton>
+                            <Typography sx={{ mx: 1 }}>
+                                {numPersonas}</Typography>
+                            <IconButton onClick={handleIncrement}>
+                                <AddIcon />
+                            </IconButton>
+                        </Box>
+                        <FormControl sx={{ mt: 2 }}>
+                            <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
+                            <Select
+                                id="metodo-pago"
+                                aria-labelledby="metodo-pago-label"
+                                value={metodoPago}
+                                onChange={(e) => setMetodoPago(e.target.value)}
+                                label="Método de Pago"
+                                sx={{ width: 250 }}
+                            >
+                                <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
+                                <MenuItem value="PayPal">Paypal</MenuItem>
+                                <MenuItem value="Transferencia bancaria">Transferencia Bancaria</MenuItem>
+                            </Select>
+                        </FormControl>
+                        <Typography variant="body2" component="span" sx={{ mt: 2 }}>Comentario sobre la reserva:</Typography>
+                        <TextField
+
+                            value={comentarios_usuario}
+                            onChange={(e) => setComentariosUsuario(e.target.value)}
+                            multiline
+                            sx={{ mt: 0, width: 250 }}
+                        />
+                        {reserveStartDate && reserveEndDate && (
+                            <>
+                                <Typography variant="body2" component="span" sx={{ mt: 2 }}>
+                                    Precio sin Comisión: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days')).toFixed(2)} €
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{ mt: 1 }}>
+                                    Comisión: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 0.10).toFixed(2)} €
+                                </Typography>
+                                <Typography variant="body2" component="span" sx={{ mt: 1 }}>
+                                    Precio Total: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 1.10).toFixed(2)} €
+                                </Typography>
+                            </>
+                        )}
+                        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mt: 2 }}>
+                            <Button sx={{}} variant="contained" color="error" onClick={handleCloseReserveDatePicker}>
+                                Cancelar
+                            </Button>
+
+                            <Button sx={{}} variant="contained" color="primary" onClick={handleConfirmReserve}>
+                                Confirmar
+                            </Button>
+                        </Box>
                     </Box>
                 </Modal>
             </Container>
-        </Box>
+        </Box >
     );
 };
 
