@@ -1,7 +1,7 @@
 from django.db import models
 from .propiedad import Propiedad
-from ...usuario.models.usuario import Usuario
 from django.core.exceptions import ValidationError
+from usuario.models.usuario import Usuario
 
 class Reserva(models.Model):
 
@@ -26,7 +26,7 @@ class Reserva(models.Model):
     precio_por_noche = models.DecimalField(max_digits=10, decimal_places=2, blank=False, null=False, help_text='Introduzca el precio por noche en EUR.')
     precio_total = models.DecimalField(max_digits=10, decimal_places=2, blank=False, null=False, help_text='Introduzca el precio total en EUR.')
     estado = models.CharField(max_length=20, choices=ESTADOS_DE_RESERVA, blank=False, null=False, help_text='Seleccione el estado de la reserva.')
-    metodo_pago = models.CharField(max_length=20, choices=METODOS_DE_PAGO, blank=False, null=False, help_text='Seleccione el método de pago.')
+    metodo_pago = models.CharField(max_length=30, choices=METODOS_DE_PAGO, blank=False, null=False, help_text='Seleccione el método de pago.')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_aceptacion = models.DateTimeField(blank=True, null=True)  
     comentarios_usuario = models.TextField(blank=True, null=True, help_text='Introduzca un comentario para el anfitrión.')

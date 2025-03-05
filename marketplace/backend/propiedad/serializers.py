@@ -1,7 +1,8 @@
 from rest_framework import serializers
-from .models.propiedad import Propiedad, FechaBloqueada, Reserva
+from .models.propiedad import Propiedad, FechaBloqueada
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
 from .models.fotoPropiedad import FotoPropiedad
+from .models.reserva import Reserva
 
 class PropiedadSerializer(serializers.ModelSerializer):
     valoracion_promedio = serializers.SerializerMethodField()

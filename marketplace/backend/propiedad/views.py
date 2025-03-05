@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from .models.propiedad import Propiedad, Reserva
+from .models.propiedad import Propiedad
 from .serializers import ReservaSerializer
 from .models.fotoPropiedad import FotoPropiedad
 from .serializers import FotoPropiedadSerializer
@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from .models.propiedad import FechaBloqueada
 from .serializers import FechaBloqueadaSerializer
+from .models.reserva import Reserva
 
 class PropiedadViewSet(viewsets.ModelViewSet):
     queryset = Propiedad.objects.all()

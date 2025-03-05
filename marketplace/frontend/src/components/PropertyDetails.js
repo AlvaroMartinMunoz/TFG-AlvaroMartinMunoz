@@ -1,6 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, Icon } from '@mui/material';
-import NavBar from './NavBar';
-import Footer from './Footer';
+import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Carousel from 'react-material-ui-carousel';
@@ -8,10 +6,13 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import refreshAccessToken from './RefreshToken';
-import { LocalizationProvider, PickersDay } from '@mui/x-date-pickers';
+import { LocalizationProvider, PickersDay, StaticDatePicker } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { DatePicker } from '@mui/x-date-pickers';
-import { StaticDatePicker } from '@mui/x-date-pickers-pro';
+import 'react-dates/initialize';
+import 'react-dates/lib/css/_datepicker.css';
+import { DateRangePicker } from 'react-dates';
+import moment from 'moment';
+
 
 const PropertyDetails = () => {
     const { propiedadId } = useParams();
@@ -26,12 +27,18 @@ const PropertyDetails = () => {
     const [selectedDates, setSelectedDates] = useState([]);
     const [openUnblockDatePicker, setOpenUnblockDatePicker] = useState(false);
     const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
+    const [openReserveDatePicker, setOpenReserveDatePicker] = useState(false);
+    const [reserveStartDate, setReserveStartDate] = useState(null);
+    const [reserveEndDate, setReserveEndDate] = useState(null);
+    const [focusedInput, setFocusedInput] = useState(null);
 
     useEffect(() => {
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
         fetchBlockedDates();
-    }, [propiedadId]);
+        console.log(blockedDates)
+        console.log(propiedadId)
+    }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
 
     const isAuthenticated = () => {
         return localStorage.getItem("accessToken") && localStorage.getItem("refreshToken");
@@ -41,6 +48,19 @@ const PropertyDetails = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
+    };
+
+    const handleOpenReserveDatePicker = () => {
+        setOpenReserveDatePicker(true);
+    };
+
+    const handleCloseReserveDatePicker = () => {
+        setOpenReserveDatePicker(false);
+    };
+
+    const handleReserveDateChange = ({ startDate, endDate }) => {
+        setReserveStartDate(startDate);
+        setReserveEndDate(endDate);
     };
 
     const handleOpenUnblockDatePicker = () => {
@@ -113,13 +133,22 @@ const PropertyDetails = () => {
         setSelectedFotoIndex((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
     };
 
-    const fetchBlockedDates = async () => {
+    const fetchBlockedDates = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/");
+            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/")
+            if (response.status === 401 && retried == false) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    fetchBlockedDates(retried = true);
+                } else {
+                    handleLogout();
+                }
+            }
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((fecha) => fecha.propiedad === parseInt(propiedadId));
                 setBlockedDates(filteredData);
+                console.log(blockedDates);
             }
         } catch (error) {
             console.error(error);
@@ -281,8 +310,9 @@ const PropertyDetails = () => {
                         <Typography variant="body1" color="text.secondary">
                             {propiedad?.direccion}, {propiedad?.ciudad}, {propiedad?.pais}
                         </Typography>
-                        {esAnfitrion && isAuthenticated() && (
-                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)}
+                        {esAnfitrion && isAuthenticated() ? (
+                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)
+                            : <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={handleOpenReserveDatePicker} > Reservar</Button>}
 
                     </Box>
                 </Box>
@@ -461,6 +491,30 @@ const PropertyDetails = () => {
                             />
                         </LocalizationProvider>
                         <Button variant="contained" color="primary" onClick={handleConfirmUnblockDate}>
+                            Confirmar
+                        </Button>
+                    </Box>
+                </Modal>
+                <Modal open={openReserveDatePicker} onClose={handleCloseReserveDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                        <IconButton onClick={handleCloseReserveDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                            <CloseIcon />
+                        </IconButton>
+                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                            Seleccionar fecha para Reservar
+                        </Typography>
+                        <DateRangePicker
+                            startDate={reserveStartDate}
+                            startDateId="start_date_id"
+                            endDate={reserveEndDate}
+                            endDateId="end_date_id"
+                            onDatesChange={handleReserveDateChange}
+                            focusedInput={focusedInput}
+                            onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
+                            minimumNights={1}
+                            isOutsideRange={(date) => date.isBefore(moment()) || blockedDates.some((fecha) => moment(fecha.fecha).isSame(date, 'day'))}
+                        />
+                        <Button variant="contained" color="primary" onClick={handleCloseReserveDatePicker}>
                             Confirmar
                         </Button>
                     </Box>
