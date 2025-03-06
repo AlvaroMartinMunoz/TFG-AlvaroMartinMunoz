@@ -10,11 +10,10 @@ import { LocalizationProvider, PickersDay, StaticDatePicker } from '@mui/x-date-
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
-import { DateRangePicker } from 'react-dates';
+import { DateRangePicker, DayPickerSingleDateController } from 'react-dates';
 import moment from 'moment';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import zIndex from '@mui/material/styles/zIndex';
 
 
 const PropertyDetails = () => {
@@ -27,7 +26,6 @@ const PropertyDetails = () => {
     const [openManageDates, setOpenManageDates] = useState(false);
     const [blockedDates, setBlockedDates] = useState([]);
     const [openDatePicker, setOpenDatePicker] = useState(false);
-    const [selectedDates, setSelectedDates] = useState([]);
     const [openUnblockDatePicker, setOpenUnblockDatePicker] = useState(false);
     const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
     const [openReserveDatePicker, setOpenReserveDatePicker] = useState(false);
@@ -38,6 +36,7 @@ const PropertyDetails = () => {
     const [metodoPago, setMetodoPago] = useState("Tarjeta de crédito");
     const [comentarios_usuario, setComentariosUsuario] = useState("");
     const [reservas, setReservas] = useState([]);
+    const [selectedBlockDates, setSelectedBlockDates] = useState([]);
 
 
     useEffect(() => {
@@ -115,23 +114,29 @@ const PropertyDetails = () => {
         setOpenDatePicker(false);
     };
 
-    const handleDateChange = (date) => {
-        setSelectedDates((prevDates) => {
-            const dateStr = date.toLocaleDateString('en-CA');
-            if (prevDates.some((d) => d.toLocaleDateString('en-CA') === dateStr)) {
-                return prevDates.filter((d) => d.toLocaleDateString('en-CA') !== dateStr);
+    const handleBlockDateChange = (date) => {
+        const dateStr = date.format('YYYY-MM-DD');
+        setSelectedBlockDates((prevDates) => {
+            if (prevDates.includes(dateStr)) {
+                return prevDates.filter((d) => d !== dateStr);
             } else {
-                return [...prevDates, date];
+                return [...prevDates, dateStr];
             }
         });
     };
 
-    const handleConfirmBlockDate = () => {
-        selectedDates.forEach((date) => handleBlockDate(date.toLocaleDateString('en-CA')));
-        setSelectedDates([]);
-        handleCloseDatePicker();
-    }
+    const handleFocusChange = (focusedInput) => {
+        setFocusedInput(focusedInput);
+    };
 
+    const handleConfirmBlockDate = async () => {
+
+        for (const date of selectedBlockDates) {
+            await handleBlockDate(date);
+        }
+        setSelectedBlockDates([]);
+        handleCloseDatePicker();
+    };
 
 
     const handleClickOpen = (index) => {
@@ -560,32 +565,27 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
                 <Modal open={openDatePicker} onClose={handleCloseDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
+                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2, alignItems: 'center' }}>
                         <IconButton onClick={handleCloseDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
-                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                            Seleccionar fecha para Bloquear
-                        </Typography>
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <StaticDatePicker
-                                displayStaticWrapperAs="desktop"
-                                openTo='day'
-                                value={selectedDates.length ? selectedDates[0] : new Date()}
-                                onChange={handleDateChange}
-                                renderInput={(params) => <TextField {...params} />}
-                                disablePast
-                                shouldDisableDate={(date) => blockedDates.some((fecha) => fecha.fecha === date.toLocaleDateString('en-CA'))}
-                                renderDay={(day, _value, DayComponentProps) => {
-                                    const dateStr = day.toLocaleDateString('en-CA');
-                                    const isSelected = selectedDates.some((date) => date.toLocaleDateString('en-CA') === dateStr);
-                                    return (<PickersDay {...DayComponentProps} selected={isSelected} />);
-                                }}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center' }}>
+                            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                                Seleccionar fecha para Bloquear
+                            </Typography>
+                            <DayPickerSingleDateController
+                                date={null}
+                                onDateChange={handleBlockDateChange}
+                                focused={true}
+                                onFocusChange={handleFocusChange}
+                                isDayHighlighted={(date) => selectedBlockDates.includes(date.format('YYYY-MM-DD'))}
+                                isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
+                                hideKeyboardShortcutsPanel
                             />
-                        </LocalizationProvider>
-                        <Button variant="contained" color="primary" onClick={handleConfirmBlockDate}>
-                            Confirmar
-                        </Button>
+                            <Button variant="contained" color="primary" onClick={handleConfirmBlockDate}>
+                                Confirmar
+                            </Button>
+                        </Box>
                     </Box>
                 </Modal>
                 <Modal open={openUnblockDatePicker} onClose={handleCloseUnblockDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
@@ -635,6 +635,9 @@ const PropertyDetails = () => {
                             onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
                             minimumNights={1}
                             isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
+                            hideKeyboardShortcutsPanel
+                            required
+
                         />
                         <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
                             <Typography variant="h8" component="span">Numero de huespedes:</Typography>
@@ -699,5 +702,6 @@ const PropertyDetails = () => {
         </Box >
     );
 };
+
 
 export default PropertyDetails;
