@@ -333,6 +333,7 @@ const PropertyDetails = () => {
             numero_personas: numPersonas,
             metodo_pago: metodoPago,
             precio_total: precioTotal,
+            comentarios_usuario: comentarios_usuario,
         };
 
         try {
@@ -617,7 +618,7 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
                 <Modal open={openReserveDatePicker} onClose={handleCloseReserveDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2, flexDirection: 'column', display: "flex", alignItems: "center" }}>
+                    <Box sx={{ position: 'relative', width: '60vw', height: '90vh', bgcolor: "background.paper", p: 4, borderRadius: 2, flexDirection: 'column', display: "flex", alignItems: "center" }}>
                         <IconButton onClick={handleCloseReserveDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>

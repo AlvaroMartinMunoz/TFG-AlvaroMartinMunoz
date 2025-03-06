@@ -3,6 +3,7 @@ from .propiedad import Propiedad
 from django.core.exceptions import ValidationError
 from usuario.models.usuario import Usuario
 
+
 class Reserva(models.Model):
 
     ESTADOS_DE_RESERVA = [
@@ -30,7 +31,6 @@ class Reserva(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_aceptacion = models.DateTimeField(blank=True, null=True)  
     comentarios_usuario = models.TextField(blank=True, null=True, help_text='Introduzca un comentario para el anfitrión.')
-    comentarios_anfitrion = models.TextField(blank=True, null=True, help_text='Introduzca un comentario para el usuario.')
     
     def __str__(self):
         return f'{self.propiedad.nombre} - {self.usuario.username}'
