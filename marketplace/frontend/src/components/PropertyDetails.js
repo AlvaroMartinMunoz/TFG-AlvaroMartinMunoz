@@ -27,7 +27,6 @@ const PropertyDetails = () => {
     const [blockedDates, setBlockedDates] = useState([]);
     const [openDatePicker, setOpenDatePicker] = useState(false);
     const [openUnblockDatePicker, setOpenUnblockDatePicker] = useState(false);
-    const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
     const [openReserveDatePicker, setOpenReserveDatePicker] = useState(false);
     const [reserveStartDate, setReserveStartDate] = useState(null);
     const [reserveEndDate, setReserveEndDate] = useState(null);
@@ -37,14 +36,19 @@ const PropertyDetails = () => {
     const [comentarios_usuario, setComentariosUsuario] = useState("");
     const [reservas, setReservas] = useState([]);
     const [selectedBlockDates, setSelectedBlockDates] = useState([]);
+    const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
+
 
 
     useEffect(() => {
+        if (isAuthenticated()) {
+
+            fetchBlockedDates();
+            fetchReservas();
+            refreshAccessToken();
+        }
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
-        fetchBlockedDates();
-        fetchReservas();
-        refreshAccessToken();
 
     }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
 
@@ -90,18 +94,18 @@ const PropertyDetails = () => {
     };
 
     const handleUnblockDateChange = (date) => {
+        const dateStr = date.format('YYYY-MM-DD');
         setSelectedUnblockDates((prevDates) => {
-            const dateStr = date.toLocaleDateString('en-CA');
-            if (prevDates.some((d) => d.toLocaleDateString('en-CA') === dateStr)) {
-                return prevDates.filter((d) => d.toLocaleDateString('en-CA') !== dateStr);
+            if (prevDates.includes(dateStr)) {
+                return prevDates.filter((d) => d !== dateStr);
             } else {
-                return [...prevDates, date];
+                return [...prevDates, dateStr];
             }
         });
     };
 
     const handleConfirmUnblockDate = () => {
-        selectedUnblockDates.forEach((date) => handleUnblockDate(date.toLocaleDateString('en-CA')));
+        selectedUnblockDates.forEach((date) => handleUnblockDate(date));
         setSelectedUnblockDates([]);
         handleCloseUnblockDatePicker();
     };
@@ -314,6 +318,21 @@ const PropertyDetails = () => {
             return;
         }
 
+        const startDate = moment(reserveStartDate);
+        const endDate = moment(reserveEndDate);
+        const datesBetween = [];
+        let currentDate = startDate.clone();
+        while (currentDate.isBefore(endDate) || currentDate.isSame(endDate, 'day')) {
+            datesBetween.push(currentDate.format('YYYY-MM-DD'));
+            currentDate.add(1, 'day');
+        }
+
+        const hasBlockedDates = datesBetween.some((date) => allBlockedDates.includes(date));
+
+        if (hasBlockedDates) {
+            alert('Las fechas seleccionadas no están disponibles porque tienen que ser días seguidos');
+            return;
+        }
 
         const formattedStartDate = moment(reserveStartDate).format('YYYY-MM-DD');
         const formattedEndDate = moment(reserveEndDate).format('YYYY-MM-DD');
@@ -596,62 +615,57 @@ const PropertyDetails = () => {
                         <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
                             Seleccionar fecha para Desbloquear
                         </Typography>
-                        <LocalizationProvider dateAdapter={AdapterDateFns}>
-                            <StaticDatePicker
-                                displayStaticWrapperAs="desktop"
-                                openTo='day'
-                                value={selectedUnblockDates}
-                                onChange={handleUnblockDateChange}
-                                renderInput={(params) => <TextField {...params} />}
-                                disablePast
-                                shouldDisableDate={(date) => !blockedDates.some((fecha) => fecha.fecha === date.toLocaleDateString('en-CA'))}
-                                renderDay={(day, _value, DayComponentProps) => {
-                                    const dateStr = day.toLocaleDateString('en-CA');
-                                    const isSelected = selectedUnblockDates?.some((date) => date.toLocaleDateString('en-CA') === dateStr);
-                                    return (<PickersDay {...DayComponentProps} selected={isSelected} />);
-                                }}
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, justifyContent: "center", alignItems: "center" }}>
+                            <DayPickerSingleDateController
+                                date={null}
+                                onDateChange={handleUnblockDateChange}
+                                focused={true}
+                                onFocusChange={handleFocusChange}
+                                isDayHighlighted={(date) => selectedUnblockDates.includes(date.format('YYYY-MM-DD'))}
+                                isOutsideRange={(date) => date.isBefore(moment()) || !blockedDates.some((blockedDate) => moment(blockedDate.fecha).isSame(date, 'day'))}
+                                hideKeyboardShortcutsPanel
                             />
-                        </LocalizationProvider>
-                        <Button variant="contained" color="primary" onClick={handleConfirmUnblockDate}>
-                            Confirmar
-                        </Button>
+                            <Button variant="contained" color="primary" onClick={handleConfirmUnblockDate}>
+                                Confirmar
+                            </Button>
+                        </Box>
+
                     </Box>
                 </Modal>
                 <Modal open={openReserveDatePicker} onClose={handleCloseReserveDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '60vw', height: '90vh', bgcolor: "background.paper", p: 4, borderRadius: 2, flexDirection: 'column', display: "flex", alignItems: "center" }}>
+                    <Box sx={{ position: 'relative', width: '50vw', maxWidth: '600px', bgcolor: "background.paper", p: 4, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: 24 }}>
                         <IconButton onClick={handleCloseReserveDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
                             <CloseIcon />
                         </IconButton>
                         <Typography variant="h5" sx={{ mb: 4, fontWeight: 600 }}>
                             Seleccionar fecha para Reservar
                         </Typography>
-                        <DateRangePicker
-                            startDate={reserveStartDate}
-                            startDateId="start_date_id"
-                            endDate={reserveEndDate}
-                            endDateId="end_date_id"
-                            onDatesChange={handleReserveDateChange}
-                            focusedInput={focusedInput}
-                            onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
-                            minimumNights={1}
-                            isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
-                            hideKeyboardShortcutsPanel
-                            required
-
-                        />
-                        <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-                            <Typography variant="h8" component="span">Numero de huespedes:</Typography>
-
-                            <IconButton onClick={handleDecrement}>
+                        <Box sx={{ zIndex: 1300 }}>
+                            <DateRangePicker
+                                startDate={reserveStartDate}
+                                startDateId="start_date_id"
+                                endDate={reserveEndDate}
+                                endDateId="end_date_id"
+                                onDatesChange={handleReserveDateChange}
+                                focusedInput={focusedInput}
+                                onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
+                                minimumNights={1}
+                                isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
+                                hideKeyboardShortcutsPanel
+                                required
+                            />
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
+                            <Typography variant="body1" component="span">Número de huéspedes:</Typography>
+                            <IconButton onClick={handleDecrement} sx={{ mx: 1 }}>
                                 <RemoveIcon />
                             </IconButton>
-                            <Typography sx={{ mx: 1 }}>
-                                {numPersonas}</Typography>
-                            <IconButton onClick={handleIncrement}>
+                            <Typography variant="body1" component="span">{numPersonas}</Typography>
+                            <IconButton onClick={handleIncrement} sx={{ mx: 1 }}>
                                 <AddIcon />
                             </IconButton>
                         </Box>
-                        <FormControl sx={{ mt: 2 }}>
+                        <FormControl sx={{ mt: 2, width: '100%' }}>
                             <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
                             <Select
                                 id="metodo-pago"
@@ -659,7 +673,6 @@ const PropertyDetails = () => {
                                 value={metodoPago}
                                 onChange={(e) => setMetodoPago(e.target.value)}
                                 label="Método de Pago"
-                                sx={{ width: 250 }}
                             >
                                 <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
                                 <MenuItem value="PayPal">Paypal</MenuItem>
@@ -668,11 +681,10 @@ const PropertyDetails = () => {
                         </FormControl>
                         <Typography variant="body2" component="span" sx={{ mt: 2 }}>Comentario sobre la reserva:</Typography>
                         <TextField
-
                             value={comentarios_usuario}
                             onChange={(e) => setComentariosUsuario(e.target.value)}
                             multiline
-                            sx={{ mt: 0, width: 250 }}
+                            sx={{ mt: 1, width: '100%' }}
                         />
                         {reserveStartDate && reserveEndDate && (
                             <>
@@ -688,11 +700,10 @@ const PropertyDetails = () => {
                             </>
                         )}
                         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mt: 2 }}>
-                            <Button sx={{}} variant="contained" color="error" onClick={handleCloseReserveDatePicker}>
+                            <Button variant="contained" color="error" onClick={handleCloseReserveDatePicker}>
                                 Cancelar
                             </Button>
-
-                            <Button sx={{}} variant="contained" color="primary" onClick={handleConfirmReserve}>
+                            <Button variant="contained" color="primary" onClick={handleConfirmReserve}>
                                 Confirmar
                             </Button>
                         </Box>

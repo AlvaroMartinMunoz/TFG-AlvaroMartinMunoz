@@ -18,6 +18,7 @@ import Profile from "./components/Profile";
 import MyProperties from "./components/MyProperties";
 import CreateProperty from "./components/CreateProperty";
 import PropertyDetails from "./components/PropertyDetails";
+import MyReserves from "./components/MyReserves";
 import EditProperty from "./components/EditProperty";
 
 const theme = createTheme({
@@ -46,6 +47,7 @@ function App() {
                 <Route path="/crear-propiedad" element={<PrivateRoute component={CreateProperty} />} />
                 <Route path="/detalles/:propiedadId" element={<PropertyDetails />} />
                 <Route path="/editar-propiedad/:propiedadId" element={<PrivateRoute component={EditProperty} />} />
+                <Route path="/mis-reservas" element={<PrivateRoute component={MyReserves} />} />
               </Routes>
             </Container>
             <Footer />

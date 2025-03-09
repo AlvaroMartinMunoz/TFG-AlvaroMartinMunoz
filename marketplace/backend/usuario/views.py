@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import IsAuthenticated, AllowAny
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -16,6 +17,28 @@ class UserViewSet(viewsets.ModelViewSet):
 class UsuarioViewSet(viewsets.ModelViewSet):
     queryset = Usuario.objects.all()
     serializer_class = UsuarioSerializer
+
+    def get_permissions(self):
+        if self.action in ['update', 'partial_update', 'destroy']:
+            return [IsAuthenticated()]
+        return [AllowAny()]
+    
+    def update(self, request, *args, **kwargs):
+        usuario = self.get_object()
+        usuarioId = usuario.usuario.id
+        userId = request.user.id 
+
+        if usuarioId != userId:
+            return Response({'error': 'No tienes permiso para editar este usuario'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):    
+        usuario = self.get_object()
+        usuarioId = usuario.usuario.id
+        userId = request.user.id 
+        if usuarioId != userId:
+            return Response({'error': 'No tienes permiso para eliminar este usuario'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
 
 class ValoracionUsuarioViewSet(viewsets.ModelViewSet):
     queryset = ValoracionUsuario.objects.all()
