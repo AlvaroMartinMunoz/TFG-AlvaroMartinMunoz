@@ -349,6 +349,7 @@ const PropertyDetails = () => {
 
         const reservationData = {
             usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
+            anfitrion: propiedad.anfitrion,
             propiedad: propiedadId,
             fecha_llegada: formattedStartDate,
             fecha_salida: formattedEndDate,

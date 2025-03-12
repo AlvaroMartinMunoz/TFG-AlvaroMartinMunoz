@@ -20,6 +20,7 @@ import CreateProperty from "./components/CreateProperty";
 import PropertyDetails from "./components/PropertyDetails";
 import MyReserves from "./components/MyReserves";
 import EditProperty from "./components/EditProperty";
+import MyReservationRequests from "./components/MyReservationRequests";
 
 const theme = createTheme({
   palette: {
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/detalles/:propiedadId" element={<PropertyDetails />} />
                 <Route path="/editar-propiedad/:propiedadId" element={<PrivateRoute component={EditProperty} />} />
                 <Route path="/mis-reservas" element={<PrivateRoute component={MyReserves} />} />
+                <Route path="solicitudes-de-reserva" element={<PrivateRoute component={MyReservationRequests} />} />
               </Routes>
             </Container>
             <Footer />

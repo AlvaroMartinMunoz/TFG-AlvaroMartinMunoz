@@ -20,6 +20,7 @@ class Reserva(models.Model):
 
 
     propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='reservas')
+    anfitrion = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='reservas_anfitrion')
     usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='reservas')
     fecha_llegada = models.DateField(blank=False, null=False, help_text='Introduzca la fecha de llegada.')
     fecha_salida = models.DateField(blank=False, null=False, help_text='Introduzca la fecha de salida.')

@@ -286,6 +286,8 @@ const NavBar = () => {
               <>
                 <MenuItem onClick={() => { window.location.href = "/perfil"; handleClose(); }}>Perfil</MenuItem>
                 <MenuItem onClick={() => { window.location.href = "/mis-propiedades"; handleClose(); }}>Mis propiedades</MenuItem>
+                <MenuItem onClick={() => { window.location.href = "/mis-reservas"; handleClose(); }}>Mis reservas</MenuItem>
+                <MenuItem onClick={() => { window.location.href = "/solicitudes-de-reserva"; handleClose(); }}>Solicitudes de reserva</MenuItem>
                 <MenuItem onClick={handleLogOut}>Cerrar Sesion</MenuItem>
               </>
             )}

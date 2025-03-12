@@ -1,6 +1,11 @@
-import { Box, CircularProgress, Container, Paper, Typography } from "@mui/material";
-import { useState, useEffect } from "react";
+import { Accordion, Box, CircularProgress, Container, Paper, Typography, AccordionSummary, TextField, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+import { useState, useEffect, use } from "react";
 import refreshAccessToken from "./RefreshToken";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { AccordionDetails } from "@mui/material";
+import { DayPicker, DayPickerSingleDateController } from "react-dates";
+import { da } from "date-fns/locale";
+import { set } from "date-fns";
 
 
 const MyReserves = () => {
@@ -10,12 +15,44 @@ const MyReserves = () => {
     const [url, setUrl] = useState([]);
     const [imageLoading, setImageLoading] = useState({});
     const [loading, setLoading] = useState(true);
+    const [misReservasFiltradas, setMisReservasFiltradas] = useState([]);
+    const [estado, setEstado] = useState("");
+    const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
+
+    useEffect(() => {
+        if (misReservas.length !== 0) {
+            const filteredReserves = misReservas.filter((reserva) => {
+                return (!estado || reserva.estado === estado);
+            });
+            const sortedReserves = filteredReserves.sort((a, b) => {
+                const dateA = new Date(a.fecha_llegada);
+                const dateB = new Date(b.fecha_llegada);
+                if (isNaN(dateA) || isNaN(dateB)) {
+                    return 0;
+                }
+                if (ordenFechaLLegada === "asc") {
+                    return dateA - dateB;
+                } else {
+                    return dateB - dateA;
+                }
+            });
+            setMisReservasFiltradas(sortedReserves);
+        }
+    }, [estado, misReservas, ordenFechaLLegada]);
+
+    const handleEstadoChange = (e) => {
+        setEstado(e.target.value);
+    };
+
+
 
 
     useEffect(() => {
         fethReservas();
-        console.log(misReservas);
+        const intervalId = setInterval(fethReservas, 60000);
+        return () => clearInterval(intervalId);
     }
+
         , []);
 
     useEffect(() => {
@@ -58,6 +95,7 @@ const MyReserves = () => {
                 const dataFiltered = data.filter(reserva => reserva.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
                 setMisReservas(dataFiltered);
                 fetchProperties(dataFiltered);
+                console.log(dataFiltered);
 
             } else {
                 console.log("Error al obtener las reservas");
@@ -125,50 +163,88 @@ const MyReserves = () => {
         <Box sx={{ display: 'flex', minHeight: '80vh', flexDirection: 'column', backgroundColor: '#f4f7fc', width: '100%' }}>
             <Container sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', width: '100%' }}>
                 <Typography variant="h4" sx={{ mt: 2, mb: 2 }}>Mis Reservas</Typography>
-                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
-                    {misReservas?.map((reserva, index) => {
-                        const propiedad = propiedades[reserva.propiedad];
-                        return (
-                            <Paper key={index}
-                                elevation={3}
-                                sx={{
-                                    backgroundColor: "white",
-                                    flex: "0 0 calc(27.333% - 16px)",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    borderRadius: 2,
-                                    overflow: "hidden",
-                                    mt: 2,
-                                    mr: 2,
-                                    ml: 2,
-                                }}>
-                                {imageLoading[propiedad?.id] ? (
-                                    <CircularProgress />
-                                ) : (
-                                    <img src={url[propiedad?.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+                {misReservas?.length !== 0 ? (
+                    <Accordion sx={{ width: "100%" }}>
+                        <AccordionSummary
+                            expandIcon={<ExpandMoreIcon />}>
+                            <Typography variant="h6">Filtros</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Box sx={{ display: "flex", flexDirection: "row", width: "100%" }}>
+                                <FormControl fullWidth sx={{ mb: 2 }} size="small">
+                                    <InputLabel>Estado</InputLabel>
+                                    <Select name="estado" value={estado} onChange={handleEstadoChange}>
+                                        <MenuItem value=""><em>None</em></MenuItem>
+                                        <MenuItem value="Pendiente">Pendiente</MenuItem>
+                                        <MenuItem value="Confirmada">Confirmada</MenuItem>
+                                        <MenuItem value="Cancelada">Cancelada</MenuItem>
+                                    </Select>
+                                </FormControl>
+                                <FormControl fullWidth sx={{ mb: 2 }} size="small">
+                                    <InputLabel>Ordenar por fecha de llegada</InputLabel>
+                                    <Select
+                                        value={ordenFechaLLegada}
+                                        label="Ordenar por fecha de llegada"
+                                        onChange={(e) => setOrdenFechaLLegada(e.target.value)}
+                                    >
+                                        <MenuItem value="asc">Ascendente</MenuItem>
+                                        <MenuItem value="desc">Descendente</MenuItem>
+                                    </Select>
+                                </FormControl>
+                            </Box>
+                        </AccordionDetails>
+                    </Accordion>
+                ) : null}
 
-                                )}
-                                <Box sx={{ p: 2, width: "100%" }}>
-                                    <Typography variant="h6" gutterBottom> <a
-                                        href={`/detalles/${propiedad?.id}`}
-                                        style={{ textDecoration: "none", color: "inherit" }}>{propiedad?.nombre}</a></Typography>
-                                    <Typography variant="body2" gutterBottom><strong>Fecha de inicio:</strong> {reserva?.fecha_salida}</Typography>
-                                    <Typography variant="body2" gutterBottom>Fecha de fin: {reserva?.fecha_salida}</Typography>
-                                    <Typography variant="body2" gutterBottom>Método de Pago: {reserva?.metodo_pago}</Typography>
-                                    <Typography variant="body2" gutterBottom>Precio total: {reserva?.precio_total}€</Typography>
-                                    <Typography variant="body2" gutterBottom>Estado: {reserva?.estado}</Typography>
-                                </Box>
+                {misReservas.length === 0 ? (
+                    <Typography variant="h6" sx={{}}>No tienes reservas</Typography>
+                ) : (
+                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
+                        {misReservasFiltradas?.map((reserva, index) => {
+                            const propiedad = propiedades[reserva.propiedad];
+                            return (
+                                <Paper key={index}
+                                    elevation={3}
+                                    sx={{
+                                        backgroundColor: "white",
+                                        flex: "0 0 calc(27.333% - 16px)",
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        justifyContent: "center",
+                                        alignItems: "center",
+                                        borderRadius: 2,
+                                        overflow: "hidden",
+                                        mt: 2,
+                                        mr: 2,
+                                        ml: 2,
+                                    }}>
+                                    {imageLoading[propiedad?.id] ? (
+                                        <CircularProgress />
+                                    ) : (
+                                        <img src={url[propiedad?.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+
+                                    )}
+                                    <Box sx={{ p: 2, width: "100%" }}>
+                                        <Typography variant="h6" gutterBottom> <a
+                                            href={`/detalles/${propiedad?.id}`}
+                                            style={{ textDecoration: "none", color: "inherit" }}><strong>{propiedad?.nombre}</strong></a></Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Fecha de inicio:</strong> {reserva?.fecha_salida}</Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Fecha de fin: </strong>{reserva?.fecha_salida}</Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Método de Pago: </strong>{reserva?.metodo_pago}</Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Precio total: </strong> {reserva?.precio_total}€</Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Estado: </strong>{reserva?.estado}</Typography>
+                                    </Box>
 
 
-                            </Paper>
-                        );
-                    })}
-                </Box>
+                                </Paper>
+                            );
+                        })}
+                    </Box>
+                )}
             </Container>
         </Box>
     );
 };
+
 
 export default MyReserves;

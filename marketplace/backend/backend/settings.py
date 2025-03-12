@@ -74,6 +74,21 @@ TEMPLATES = [
     },
 ]
 
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),  # Tiempo de vida del token de acceso
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),     # Tiempo de vida del token de refresco
+    'ROTATE_REFRESH_TOKENS': False,                  # Si se rota el refresh token
+    'BLACKLIST_AFTER_ROTATION': False,               # Si se desactiva un refresh token después de rotarlo
+    'ALGORITHM': 'HS256',                            # Algoritmo de encriptación
+    'SIGNING_KEY': 'your-secret-key',                # Tu clave secreta (asegúrate de mantenerla segura)
+    'VERIFYING_KEY': None,                           # Llave pública para verificar los tokens
+    'AUDIENCE': None,                                # (Opcional) Público del token
+    'ISSUER': None,                                  # (Opcional) Emisor del token
+}
+
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
 
