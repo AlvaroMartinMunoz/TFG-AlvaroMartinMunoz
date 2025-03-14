@@ -26,7 +26,7 @@ const MyReservationRequests = () => {
     useEffect(() => {
         if (solicitudes.length !== 0) {
             const filteredSolicitudes = solicitudes.filter((solicitud) => {
-                return (!estado || solicitud.estado === estado);
+                return (estado === "" || solicitud.estado === estado);
             });
             const sortedSolicitudes = filteredSolicitudes.sort((a, b) => {
                 if (ordenFechaLLegada === "asc") {
@@ -36,8 +36,9 @@ const MyReservationRequests = () => {
                 }
             });
             setSolicitudesFiltradas(sortedSolicitudes);
+            console.log(estado);
         }
-    }, [estado, ordenFechaLLegada]);
+    }, [estado, ordenFechaLLegada, solicitudes]);
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
@@ -202,7 +203,7 @@ const MyReservationRequests = () => {
                                         <Select name="estado" value={estado} onChange={handleEstadoChange}>
                                             <MenuItem value=""><em>None</em></MenuItem>
                                             <MenuItem value="Pendiente">Pendiente</MenuItem>
-                                            <MenuItem value="Confirmada">Confirmada</MenuItem>
+                                            <MenuItem value="Aceptada">Confirmada</MenuItem>
                                             <MenuItem value="Cancelada">Cancelada</MenuItem>
                                         </Select>
                                     </FormControl>
@@ -223,40 +224,44 @@ const MyReservationRequests = () => {
                     ) : null}
                     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>
                         {solicitudes.length === 0 ? (
-                            <Typography variant="h6">No tienes solicitudes de reserva</Typography>
+                            <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No tienes solicitudes de reserva</Typography>
                         ) : (
-                            solicitudesFiltradas.map((solicitud) => {
-                                const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
-                                return (
-                                    <Box key={solicitud.id} sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%" }}>
-                                        <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "80%" }}>
-                                            <Paper sx={{ width: "100%", padding: 2, marginBottom: 2, display: "flex", alignItems: "center", boxShadow: 3 }} elevation={3}>
-                                                <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", width: "100%" }}>
-                                                    <Box sx={{ width: "150px", height: "150px", marginRight: 2 }}>
-                                                        <img src={urls.find((url) => url.propiedad === solicitud.propiedad)?.foto || "ruta-a-imagen-por-defecto.jpg"} alt="propiedad" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
-                                                    </Box>
-                                                    <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                                                        <Typography variant="h6" sx={{ fontWeight: "bold" }}>{propiedad ? propiedad.nombre : solicitud.propiedad}</Typography>
-                                                        <Typography variant="body1"><strong>Fecha de inicio:</strong> {solicitud.fecha_llegada}</Typography>
-                                                        <Typography variant="body1"><strong>Fecha de fin:</strong> {solicitud.fecha_salida}</Typography>
-                                                        <Typography variant="body1"><strong>Estado:</strong> {solicitud.estado}</Typography>
-                                                    </Box>
-                                                    {solicitud.estado === "Aceptada" ? (
-                                                        <Typography variant="body1" sx={{ fontWeight: "bold", color: "green", marginLeft: 2 }}>Aceptada</Typography>
-                                                    ) : solicitud.estado === "Cancelada" ? (
-                                                        <Typography variant="body1" sx={{ fontWeight: "bold", color: "red", marginLeft: 2 }}>Rechazada</Typography>
-                                                    ) : (
-                                                        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginLeft: 2, width: "150px" }}>
-                                                            <Button variant="contained" sx={{ bgcolor: "green", marginBottom: 1, width: "100%" }} onClick={() => handleAccept(solicitud.id)}>Aceptar</Button>
-                                                            <Button variant="contained" sx={{ bgcolor: "red", width: "100%" }} onClick={() => handleDecline(solicitud.id)}>Rechazar</Button>
+                            solicitudesFiltradas.length === 0 ? (
+                                <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No tienes solicitudes de reserva con estos filtros</Typography>
+                            ) : (
+                                solicitudesFiltradas.map((solicitud) => {
+                                    const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
+                                    return (
+                                        <Box key={solicitud.id} sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%" }}>
+                                            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "80%" }}>
+                                                <Paper sx={{ width: "100%", padding: 2, marginBottom: 2, display: "flex", alignItems: "center", boxShadow: 3 }} elevation={3}>
+                                                    <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", width: "100%" }}>
+                                                        <Box sx={{ width: "150px", height: "150px", marginRight: 2 }}>
+                                                            <img src={urls.find((url) => url.propiedad === solicitud.propiedad)?.foto || "ruta-a-imagen-por-defecto.jpg"} alt="propiedad" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
                                                         </Box>
-                                                    )}
-                                                </Box>
-                                            </Paper>
+                                                        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
+                                                            <Typography variant="h6" sx={{ fontWeight: "bold" }}><a style={{ textDecoration: "none", color: "inherit" }} href={`/detalles/${propiedad?.id}`}>{propiedad ? propiedad.nombre : solicitud.propiedad}</a></Typography>
+                                                            <Typography variant="body1"><strong>Fecha de inicio:</strong> {solicitud.fecha_llegada}</Typography>
+                                                            <Typography variant="body1"><strong>Fecha de fin:</strong> {solicitud.fecha_salida}</Typography>
+                                                            <Typography variant="body1"><strong>Estado:</strong> {solicitud.estado}</Typography>
+                                                        </Box>
+                                                        {solicitud.estado === "Aceptada" ? (
+                                                            <Typography variant="body1" sx={{ fontWeight: "bold", color: "green", marginLeft: 2 }}>Aceptada</Typography>
+                                                        ) : solicitud.estado === "Cancelada" ? (
+                                                            <Typography variant="body1" sx={{ fontWeight: "bold", color: "red", marginLeft: 2 }}>Rechazada</Typography>
+                                                        ) : (
+                                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginLeft: 2, width: "150px" }}>
+                                                                <Button variant="contained" sx={{ bgcolor: "green", marginBottom: 1, width: "100%" }} onClick={() => handleAccept(solicitud.id)}>Aceptar</Button>
+                                                                <Button variant="contained" sx={{ bgcolor: "red", width: "100%" }} onClick={() => handleDecline(solicitud.id)}>Rechazar</Button>
+                                                            </Box>
+                                                        )}
+                                                    </Box>
+                                                </Paper>
+                                            </Box>
                                         </Box>
-                                    </Box>
-                                );
-                            })
+                                    );
+                                })
+                            )
                         )}
                     </Box>
                 </Container>

@@ -301,16 +301,17 @@ const PropertyDetails = () => {
 
     const allBlockedDates = [
         ...blockedDates.map((fecha) => fecha.fecha),
-        ...reservas.flatMap((reserva) => {
-            const startDate = moment(reserva.fecha_llegada);
-            const endDate = moment(reserva.fecha_salida);
-            const dates = [];
-            while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
-                dates.push(startDate.format('YYYY-MM-DD'));
-                startDate.add(1, 'day');
-            }
-            return dates;
-        })
+        ...reservas.filter((reserva) => reserva.estado !== "Cancelada")
+            .flatMap((reserva) => {
+                const startDate = moment(reserva.fecha_llegada);
+                const endDate = moment(reserva.fecha_salida);
+                const dates = [];
+                while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
+                    dates.push(startDate.format('YYYY-MM-DD'));
+                    startDate.add(1, 'day');
+                }
+                return dates;
+            })
     ];
 
     const handleConfirmReserve = async (retried = false) => {

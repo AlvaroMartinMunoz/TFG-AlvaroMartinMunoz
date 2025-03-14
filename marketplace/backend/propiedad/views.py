@@ -15,6 +15,10 @@ from .models.reserva import Reserva
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuario.models.usuario import Usuario
 from django.contrib.auth.models import User
+from propiedad.tasks import cancelar_reservas_pendientes
+from datetime import timedelta
+
+cancelar_reservas_pendientes(repeat=86400)
 
 class PropiedadViewSet(viewsets.ModelViewSet):
     queryset = Propiedad.objects.all()

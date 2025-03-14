@@ -228,7 +228,7 @@ const MyReserves = () => {
                                         <Typography variant="h6" gutterBottom> <a
                                             href={`/detalles/${propiedad?.id}`}
                                             style={{ textDecoration: "none", color: "inherit" }}><strong>{propiedad?.nombre}</strong></a></Typography>
-                                        <Typography variant="body2" gutterBottom><strong>Fecha de inicio:</strong> {reserva?.fecha_salida}</Typography>
+                                        <Typography variant="body2" gutterBottom><strong>Fecha de inicio:</strong> {reserva?.fecha_llegada}</Typography>
                                         <Typography variant="body2" gutterBottom><strong>Fecha de fin: </strong>{reserva?.fecha_salida}</Typography>
                                         <Typography variant="body2" gutterBottom><strong>Método de Pago: </strong>{reserva?.metodo_pago}</Typography>
                                         <Typography variant="body2" gutterBottom><strong>Precio total: </strong> {reserva?.precio_total}€</Typography>
