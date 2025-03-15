@@ -118,9 +118,10 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         
         media = ValoracionPropiedad.objects.filter(propiedad=propiedad).aggregate(Avg('valoracion'))['valoracion__avg']
+        reseñas = ValoracionPropiedad.objects.filter(propiedad=propiedad).count()
         if media is None:
             return Response({'mensaje': 'Esta propiedad no tiene valoraciones todavía'}, status=status.HTTP_200_OK)
-        return Response({'media': media}, status=status.HTTP_200_OK)
+        return Response({'media': media, 'reseñas':reseñas}, status=status.HTTP_200_OK)
 
 class FotoPropiedadViewSet(viewsets.ModelViewSet):
     queryset = FotoPropiedad.objects.all()

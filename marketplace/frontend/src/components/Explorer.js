@@ -10,20 +10,18 @@ import {
   InputLabel,
   MenuItem,
   Select,
-  Button,
   Stack,
   TextField,
   Accordion,
   AccordionSummary,
   AccordionDetails,
   CircularProgress,
+  Rating,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { es } from "date-fns/locale";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
 import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
@@ -37,9 +35,10 @@ const Explorer = () => {
   const [propiedadesFiltradas, setPropiedadesFiltradas] = useState([]);
   const [url, setUrl] = useState({});
   const [imageLoading, setImageLoading] = useState({});
+  const [mediaValoraciones, setMediaValoraciones] = useState({});
 
   // Filtros avanzados
-  const [precioRango, setPrecioRango] = useState([0, 5000]);
+  const [precioRango, setPrecioRango] = useState([0, 1000]);
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [habitaciones, setHabitaciones] = useState(0);
   const [camas, setCamas] = useState(0);
@@ -70,8 +69,24 @@ const Explorer = () => {
     setPropiedadesFiltradas(sorted);
     sorted.forEach((propiedad) => {
       fetchPropertyPhotos(propiedad.id);
+      fetchMediaValoraciones(propiedad.id);
     });
   }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio]);
+
+
+  const fetchMediaValoraciones = async (propiedadId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
+      if (response.ok) {
+        const data = await response.json();
+        setMediaValoraciones((prev) => ({ ...prev, [propiedadId]: data.media }));
+      } else {
+        throw new Error("Error al obtener las valoraciones");
+      }
+    } catch (error) {
+      console.error("Error al obtener las valoraciones:", error);
+    }
+  };
 
   const handleIncrement = () => {
     if (numPersonas < 15) setNumPersonas(numPersonas + 1);
@@ -129,6 +144,7 @@ const Explorer = () => {
           minHeight: "80vh",
           display: "flex",
           flexDirection: "column",
+          minWidth: "100vw",
         }}
       >
         <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -199,7 +215,7 @@ const Explorer = () => {
                       onChange={(e, newValue) => setPrecioRango(newValue)}
                       valueLabelDisplay="auto"
                       min={0}
-                      max={5000}
+                      max={1000}
                     />
                     <FormControl fullWidth>
                       <InputLabel>Tipo de Propiedad</InputLabel>
@@ -327,6 +343,7 @@ const Explorer = () => {
                     <Typography variant="body1" sx={{ fontWeight: "bold" }}>
                       {propiedad.precio_por_noche}€/noche
                     </Typography>
+                    <Rating value={mediaValoraciones[propiedad.id] !== undefined ? mediaValoraciones[propiedad.id] : 0} precision={0.5} readOnly />
                   </Box>
                 </Box>
               ))}

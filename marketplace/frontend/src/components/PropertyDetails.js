@@ -45,6 +45,9 @@ const PropertyDetails = () => {
     const [userRating, setUserRating] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
     const [alertMessage, setAlertMessage] = useState("");
+    const [mediaValoraciones, setMediaValoraciones] = useState(null);
+    const [loadingMedia, setLoadingMedia] = useState(true);
+    const [errorMedia, setErrorMedia] = useState(null);
 
 
 
@@ -58,6 +61,7 @@ const PropertyDetails = () => {
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
         checkUserRating();
+        fetchMediaValoraciones();
 
     }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
 
@@ -68,6 +72,24 @@ const PropertyDetails = () => {
         }
         setAlertMessage("");
         return true;
+    };
+
+    const fetchMediaValoraciones = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
+            if (response.ok) {
+                const data = await response.json();
+                setMediaValoraciones(data);
+                console.log(data);
+            } else {
+                setErrorMedia("No se pudo obtener la media de valoraciones");
+            }
+        } catch (error) {
+            setErrorMedia("No se pudo obtener la media de valoraciones");
+            console.error(error);
+        } finally {
+            setLoadingMedia(false);
+        }
     };
 
     const checkUserRating = async () => {
@@ -568,6 +590,19 @@ const PropertyDetails = () => {
                         <Typography variant="body1" color="text.secondary">
                             {propiedad?.direccion}, {propiedad?.ciudad}, {propiedad?.pais}
                         </Typography>
+                        {loadingMedia ? (
+                            <Typography variant='h5' color='text.secondary'></Typography>
+                        ) : errorMedia ? (
+                            <Typography variant='h5' color='text.secondary'>{errorMedia}</Typography>
+                        ) : (
+                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
+                                <Rating name="read-only" value={mediaValoraciones?.media} readOnly precision={0.25} />
+                                <Typography variant='body1' color='text.secondary'>{mediaValoraciones?.reseñas ? `${mediaValoraciones.reseñas} valoraciones` : '0 valoraciones'}</Typography>
+
+                            </Box>
+                        )
+                        }
+
                         {esAnfitrion && isAuthenticated() ? (
                             <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)
                             : <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={handleOpenReserveDatePicker} > Reservar</Button>}
