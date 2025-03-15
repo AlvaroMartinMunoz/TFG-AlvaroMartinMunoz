@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, FormControl, Input, InputLabel, MenuItem, Select } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, FormControl, Input, InputLabel, MenuItem, Select, Rating } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Carousel from 'react-material-ui-carousel';
@@ -14,6 +14,8 @@ import { DateRangePicker, DayPickerSingleDateController } from 'react-dates';
 import moment from 'moment';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
+import { Alert } from '@mui/material';
+import { set } from 'date-fns';
 
 
 const PropertyDetails = () => {
@@ -37,6 +39,12 @@ const PropertyDetails = () => {
     const [reservas, setReservas] = useState([]);
     const [selectedBlockDates, setSelectedBlockDates] = useState([]);
     const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
+    const [rating, setRating] = useState(0);
+    const [comentario_valoracion, setComentarioValoracion] = useState("");
+    const [hasRated, setHasRated] = useState(false);
+    const [userRating, setUserRating] = useState(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [alertMessage, setAlertMessage] = useState("");
 
 
 
@@ -49,8 +57,71 @@ const PropertyDetails = () => {
         }
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
+        checkUserRating();
 
     }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
+
+    const validateFields = () => {
+        if (rating === 0 || comentario_valoracion.trim() === "") {
+            setAlertMessage("Por favor, complete todos los campos");
+            return false;
+        }
+        setAlertMessage("");
+        return true;
+    };
+
+    const checkUserRating = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/`);
+            if (response.ok) {
+                const data = await response.json();
+                const dataFiltered = data.filter((valoracion) => valoracion.usuario === JSON.parse(localStorage.getItem('additionalInfo')).usuarioId && valoracion.propiedad === parseInt(propiedadId));
+                if (dataFiltered.length > 0) {
+                    setHasRated(true);
+                    setUserRating(dataFiltered[0]);
+                }
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleEditRating = async () => {
+        setIsEditing(true);
+        setRating(userRating.valoracion);
+        setComentarioValoracion(userRating.comentario);
+    };
+
+    const handleUpdateRating = async (propiedadId, retried = false) => {
+        if (!validateFields()) return;
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${userRating.id}/`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    valoracion: rating,
+                    comentario: comentario_valoracion,
+                }),
+            });
+            if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    handleUpdateRating(retried = true, propiedadId);
+                } else {
+                    handleLogout();
+                }
+            } else if (response.ok) {
+                alert('Valoración actualizada correctamente');
+                window.location.reload();
+            }
+
+        } catch (error) {
+            console.error(error);
+        }
+    };
 
     const isAuthenticated = () => {
         return localStorage.getItem("accessToken") && localStorage.getItem("refreshToken");
@@ -60,6 +131,45 @@ const PropertyDetails = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
+    };
+
+    const handleRatingChange = (event, newValue) => {
+        setRating(newValue);
+    };
+
+    const handleSubmitRating = async (propiedadId, retried = false) => {
+        if (!validateFields()) return;
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/valoraciones-propiedades/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    propiedad: propiedadId,
+                    usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
+                    valoracion: rating,
+                    comentario: comentario_valoracion,
+                }),
+            });
+
+            if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    handleSubmitRating(retried = true, propiedadId);
+                } else {
+                    handleLogout();
+                }
+            } else if (response.ok) {
+                alert('Valoración enviada correctamente');
+                window.location.reload();
+            } else {
+                console.error(response);
+            }
+        } catch (error) {
+            console.error(error);
+        }
     };
 
     const handleIncrement = () => {
@@ -545,6 +655,63 @@ const PropertyDetails = () => {
                         </Box>
                     </Box>
                 </Paper>
+                {(isAuthenticated() && esAnfitrion) ? null : (
+                    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid #e0e0e0', mt: 4 }}>
+                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                            Valoración
+                        </Typography>
+                        {alertMessage && (
+                            <Alert severity='error' sx={{ mb: 2 }}>
+                                {alertMessage}
+                            </Alert>
+
+                        )}
+                        {hasRated ? (
+                            isEditing ? (
+                                <Box>
+                                    <Rating name="rating" value={rating} onChange={handleRatingChange} precision={0.5} />
+                                    <TextField
+                                        value={comentario_valoracion}
+                                        onChange={(e) => setComentarioValoracion(e.target.value)}
+                                        multiline
+                                        sx={{ mt: 1, width: '100%' }}
+                                    />
+                                    <Button variant="contained" color="primary" onClick={() => handleUpdateRating(propiedad.id)} sx={{ mt: 2 }}>
+                                        Actualizar Valoración
+                                    </Button>
+                                    <Button variant="outlined" color="secondary" onClick={() => setIsEditing(false)} sx={{ mt: 2, ml: 2 }}>
+                                        Cancelar
+                                    </Button>
+                                </Box>
+                            ) : (
+                                <Box>
+                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                        <Rating name="read-only" value={userRating.valoracion} readOnly precision={0.5} />
+                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                            {userRating.comentario}
+                                        </Typography>
+                                    </Typography>
+                                    <Button variant="contained" color="primary" onClick={handleEditRating}>
+                                        Editar Valoración
+                                    </Button>
+                                </Box>
+                            )
+                        ) : (
+                            <>
+                                <Rating name="rating" value={rating} onChange={handleRatingChange} precision={0.5} />
+                                <TextField
+                                    value={comentario_valoracion}
+                                    onChange={(e) => setComentarioValoracion(e.target.value)}
+                                    multiline
+                                    sx={{ mt: 1, width: '100%' }}
+                                />
+                                <Button variant="contained" color="primary" onClick={() => handleSubmitRating(propiedad.id)} sx={{ mt: 2 }}>
+                                    Enviar Valoración
+                                </Button>
+                            </>
+                        )}
+                    </Paper>
+                )}
                 <Modal open={open} onClose={handleClose} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
                         <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8 }}>

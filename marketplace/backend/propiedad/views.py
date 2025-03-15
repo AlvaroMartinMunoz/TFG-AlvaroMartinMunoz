@@ -18,6 +18,9 @@ from django.contrib.auth.models import User
 from propiedad.tasks import cancelar_reservas_pendientes
 from datetime import timedelta
 from datetime import datetime
+from django.db import IntegrityError
+from django.db.models import Avg
+
 
 cancelar_reservas_pendientes(repeat=86400)
 
@@ -61,6 +64,63 @@ class PropiedadViewSet(viewsets.ModelViewSet):
 class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
     queryset = ValoracionPropiedad.objects.all()
     serializer_class = ValoracionPropiedadSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated()]
+        return [AllowAny()]
+    
+    def create(self, request, *args, **kwargs):
+        propiedad_id = request.data.get('propiedad')
+        usuario_id = request.data.get('usuario')
+        valoracion = request.data.get('valoracion')
+        comentario = request.data.get('comentario', None)
+        usuario = Usuario.objects.filter(id=usuario_id).first()
+
+        if not propiedad_id or not valoracion or not usuario_id or not comentario:
+            return Response({'error': 'Todos los campos son obligatorios'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad_id)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if valoracion < 1 or valoracion > 5:
+            return Response({'error': 'Valoración debe ser un número entre 1 y 5'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if propiedad.anfitrion.usuario_id == request.user.id:
+            return Response({'error': 'No puedes valorar tu propia propiedad'}, status=status.HTTP_403_FORBIDDEN)
+        
+        try:
+            ValoracionPropiedad.objects.create(propiedad=propiedad, usuario=usuario, valoracion=valoracion, comentario=comentario)
+        except IntegrityError:
+            return Response({'error': 'Ya has valorado esta propiedad'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'status': 'valoración creada'}, status=status.HTTP_201_CREATED)
+    
+    
+    def update(self, request, *args, **kwargs):
+        valoracion = self.get_object()
+        user = request.user.id
+        usuarioId = Usuario.objects.filter(usuario=user).first().id
+        propiedad = valoracion.propiedad
+
+        if propiedad.anfitrion.usuario_id == request.user.id:
+            return Response({'error': 'No puedes editar valoraciones de tu propia propiedad'}, status=status.HTTP_403_FORBIDDEN)
+        if valoracion.usuario.id != usuarioId:
+            return Response({'error': 'No tienes permiso para editar esta valoración'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+    
+    @action(detail=True, methods=['get'])
+    def media_valoraciones(self, request, pk=None):
+        try:
+            propiedad = Propiedad.objects.get(id=pk)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        media = ValoracionPropiedad.objects.filter(propiedad=propiedad).aggregate(Avg('valoracion'))['valoracion__avg']
+        if media is None:
+            return Response({'mensaje': 'Esta propiedad no tiene valoraciones todavía'}, status=status.HTTP_200_OK)
+        return Response({'media': media}, status=status.HTTP_200_OK)
 
 class FotoPropiedadViewSet(viewsets.ModelViewSet):
     queryset = FotoPropiedad.objects.all()

@@ -14,8 +14,6 @@ class PropiedadSerializer(serializers.ModelSerializer):
         return obj.valoracion_promedio_propiedad()
         
 class ValoracionPropiedadSerializer(serializers.ModelSerializer):
-    usuario = serializers.StringRelatedField()
-    propiedad = serializers.StringRelatedField()
     class Meta:
         model =  ValoracionPropiedad
         fields = '__all__'
