@@ -141,7 +141,7 @@ const MyReservationRequests = () => {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`
                 },
-                body: JSON.stringify({ estado: "Aceptada", fecha_aceptacion: new Date().toISOString() })
+                body: JSON.stringify({ estado: "Aceptada", fecha_aceptacion_rechazo: new Date() })
             });
             if (response.ok) {
                 const updatedSolicitud = response.json();
@@ -163,7 +163,7 @@ const MyReservationRequests = () => {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`
                 },
-                body: JSON.stringify({ estado: "Cancelada" })
+                body: JSON.stringify({ estado: "Cancelada", fecha_aceptacion_rechazo: new Date() })
             });
             if (response.ok) {
                 const updatedSolicitud = response.json();

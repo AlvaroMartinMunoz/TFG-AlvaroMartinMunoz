@@ -30,11 +30,11 @@ class Reserva(models.Model):
     estado = models.CharField(max_length=20, choices=ESTADOS_DE_RESERVA, blank=False, null=False, help_text='Seleccione el estado de la reserva.')
     metodo_pago = models.CharField(max_length=30, choices=METODOS_DE_PAGO, blank=False, null=False, help_text='Seleccione el método de pago.')
     fecha_creacion = models.DateTimeField(auto_now_add=True)
-    fecha_aceptacion = models.DateTimeField(blank=True, null=True)  
+    fecha_aceptacion_rechazo = models.DateTimeField(blank=True, null=True)  
     comentarios_usuario = models.TextField(blank=True, null=True, help_text='Introduzca un comentario para el anfitrión.')
     
     def __str__(self):
-        return f'{self.propiedad.nombre} - {self.usuario.username}'
+        return f'{self.propiedad} - {self.fecha_llegada} - {self.fecha_salida}'
     
     class Meta:
         unique_together = ['propiedad', 'fecha_llegada', 'fecha_salida']

@@ -17,10 +17,12 @@ from usuario.models.usuario import Usuario
 from django.contrib.auth.models import User
 from propiedad.tasks import cancelar_reservas_pendientes
 from datetime import timedelta
+from datetime import datetime
 
 cancelar_reservas_pendientes(repeat=86400)
 
 class PropiedadViewSet(viewsets.ModelViewSet):
+     
     queryset = Propiedad.objects.all()
     serializer_class = PropiedadSerializer
 
@@ -138,6 +140,9 @@ class FechaBloqueadaViewSet(viewsets.ModelViewSet):
         FechaBloqueada.objects.create(propiedad=propiedad, fecha=fecha)
         return Response({'status': 'fechas bloqueadas'}, status=status.HTTP_201_CREATED)
     
+    def update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar fechas bloqueadas'}, status=status.HTTP_403_FORBIDDEN)
+    
     def destroy(self, request, *args, **kwargs):
         fecha = self.get_object()
         print(fecha)
@@ -152,4 +157,94 @@ class FechaBloqueadaViewSet(viewsets.ModelViewSet):
 class ReservaViewSet(viewsets.ModelViewSet):
     queryset = Reserva.objects.all()
     serializer_class = ReservaSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated()]
+        return [AllowAny()]
+    
+    def create(self, request, *args, **kwargs):
+        propiedad = request.data.get('propiedad')
+        fecha_inicio_str = request.data.get('fecha_llegada')
+        fecha_fin_str = request.data.get('fecha_salida')
+        cantidad_personas = request.data.get('numero_personas')
+
+        if not propiedad or not fecha_inicio_str or not fecha_fin_str or not cantidad_personas:
+            return Response({'error': 'Todos los campos son obligatorios'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Formato de fecha inválido (debe ser YYYY-MM-DD)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            cantidad_personas = int(cantidad_personas)
+            if cantidad_personas <= 0:
+                return Response({'error': 'La cantidad de personas debe ser mayor a 0'}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({'error': 'Número de personas inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        if propiedad.anfitrion.usuario_id == request.user.id:
+            return Response({'error': 'No puedes reservar tu propia propiedad'}, status=status.HTTP_403_FORBIDDEN)
+
+        if fecha_inicio >= fecha_fin:
+            return Response({'error': 'Fecha de llegada debe ser anterior a fecha de salida'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if fecha_inicio < datetime.now().date():
+            return Response({'error': 'Fecha de llegada debe ser posterior a la fecha actual'}, status=status.HTTP_400_BAD_REQUEST)
+
+        fechas_bloqueadas = FechaBloqueada.objects.filter(propiedad=propiedad, fecha__range=[fecha_inicio, fecha_fin])
+        if fechas_bloqueadas.exists():
+            return Response({'error': 'Fechas bloqueadas'}, status=status.HTTP_400_BAD_REQUEST)
+
+        reservas_existentes = Reserva.objects.filter(
+            propiedad=propiedad, 
+            fecha_llegada__lt=fecha_fin,  
+            fecha_salida__gt=fecha_inicio  
+        )
+        if reservas_existentes.exists():
+            return Response({'error': 'Propiedad ocupada en esas fechas'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if cantidad_personas > propiedad.maximo_huespedes:
+            return Response({'error': 'Cantidad de personas excede el límite'}, status=status.HTTP_400_BAD_REQUEST)
+
+        return super().create(request, *args, **kwargs)
+    
+    def update(self, request, *args, **kwargs):
+        reserva = Reserva.objects.get(id=kwargs['pk'])
+        propiedad = reserva.propiedad
+        estado = request.data.get('estado')
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        usuarioId = usuario.id
+       
+
+        if not estado:
+            return Response({'error': 'Estado es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if estado not in ['Aceptada', 'Cancelada']:
+            return Response({'error': 'Estado inválido'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        
+        if propiedad.anfitrion.usuario_id == request.user.id:
+            reserva.estado = estado
+            reserva.fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1)
+
+        elif reserva.usuario.id == usuarioId and estado == 'Cancelada':
+            reserva.estado = estado
+            reserva.fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1)
+        else:
+            return Response({'error': 'No tienes permiso para cambiar el estado de esta reserva'}, status=status.HTTP_403_FORBIDDEN)
+        
+        reserva.save()
+        return Response({'status': 'estado actualizado'}, status=status.HTTP_200_OK)
+    
+    def destroy(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes eliminar reservas'}, status=status.HTTP_403_FORBIDDEN)
+    
     
