@@ -1,0 +1,69 @@
+import requests
+from bs4 import BeautifulSoup
+import os
+import sys
+import django
+
+# Añade el path del proyecto Django al sys.path
+sys.path.append('C:\\Users\\alvar\\OneDrive\\Escritorio\\4º Año Ingenieria\\TFG\\TFG-AlvaroMartinMunoz\\marketplace\\backend')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'backend.settings')
+django.setup()
+
+from evento.models import Evento
+
+
+def extraer_eventos():
+    print(f"Extrayendo eventos")
+    lista = []
+    url = "https://www.spain.info/es/agenda/"
+    response = requests.get(url)
+
+    s = BeautifulSoup(response.text, 'lxml')
+
+    body = s.find("div", id="cuerpo")
+    if body:
+        print(f"Body encontrado")
+        contenedor_general = body.find("section", class_="module carrousel-rot bg-light-gray")
+    else:
+        print("Body no encontrado")
+        return lista
+
+    if contenedor_general:
+        print(f"Contenedor general encontrado")
+        contenedor_general_dos = contenedor_general.find("div", class_="container position-relative")
+        if contenedor_general_dos:
+            print(f"Contenedor general dos encontrado")
+            eventos = contenedor_general_dos.find_all("div", class_="item position-relative bg-dark-gradient")
+            if eventos:
+                print(f"Eventos encontrados")
+
+                for evento in eventos:
+                            imagen = evento.find("img")['src'] if evento.find("img") else None
+                            imagen = ("https://www.spain.info" + imagen) if imagen else None
+                            print(f"Imagen encontrada: {imagen}")
+
+                            datos_evento = evento.find("div", class_="position-absolute content left bottom text-white")
+                            if datos_evento:
+                                print(f"Datos de evento encontrados")
+
+                                fecha = datos_evento.find("p", class_="title small pb-2")
+                                nombre = datos_evento.find("h2", class_="text-uppercase pb-2")
+                                lugar = datos_evento.find("span", class_="small d-block pb-2")
+                                categoria = datos_evento.find("span", class_="small d-block pb-2")
+
+                                evento_obj = Evento(
+                                    nombre=nombre.text.strip() if nombre else "No disponible",
+                                    fecha=fecha.text.strip() if fecha else "No disponible",
+                                    lugar=lugar.text.strip() if lugar else "No disponible",
+                                    imagen=imagen,
+                                    categoria=categoria.text.strip() if categoria else "No disponible"
+                                )
+                                evento_obj.save()
+                                lista.append(evento_obj)
+    return lista
+
+
+if __name__ == "__main__":
+    eventos = extraer_eventos()
+    for evento in eventos:
+        print(evento)

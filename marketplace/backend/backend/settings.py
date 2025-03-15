@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'django_extensions',
     'background_task',
+    'evento',
 ]
 
 MIDDLEWARE = [

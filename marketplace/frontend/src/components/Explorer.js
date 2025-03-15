@@ -144,7 +144,7 @@ const Explorer = () => {
           minHeight: "80vh",
           display: "flex",
           flexDirection: "column",
-          minWidth: "100vw",
+          minWidth: "95vw",
         }}
       >
         <Container maxWidth="lg" sx={{ py: 4 }}>
