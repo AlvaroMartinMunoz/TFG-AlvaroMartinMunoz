@@ -12,7 +12,6 @@ import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
-import { is } from "date-fns/locale";
 
 
 const NavBar = () => {
@@ -231,6 +230,16 @@ const NavBar = () => {
                   Explorar{" "}
                 </Link>
               </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "black",
+                  display: "flex",
+                  alignItems: "center",
+                  zIndex: -1,
+                  marginLeft: 0,
+                  mr: 2,
+                }}></Typography>
               <Link
                 to="/eventos"
                 style={{ textDecoration: "none", color: "inherit" }}
