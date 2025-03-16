@@ -1,5 +1,5 @@
 from rest_framework import viewsets
-from .models.evento import Evento
+from .models import Evento
 from .serializers import EventoSerializer
 from rest_framework.response import Response
 from rest_framework import status

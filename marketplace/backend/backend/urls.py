@@ -23,6 +23,7 @@ urlpatterns = [
     path('api/usuarios/', include('usuario.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/eventos/', include('evento.urls')),
 ]
 
 
