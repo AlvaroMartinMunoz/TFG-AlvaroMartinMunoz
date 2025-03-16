@@ -147,12 +147,12 @@ const MyProperties = () => {
     return (
         <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc", width: "100%" }}>
             {loading ? (
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                <Container maxWidth="false" sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
                     <CircularProgress />
                 </Container>
             ) : (
 
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                <Container maxWidth="false" sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
                     <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
                         <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
                         <p>En esta sección podrás ver todas tus propiedades publicadas</p>

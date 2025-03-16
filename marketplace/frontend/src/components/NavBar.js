@@ -206,16 +206,37 @@ const NavBar = () => {
                 color: "black",
                 display: "flex",
                 alignItems: "center",
-                zIndex: -1,
+                zIndex: 1,
                 marginLeft: 0,
               }}
             >
+
+
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "black",
+                  display: "flex",
+                  alignItems: "center",
+                  zIndex: -1,
+                  marginLeft: 0,
+                  mr: 2,
+                }}
+              >
+                <Link
+                  to="/explorar"
+                  style={{ textDecoration: "none", color: "inherit" }}
+                >
+                  {" "}
+                  Explorar{" "}
+                </Link>
+              </Typography>
               <Link
-                to="/explorar"
+                to="/eventos"
                 style={{ textDecoration: "none", color: "inherit" }}
               >
                 {" "}
-                Explorar{" "}
+                Eventos{" "}
               </Link>
             </Typography>
           </Box>

@@ -3,9 +3,7 @@ import { useState, useEffect, use } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { AccordionDetails } from "@mui/material";
-import { DayPicker, DayPickerSingleDateController } from "react-dates";
-import { da } from "date-fns/locale";
-import { set } from "date-fns";
+
 
 
 const MyReserves = () => {

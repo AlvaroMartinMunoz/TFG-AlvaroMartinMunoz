@@ -6,6 +6,8 @@ class Evento(models.Model):
     lugar = models.CharField(max_length=500, null=False, blank=False)
     imagen = models.URLField()
     categoria = models.CharField(max_length=500, null=False, blank=False)
+    descripcion_principal = models.TextField(null=False, blank=False)
+    descripcion_secundaria = models.TextField(null=False, blank=False)
 
     def __str__(self):
         return self.nombre
