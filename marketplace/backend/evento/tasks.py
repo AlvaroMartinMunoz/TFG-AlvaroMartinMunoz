@@ -3,6 +3,10 @@ from bs4 import BeautifulSoup
 import os
 import sys
 import django
+import time
+import random
+from background_task import background
+from background_task.models import Task
 
 # Añade el path del proyecto Django al sys.path
 sys.path.append('C:\\Users\\alvar\\OneDrive\\Escritorio\\4º Año Ingenieria\\TFG\\TFG-AlvaroMartinMunoz\\marketplace\\backend')
@@ -11,9 +15,13 @@ django.setup()
 
 from evento.models import Evento
 
-
+@background(schedule=0)
 def extraer_eventos():
     print(f"Extrayendo eventos")
+
+    Evento.objects.all().delete()
+    print(f"Todos los eventos existentes han sido eliminados")
+
     lista = []
     url = "https://www.spain.info/es/agenda/"
     response = requests.get(url)
@@ -38,6 +46,9 @@ def extraer_eventos():
                 print(f"Eventos encontrados")
 
                 for evento in eventos:
+                            
+                            time.sleep(random.uniform(1,3))
+
                             imagen = evento.find("img")['src'] if evento.find("img") else None
                             imagen = ("https://www.spain.info" + imagen) if imagen else None
                             print(f"Imagen encontrada: {imagen}")
@@ -60,10 +71,9 @@ def extraer_eventos():
                                 )
                                 evento_obj.save()
                                 lista.append(evento_obj)
+                print(f"Eventos extraidos: {len(lista)}")
     return lista
 
 
-if __name__ == "__main__":
-    eventos = extraer_eventos()
-    for evento in eventos:
-        print(evento)
+Task.objects.filter(task_name='evento.tasks.extraer_eventos').delete()
+extraer_eventos(repeat=Task.DAILY)

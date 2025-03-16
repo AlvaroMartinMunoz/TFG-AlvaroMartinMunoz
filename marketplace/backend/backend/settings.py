@@ -27,6 +27,8 @@ DEBUG = True
 
 ALLOWED_HOSTS = []
 
+BACKGROUND_TASKS_RETRY_TIME = 86400
+
 
 # Application definition
 

@@ -20,9 +20,8 @@ from datetime import timedelta
 from datetime import datetime
 from django.db import IntegrityError
 from django.db.models import Avg
+from background_task.models import Task
 
-
-cancelar_reservas_pendientes(repeat=86400)
 
 class PropiedadViewSet(viewsets.ModelViewSet):
      
