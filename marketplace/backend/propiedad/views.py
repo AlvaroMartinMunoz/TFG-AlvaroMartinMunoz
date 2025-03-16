@@ -14,13 +14,10 @@ from .serializers import FechaBloqueadaSerializer
 from .models.reserva import Reserva
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuario.models.usuario import Usuario
-from django.contrib.auth.models import User
-from propiedad.tasks import cancelar_reservas_pendientes
 from datetime import timedelta
 from datetime import datetime
 from django.db import IntegrityError
 from django.db.models import Avg
-from background_task.models import Task
 
 
 class PropiedadViewSet(viewsets.ModelViewSet):
