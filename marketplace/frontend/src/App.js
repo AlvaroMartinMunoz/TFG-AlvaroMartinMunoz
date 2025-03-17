@@ -42,7 +42,7 @@ function App() {
             <Navbar />
             <Container sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <Routes>
-                <Route path="/" element={<SearchBar />} />
+                <Route path="/" element={<Explorer />} />
                 <Route path="/inicio-de-sesion" element={<Login />} />
                 <Route path="/registro" element={<Register />} />
                 <Route path="/explorar" element={<Explorer />} />
