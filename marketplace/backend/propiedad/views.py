@@ -18,6 +18,33 @@ from datetime import timedelta
 from datetime import datetime
 from django.db import IntegrityError
 from django.db.models import Avg
+import stripe
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import json
+
+stripe.api_key = settings.STRIPE_SECRET_KEY
+
+@csrf_exempt
+def create_payment_intent(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            amount = data['amount']
+            currency = data['currency']
+
+            payment_intent = stripe.PaymentIntent.create(
+                amount=amount,
+                currency=currency
+            )
+            return JsonResponse({
+                'clientSecret': payment_intent['client_secret']
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+
 
 
 class PropiedadViewSet(viewsets.ModelViewSet):

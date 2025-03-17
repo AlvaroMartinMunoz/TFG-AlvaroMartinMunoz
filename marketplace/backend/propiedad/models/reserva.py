@@ -13,7 +13,6 @@ class Reserva(models.Model):
     ]
 
     METODOS_DE_PAGO = [
-        ('Transferencia bancaria', 'Transferencia bancaria'),
         ('Tarjeta de crédito', 'Tarjeta de crédito'),
         ('PayPal', 'PayPal'),
     ]

@@ -92,6 +92,7 @@ SIMPLE_JWT = {
     'ISSUER': None,                                  # (Opcional) Emisor del token
 }
 
+STRIPE_SECRET_KEY = 'sk_test_51OLmDUDoSuE99ePT21AexEiiYXqlNj2whYy3AaQBsK550QULVBTTkbVbD55NHSUOiFcUH9hn37JRgYsTkXX5obMN00zf1GMUvf'
 
 WSGI_APPLICATION = 'backend.wsgi.application'
 
