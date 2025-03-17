@@ -170,7 +170,7 @@ const NavBar = () => {
           </Typography>
         </Box>
         {!isAuthenticated() ? (
-          <Box sx={{ width: "80px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", zIndex: 1 }}>
             <Typography
               variant="body1"
               sx={{
@@ -178,7 +178,8 @@ const NavBar = () => {
                 display: "flex",
                 alignItems: "center",
                 zIndex: 1,
-                marginLeft: "140px",
+                mr: 3,
+
               }}
             >
               <Link
@@ -188,6 +189,43 @@ const NavBar = () => {
                 Explorar
               </Link>
             </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: -1,
+                mr: 3,
+              }}>
+              <Link
+                to="/eventos"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                {" "}
+                Eventos{" "}
+              </Link>
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: 1,
+                marginLeft: 0,
+                mr: 3,
+              }}
+            >
+              <Link
+                to="/pronostico-clima"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                {" "}
+                Clima{" "}
+              </Link>
+            </Typography>
+
           </Box>
         ) : (
           <Box
@@ -199,47 +237,37 @@ const NavBar = () => {
               marginRight: "20px",
             }}
           >
+
+
+
             <Typography
               variant="body1"
               sx={{
                 color: "black",
                 display: "flex",
                 alignItems: "center",
-                zIndex: 1,
+                zIndex: -1,
                 marginLeft: 0,
+                mr: 3,
               }}
             >
-
-
-              <Typography
-                variant="body1"
-                sx={{
-                  color: "black",
-                  display: "flex",
-                  alignItems: "center",
-                  zIndex: -1,
-                  marginLeft: 0,
-                  mr: 2,
-                }}
+              <Link
+                to="/explorar"
+                style={{ textDecoration: "none", color: "inherit" }}
               >
-                <Link
-                  to="/explorar"
-                  style={{ textDecoration: "none", color: "inherit" }}
-                >
-                  {" "}
-                  Explorar{" "}
-                </Link>
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  color: "black",
-                  display: "flex",
-                  alignItems: "center",
-                  zIndex: -1,
-                  marginLeft: 0,
-                  mr: 2,
-                }}></Typography>
+                {" "}
+                Explorar{" "}
+              </Link>
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: -1,
+                mr: 3,
+              }}>
               <Link
                 to="/eventos"
                 style={{ textDecoration: "none", color: "inherit" }}
@@ -248,30 +276,35 @@ const NavBar = () => {
                 Eventos{" "}
               </Link>
             </Typography>
-          </Box>
-        )}
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            color: "transparent",
-            justifyContent: "center",
-            width: "150px",
-            height: "50px",
-            borderRadius: "50%",
-            marginRight: "-5px",
-            backgroundColor: "white",
-          }}
-        >
-          {isAuthenticated() && (
             <Typography
               variant="body1"
-              sx={{ color: "black", width: "200px", ml: -1 }}
+              sx={{
+                color: "black",
+                display: "flex",
+                alignItems: "center",
+                zIndex: 1,
+                marginLeft: 0,
+                mr: 3,
+              }}
+            >
+              <Link
+                to="/pronostico-clima"
+                style={{ textDecoration: "none", color: "inherit" }}
+              >
+                {" "}
+                Clima{" "}
+              </Link>
+            </Typography>
+            <Typography
+              variant="body1"
+              sx={{ color: "black", width: "auto", }}
             >
               Bienvenido, {username}
             </Typography>
-          )}
-        </Box>
+
+          </Box>
+        )}
+
         <Box
           sx={{
             display: "flex",

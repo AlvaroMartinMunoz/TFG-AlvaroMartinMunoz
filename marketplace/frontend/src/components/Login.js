@@ -8,8 +8,6 @@ import {
   IconButton,
   InputAdornment,
 } from "@mui/material";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
 import { useEffect, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -68,6 +66,7 @@ const Login = () => {
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
       navigate("/");
+      window.location.reload();
 
     } catch (error) {
       setError(error.message);

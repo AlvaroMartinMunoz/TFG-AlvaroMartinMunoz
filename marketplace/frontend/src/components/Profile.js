@@ -36,6 +36,7 @@ const Profile = () => {
         setLoading(true);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        window.location.reload();
         navigate("/inicio-de-sesion");
         setLoading(false);
     };

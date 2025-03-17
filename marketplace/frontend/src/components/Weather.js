@@ -141,72 +141,79 @@ const Weather = () => {
     }
 
     return (
-        <Box sx={{
-            display: 'flex',
-            height: '75vh',  // Altura fija principal
-            width: '100%',
-            flexDirection: { xs: 'column', md: 'row' },
-            marginTop: 2,
-            mb: 2
-        }}>
+        <Box sx={{ padding: 2 }}>
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+                Información Meteorológica
+            </Typography>
             <Box sx={{
-                width: { xs: '100%', md: '70%' },
-                height: { xs: '40vh', md: '100%' }, // Altura completa en desktop
-            }}>
-                <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }}></div>
-            </Box>
-
-            <Box sx={{
-                width: { xs: '100%', md: '30%' },
-                height: { xs: '40vh', md: '100%' },
-                p: 2,
-                bgcolor: 'background.paper',
-                overflow: 'auto',
+                display: 'flex',
+                height: '60vh',  // Altura fija principal
+                width: '100%',
+                flexDirection: { xs: 'column', md: 'row' },
+                marginTop: 2,
+                mb: 2,
                 boxShadow: 3
+
             }}>
-                <Box sx={{ mb: 3 }}>
-                    <Typography variant="h4" sx={{ fontWeight: 700 }}>
-                        {getWeatherIcon(weatherData.current.weather_code)}
-                    </Typography>
-                    <Typography variant="h4" sx={{ my: 1 }}>
-                        {weatherData.current.temperature_2m}°C
-                    </Typography>
-                    <Typography variant="h6" color="text.secondary">
-                        {weatherData.locationName}
-                    </Typography>
+                <Box sx={{
+                    width: { xs: '100%', md: '70%' },
+                    height: { xs: '40vh', md: '100%' }, // Altura completa en desktop
+                }}>
+                    <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }}></div>
                 </Box>
 
                 <Box sx={{
-                    display: 'flex',
-                    gap: 1,
-                    mb: 3,
-                    flexWrap: 'wrap',
-                    '& > *': { flex: '1 1 150px' }
+                    width: { xs: '100%', md: '30%' },
+                    height: { xs: '40vh', md: '100%' },
+                    p: 2,
+                    bgcolor: 'background.paper',
+                    overflow: 'auto',
+                    boxShadow: 3
                 }}>
-                    <Paper sx={{ p: 1, textAlign: 'center' }}>
-                        <Typography variant="body2">Humedad</Typography>
-                        <Typography variant="h5">{weatherData.current.relative_humidity_2m}%</Typography>
-                    </Paper>
-                    <Paper sx={{ p: 1, textAlign: 'center' }}>
-                        <Typography variant="body2">Viento</Typography>
-                        <Typography variant="h5">{weatherData.current.wind_speed_10m} km/h</Typography>
-                    </Paper>
-                </Box>
+                    <Box sx={{ mb: 3 }}>
+                        <Typography variant="h4" sx={{ fontWeight: 700 }}>
+                            {getWeatherIcon(weatherData.current.weather_code)}
+                        </Typography>
+                        <Typography variant="h4" sx={{ my: 1 }}>
+                            {weatherData.current.temperature_2m}°C
+                        </Typography>
+                        <Typography variant="h6" color="text.secondary">
+                            {weatherData.locationName}
+                        </Typography>
+                    </Box>
 
-                <Typography variant="h6" sx={{ mb: 1 }}>Próximas Horas</Typography>
-                <Box sx={{
-                    display: 'flex',
-                    gap: 1,
-                    mb: 3,
-                    overflowX: 'auto',
-                    pb: 1
-                }}>
-                    {weatherData.hourly.time.slice(0, 12).map((time, index) => (
-                        <Paper key={time} sx={{ p: 1, minWidth: 80, textAlign: 'center', flexShrink: 0 }}>
-                            <Typography variant="body2">{new Date(time).getHours()}h</Typography>
-                            <Typography variant="h6">{weatherData.hourly.temperature_2m[index]}°C</Typography>
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 1,
+                        mb: 3,
+                        flexWrap: 'wrap',
+                        '& > *': { flex: '1 1 150px' }
+                    }}>
+                        <Paper sx={{ p: 1, textAlign: 'center' }}>
+                            <Typography variant="body2">Humedad</Typography>
+                            <Typography variant="h5">{weatherData.current.relative_humidity_2m}%</Typography>
                         </Paper>
-                    ))}
+                        <Paper sx={{ p: 1, textAlign: 'center' }}>
+                            <Typography variant="body2">Viento</Typography>
+                            <Typography variant="h5">{weatherData.current.wind_speed_10m} km/h</Typography>
+                        </Paper>
+                    </Box>
+
+                    <Typography variant="h6" sx={{ mb: 1 }}>Próximas Horas</Typography>
+                    <Box sx={{
+                        display: 'flex',
+                        gap: 1,
+                        mb: 3,
+                        overflowX: 'auto',
+                        pb: 1
+                    }}>
+                        {weatherData.hourly.time.slice(0, 12).map((time, index) => (
+                            <Paper key={time} sx={{ p: 1, minWidth: 80, textAlign: 'center', flexShrink: 0 }}>
+                                <Typography variant="body2">{new Date(time).getHours()}h</Typography>
+                                <Typography variant="h6">{weatherData.hourly.temperature_2m[index]}°C</Typography>
+                            </Paper>
+                        ))}
+                    </Box>
                 </Box>
             </Box>
         </Box>
