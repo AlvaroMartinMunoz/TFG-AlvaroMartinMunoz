@@ -6,8 +6,6 @@ import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import refreshAccessToken from './RefreshToken';
-import { LocalizationProvider, PickersDay, StaticDatePicker } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
 import { DateRangePicker, DayPickerSingleDateController } from 'react-dates';
@@ -15,7 +13,10 @@ import moment from 'moment';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { Alert } from '@mui/material';
-import { set } from 'date-fns';
+import { loadStripe } from '@stripe/stripe-js';
+
+
+
 
 
 const PropertyDetails = () => {
@@ -48,6 +49,9 @@ const PropertyDetails = () => {
     const [mediaValoraciones, setMediaValoraciones] = useState(null);
     const [loadingMedia, setLoadingMedia] = useState(true);
     const [errorMedia, setErrorMedia] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn');
+
 
 
 
@@ -446,10 +450,41 @@ const PropertyDetails = () => {
             })
     ];
 
+    const createReservation = async (reservationData, retried = false) => {
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify(reservationData),
+            });
+            if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    createReservation(reservationData, true);
+                } else {
+                    handleLogout();
+                }
+            } else if (response.ok) {
+                alert('Reserva realizada correctamente');
+                window.location.reload();
+            } else {
+                console.error(response);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+
     const handleConfirmReserve = async (retried = false) => {
         if (!reserveStartDate || !reserveEndDate) {
             return;
         }
+
+        setLoading(true);
 
         const startDate = moment(reserveStartDate);
         const endDate = moment(reserveEndDate);
@@ -464,6 +499,7 @@ const PropertyDetails = () => {
 
         if (hasBlockedDates) {
             alert('Las fechas seleccionadas no están disponibles porque tienen que ser días seguidos');
+            setLoading(false);
             return;
         }
 
@@ -492,37 +528,61 @@ const PropertyDetails = () => {
             metodo_pago: metodoPago,
             precio_total: precioTotal,
             comentarios_usuario: comentarios_usuario,
+            amount: Math.round(precioTotal * 100),
+            currency: 'eur',
         };
 
-        try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-                body: JSON.stringify(reservationData),
-            });
+        if (metodoPago === "Tarjeta de crédito") {
 
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    handleConfirmReserve(true);
-                } else {
-                    handleLogout();
+            try {
+                const response = await fetch("http://localhost:8000/api/propiedades/create-checkout-session/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                    body: JSON.stringify({
+                        reservationData,
+                    }),
+                });
+
+                const data = await response.json();
+
+                const { id: sessionId } = data;
+
+                const stripe = await stripePromise;
+
+                console.log('Redirecting to checkout');
+                const { error } = await stripe.redirectToCheckout({
+                    sessionId: sessionId,
+
+                });
+                if (error) {
+                    if (error.type === 'card_error') {
+                        alert(`Error de tarjeta: ${error.message}`);
+                    } else if (error.type === 'validation_error') {
+                        alert(error.message);
+                    } else {
+                        alert('Error inesperado durante el pago');
+                    }
                 }
-            } else if (response.ok) {
-                handleCloseReserveDatePicker();
-            } else {
-                console.error(response);
+
+                if (error) {
+                    console.error(error);
+                    alert('Ocurrió un error al procesar el pago');
+                    setLoading(false);
+                    return;
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert('Ocurrió un error al procesar el pago');
+                setLoading(false);
             }
-
-        } catch (error) {
-            console.error(error);
+        } else {
+            await createReservation(reservationData);
         }
-    }
-
-
+    };
     return (
         <Box sx={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', bgcolor: '#f4f7fc' }}>
             <Container maxWidth="md" sx={{ flexGrow: 1, py: 4 }}>
@@ -604,8 +664,12 @@ const PropertyDetails = () => {
                         }
 
                         {esAnfitrion && isAuthenticated() ? (
-                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>)
-                            : <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={handleOpenReserveDatePicker} > Reservar</Button>}
+                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>
+                        ) : isAuthenticated() ? (
+                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={handleOpenReserveDatePicker} > Reservar</Button>
+                        ) : (
+                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => window.location.href = "/inicio-de-sesion"}>Inicie sesion para poder reservar</Button>
+                        )}
 
                     </Box>
                 </Box>
@@ -903,11 +967,12 @@ const PropertyDetails = () => {
                                 </Typography>
                             </>
                         )}
+
                         <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mt: 2 }}>
-                            <Button variant="contained" color="error" onClick={handleCloseReserveDatePicker}>
+                            <Button variant="contained" color="error" onClick={handleCloseReserveDatePicker} disabled={loading}>
                                 Cancelar
                             </Button>
-                            <Button variant="contained" color="primary" onClick={handleConfirmReserve}>
+                            <Button variant="contained" color="primary" onClick={handleConfirmReserve} disabled={loading}>
                                 Confirmar
                             </Button>
                         </Box>

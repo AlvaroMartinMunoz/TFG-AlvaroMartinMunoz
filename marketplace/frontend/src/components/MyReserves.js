@@ -3,6 +3,7 @@ import { useState, useEffect, use } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { AccordionDetails } from "@mui/material";
+import { useLocation } from "react-router-dom";
 
 
 
@@ -16,6 +17,8 @@ const MyReserves = () => {
     const [misReservasFiltradas, setMisReservasFiltradas] = useState([]);
     const [estado, setEstado] = useState("");
     const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
+    const location = useLocation();
+
 
     useEffect(() => {
         if (misReservas.length !== 0) {
@@ -42,12 +45,36 @@ const MyReserves = () => {
         setEstado(e.target.value);
     };
 
+    useEffect(() => {
+        const checkPayment = async () => {
+            const params = new URLSearchParams(location.search);
+            const sessionId = params.get("session_id");
 
+            if (sessionId) {
+                try {
+                    const response = await fetch(`http://localhost:8000/api/propiedades/confirmar-pago/${sessionId}`);
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            fetchReservas();
+                            window.history.replaceState({}, '', '/mis-reservas');
+                            alert('¡Reserva confirmada exitosamente!');
+
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error verificando pago:', error);
+                }
+            }
+        };
+        checkPayment();
+    }, [location.search]);
 
 
     useEffect(() => {
-        fethReservas();
-        const intervalId = setInterval(fethReservas, 60000);
+        fetchReservas();
+        const intervalId = setInterval(fetchReservas, 60000);
         return () => clearInterval(intervalId);
     }
 
@@ -82,7 +109,7 @@ const MyReserves = () => {
             });
             if (response.ok) {
                 console.log("Reserva cancelada");
-                fethReservas();
+                fetchReservas();
             } else {
                 console.log("Error al cancelar la reserva");
             }
@@ -91,7 +118,7 @@ const MyReserves = () => {
         }
     };
 
-    const fethReservas = async (retried = false) => {
+    const fetchReservas = async (retried = false) => {
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
                 method: "GET",
@@ -104,7 +131,7 @@ const MyReserves = () => {
                 console.log("Token expirado");
                 const token = await refreshAccessToken();
                 if (token) {
-                    fethReservas(true);
+                    fetchReservas(true);
                 } else {
                     console.log("Token inválido, cerrando sesión...");
                     handleLogOut();
