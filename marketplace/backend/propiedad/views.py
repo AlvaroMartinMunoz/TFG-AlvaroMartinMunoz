@@ -23,29 +23,98 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
+from django.views.decorators.http import require_POST
 
 stripe.api_key = settings.STRIPE_SECRET_KEY
-
+        
 @csrf_exempt
-def create_payment_intent(request):
+def create_checkout_session(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            amount = data['amount']
-            currency = data['currency']
+            reservationdata = data['reservationData']
+            amount = reservationdata['precio_total']*100
+            currency = reservationdata['currency']
+            propiedad_id = reservationdata['propiedad']
+            fecha_llegada = reservationdata['fecha_llegada']
+            fecha_salida = reservationdata['fecha_salida']
+            numero_personas = reservationdata['numero_personas']
+            usuario_id = reservationdata['usuario']
+            anfitrion_id = reservationdata['anfitrion']
+            precio_por_noche = reservationdata['precio_por_noche']
+            precio_total = reservationdata['precio_total']
+            estado = reservationdata['estado']
+            metodo_pago = reservationdata['metodo_pago']
+            comentarios_usuario = reservationdata['comentarios_usuario']
+                        
 
-            payment_intent = stripe.PaymentIntent.create(
-                amount=amount,
-                currency=currency
+            session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': currency,
+                        'product_data': {
+                            'name': 'Reserva de propiedad',
+                        },
+                        'unit_amount': amount,
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url='http://localhost:3000/mis-reservas?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url='http://localhost:3000/detalles/' + str(propiedad_id),
+                metadata={
+                    'propiedad_id': propiedad_id,
+                    'fecha_llegada': fecha_llegada,
+                    'fecha_salida': fecha_salida,
+                    'numero_personas': numero_personas,
+                    'usuario_id': usuario_id,
+                    'anfitrion_id': anfitrion_id,
+                    'precio_por_noche': precio_por_noche,
+                    'precio_total': precio_total,
+                    'estado': estado,
+                    'metodo_pago': metodo_pago,
+                    'comentarios_usuario': comentarios_usuario
+                }
             )
             return JsonResponse({
-                'clientSecret': payment_intent['client_secret']
+                'id': session.id
             })
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
-
-
+@csrf_exempt
+def confirmar_pago(request, session_id):
+    try:
+        session = stripe.checkout.Session.retrieve(session_id)
+        
+        if session.payment_status == 'paid':
+            metadata = session.metadata
+            
+            reserva = Reserva.objects.create(
+                propiedad_id=metadata['propiedad_id'],
+                usuario_id=metadata['usuario_id'],
+                anfitrion_id=metadata['anfitrion_id'],
+                fecha_llegada=metadata['fecha_llegada'],
+                fecha_salida=metadata['fecha_salida'],
+                numero_personas=metadata['numero_personas'],
+                precio_por_noche=metadata['precio_por_noche'],
+                precio_total=metadata['precio_total'],
+                estado=metadata['estado'],
+                metodo_pago=metadata['metodo_pago'],
+                comentarios_usuario=metadata['comentarios_usuario']
+            )
+            
+            return JsonResponse({
+                'status': 'success',
+                'reserva_id': reserva.id
+            })
+        
+        return JsonResponse({'status': 'unpaid'}, status=402)
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+        
 
 class PropiedadViewSet(viewsets.ModelViewSet):
      
