@@ -1,13 +1,33 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
-import { Box, Container, Typography, TextField, FormControl, InputLabel, Select, MenuItem, FormHelperText, Button, FormControlLabel, Checkbox, Radio, CircularProgress } from "@mui/material";
+import {
+    Box,
+    Container,
+    Typography,
+    TextField,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    FormHelperText,
+    Button,
+    FormControlLabel,
+    Checkbox,
+    Radio,
+    CircularProgress,
+    Paper,
+    Divider,
+    IconButton,
+    Stack,
+    Alert
+} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
-import { set } from "date-fns";
+import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
+import SaveIcon from '@mui/icons-material/Save';
 
 const EditProperty = () => {
-
-    const id = useParams().propiedadId;
+    const { propiedadId: id } = useParams();
     const storedInfo = localStorage.getItem("additionalInfo");
     const usuarioId = storedInfo ? JSON.parse(storedInfo).usuarioId : null;
     const [photoPreviews, setPhotoPreviews] = useState([]);
@@ -44,14 +64,12 @@ const EditProperty = () => {
 
     useEffect(() => {
         const fetchData = async () => {
-
             await fetchPropertyDetails(id);
             await fetchPropertyPhotos(id);
             setLoading(false);
         }
         fetchData();
-    }
-        , [id]);
+    }, [id]);
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
@@ -70,11 +88,8 @@ const EditProperty = () => {
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
-
         setFormValues({ ...formValues, [name]: type === "checkbox" ? checked : value });
     }
-
-
 
     const fetchPropertyDetails = async (id, retried = false) => {
         try {
@@ -140,7 +155,6 @@ const EditProperty = () => {
             console.error("Error al obtener las fotos de la propiedad", error);
         }
     }
-
 
     const validateForm = async () => {
         const errors = {};
@@ -233,7 +247,6 @@ const EditProperty = () => {
             errors.fotos = "Debes subir al menos 4 fotos";
         }
 
-
         setErrors(errors);
         return Object.keys(errors).length === 0;
     };
@@ -267,7 +280,6 @@ const EditProperty = () => {
             console.error("Error al actualizar las fotos de la propiedad", error);
         }
     }
-
 
     const handleSubmit = async (e, retried = false) => {
         e.preventDefault();
@@ -305,98 +317,487 @@ const EditProperty = () => {
     };
 
     return (
-        <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", bgcolor: "#f4f7fc" }}>
+        <Box sx={{
+            minHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: "#f5f7fa",
+            py: 4
+        }}>
             {loading ? (
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                <Container maxWidth="lg" sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "60vh"
+                }}>
                     <CircularProgress />
                 </Container>
-
             ) : (
+                <Container maxWidth="lg">
+                    <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+                        <Typography variant="h4" gutterBottom fontWeight="500" color="primary" align="center">
+                            Editar propiedad
+                        </Typography>
+                        <Divider sx={{ mb: 4 }} />
 
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                    <Box sx={{ mt: "20px" }}><Typography variant="h4" gutterBottom> Editar propiedad</Typography></Box>
-                    <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px" }}>
-                        <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                            <TextField label="Nombre" name="nombre" variant="outlined" value={formValues.nombre} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.nombre} helperText={errors.nombre} />
-                            <TextField label="Descripción" name="descripcion" variant="outlined" value={formValues.descripcion} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.descripcion} helperText={errors.descripcion} />
-                            <TextField label="Dirección" name="direccion" variant="outlined" value={formValues.direccion} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.direccion} helperText={errors.direccion} />
-                            <TextField label="Ciudad" name="ciudad" variant="outlined" value={formValues.ciudad} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.ciudad} helperText={errors.ciudad} />
-                            <TextField label="Pais" name="pais" variant="outlined" value={formValues.pais} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.pais} helperText={errors.pais} />
-                            <TextField label="Código Postal" name="codigo_postal" variant="outlined" value={formValues.codigo_postal} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.codigo_postal} helperText={errors.codigo_postal} />
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                            <FormControl variant="outlined" sx={{ marginBottom: "20px" }} error={!!errors.tipo_de_propiedad} >
-                                <InputLabel>Tipo de Propiedad</InputLabel>
-                                <Select name="tipo_de_propiedad" value={formValues.tipo_de_propiedad} onChange={handleChange} label="Tipo de Propiedad" required  >
-                                    <MenuItem value="Apartamento">Apartamento</MenuItem>
-                                    <MenuItem value="Casa">Casa</MenuItem>
-                                    <MenuItem value="Villa">Villa</MenuItem>
-                                </Select>
-                                <FormHelperText>{errors.tipo_de_propiedad}</FormHelperText>
-                            </FormControl>
-                            <TextField label="Precio por Noche" name="precio_por_noche" type="number" variant="outlined" value={formValues.precio_por_noche} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.precio_por_noche} helperText={errors.precio_por_noche} />
-                            <TextField label="Máximo de Huéspedes" name="maximo_huespedes" type="number" variant="outlined" value={formValues.maximo_huespedes} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.maximo_huespedes} helperText={errors.maximo_huespedes} />
-                            <TextField label="Número de Habitaciones" name="numero_de_habitaciones" type="number" variant="outlined" value={formValues.numero_de_habitaciones} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.numero_de_habitaciones} helperText={errors.numero_de_habitaciones} />
-                            <TextField label="Número de Baños" name="numero_de_banos" type="number" variant="outlined" value={formValues.numero_de_banos} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.numero_de_banos} helperText={errors.numero_de_banos} />
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                            <TextField label="Número de Camas" name="numero_de_camas" type="number" variant="outlined" value={formValues.numero_de_camas} onChange={handleChange} sx={{ marginBottom: "20px" }} required slotProps={{ input: { min: 1 } }} error={!!errors.numero_de_camas} helperText={errors.numero_de_camas} />
-                            <TextField label="Tamaño (m²)" name="tamano" type="number" variant="outlined" value={formValues.tamano} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.tamano} helperText={errors.tamano} />
-                            <TextField label="Latitud" name="latitud" type="number" variant="outlined" value={formValues.latitud} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.latitud} helperText={errors.latitud} />
-                            <TextField label="Longitud" name="longitud" type="number" variant="outlined" value={formValues.longitud} onChange={handleChange} sx={{ marginBottom: "20px" }} error={!!errors.longitud} helperText={errors.longitud} />
-                            <FormControl variant="outlined" sx={{ marginBottom: "20px" }}>
-                                <InputLabel>Política de Cancelación</InputLabel>
-                                <Select name="politica_de_cancelacion" value={formValues.politica_de_cancelacion} onChange={handleChange} label="Política de Cancelación" required error={!!errors.politica_de_cancelacion}  >
-                                    <MenuItem value="Flexible">Flexible</MenuItem>
-                                    <MenuItem value="Moderada">Moderada</MenuItem>
-                                    <MenuItem value="Estricta">Estricta</MenuItem>
-                                </Select>
-                            </FormControl>
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingLeft: "10px" }}>
-                            <FormControlLabel control={<Checkbox name="wifi" checked={formValues.wifi} onChange={handleChange} />} label="WiFi" />
-                            <FormControlLabel control={<Checkbox name="aire_acondicionado" checked={formValues.aire_acondicionado} onChange={handleChange} />} label="Aire Acondicionado" />
-                            <FormControlLabel control={<Checkbox name="calefaccion" checked={formValues.calefaccion} onChange={handleChange} />} label="Calefacción" />
-                            <FormControlLabel control={<Checkbox name="parking" checked={formValues.parking} onChange={handleChange} />} label="Parking" />
-                            <FormControlLabel control={<Checkbox name="mascotas" checked={formValues.mascotas} onChange={handleChange} />} label="Mascotas" />
-                            <FormControlLabel control={<Checkbox name="permitido_fumar" checked={formValues.permitido_fumar} onChange={handleChange} />} label="Permitido Fumar" />
-                            <input accept="image/*" style={{ display: "none" }} id="fotos" name="fotos" type="file" multiple onChange={handleChange} />
-                            <label htmlFor="fotos">
-                                <Button variant="contained" component="span" sx={{ mt: "20px" }}>
-                                    Subir Fotos
-                                </Button>
-                            </label>
+                        <Box component="form" onSubmit={handleSubmit}>
+                            <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, gap: 3, mb: 4 }}>
+                                {/* Primera columna */}
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" gutterBottom fontWeight="500" color="text.secondary">
+                                        Información básica
+                                    </Typography>
+                                    <Stack spacing={2.5}>
+                                        <TextField
+                                            label="Nombre"
+                                            name="nombre"
+                                            variant="outlined"
+                                            fullWidth
+                                            value={formValues.nombre}
+                                            onChange={handleChange}
+                                            required
+                                            error={!!errors.nombre}
+                                            helperText={errors.nombre}
+                                            size="small"
+                                        />
+                                        <TextField
+                                            label="Descripción"
+                                            name="descripcion"
+                                            variant="outlined"
+                                            fullWidth
+                                            multiline
+                                            rows={3}
+                                            value={formValues.descripcion}
+                                            onChange={handleChange}
+                                            required
+                                            error={!!errors.descripcion}
+                                            helperText={errors.descripcion}
+                                        />
+                                        <TextField
+                                            label="Dirección"
+                                            name="direccion"
+                                            variant="outlined"
+                                            fullWidth
+                                            value={formValues.direccion}
+                                            onChange={handleChange}
+                                            required
+                                            error={!!errors.direccion}
+                                            helperText={errors.direccion}
+                                            size="small"
+                                        />
+                                        <Box sx={{ display: "flex", gap: 2 }}>
+                                            <TextField
+                                                label="Ciudad"
+                                                name="ciudad"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.ciudad}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.ciudad}
+                                                helperText={errors.ciudad}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                label="Código Postal"
+                                                name="codigo_postal"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.codigo_postal}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.codigo_postal}
+                                                helperText={errors.codigo_postal}
+                                                size="small"
+                                            />
+                                        </Box>
+                                        <TextField
+                                            label="País"
+                                            name="pais"
+                                            variant="outlined"
+                                            fullWidth
+                                            value={formValues.pais}
+                                            onChange={handleChange}
+                                            required
+                                            error={!!errors.pais}
+                                            helperText={errors.pais}
+                                            size="small"
+                                        />
+                                    </Stack>
+                                </Box>
 
-                            {errors.fotos && <FormHelperText error>{errors.fotos}</FormHelperText>}
-                            <Button type="submit" sx={{ bgcolor: "#1976d2", mt: "135px", color: "white", padding: "10px 20px", borderRadius: "8px", '&:hover': { backgroundColor: "#1565c0" } }}>
-                                Guardar cambios
+                                {/* Segunda columna */}
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6" gutterBottom fontWeight="500" color="text.secondary">
+                                        Detalles del alojamiento
+                                    </Typography>
+                                    <Stack spacing={2.5}>
+                                        <FormControl variant="outlined" fullWidth error={!!errors.tipo_de_propiedad} size="small">
+                                            <InputLabel>Tipo de Propiedad</InputLabel>
+                                            <Select
+                                                name="tipo_de_propiedad"
+                                                value={formValues.tipo_de_propiedad}
+                                                onChange={handleChange}
+                                                label="Tipo de Propiedad"
+                                                required
+                                            >
+                                                <MenuItem value="Apartamento">Apartamento</MenuItem>
+                                                <MenuItem value="Casa">Casa</MenuItem>
+                                                <MenuItem value="Villa">Villa</MenuItem>
+                                            </Select>
+                                            <FormHelperText>{errors.tipo_de_propiedad}</FormHelperText>
+                                        </FormControl>
+
+                                        <Box sx={{ display: "flex", gap: 2 }}>
+                                            <TextField
+                                                label="Precio por Noche"
+                                                name="precio_por_noche"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.precio_por_noche}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.precio_por_noche}
+                                                helperText={errors.precio_por_noche}
+                                                size="small"
+                                                InputProps={{
+                                                    startAdornment: <Typography sx={{ mr: 0.5 }}>€</Typography>
+                                                }}
+                                            />
+                                            <TextField
+                                                label="Tamaño (m²)"
+                                                name="tamano"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.tamano}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.tamano}
+                                                helperText={errors.tamano}
+                                                size="small"
+                                            />
+                                        </Box>
+
+                                        <Box sx={{ display: "flex", gap: 2 }}>
+                                            <TextField
+                                                label="Habitaciones"
+                                                name="numero_de_habitaciones"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.numero_de_habitaciones}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.numero_de_habitaciones}
+                                                helperText={errors.numero_de_habitaciones}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                label="Camas"
+                                                name="numero_de_camas"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.numero_de_camas}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.numero_de_camas}
+                                                helperText={errors.numero_de_camas}
+                                                size="small"
+                                            />
+                                        </Box>
+
+                                        <Box sx={{ display: "flex", gap: 2 }}>
+                                            <TextField
+                                                label="Baños"
+                                                name="numero_de_banos"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.numero_de_banos}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.numero_de_banos}
+                                                helperText={errors.numero_de_banos}
+                                                size="small"
+                                            />
+                                            <TextField
+                                                label="Huéspedes máx."
+                                                name="maximo_huespedes"
+                                                type="number"
+                                                variant="outlined"
+                                                fullWidth
+                                                value={formValues.maximo_huespedes}
+                                                onChange={handleChange}
+                                                required
+                                                error={!!errors.maximo_huespedes}
+                                                helperText={errors.maximo_huespedes}
+                                                size="small"
+                                            />
+                                        </Box>
+
+                                        <FormControl variant="outlined" fullWidth size="small">
+                                            <InputLabel>Política de Cancelación</InputLabel>
+                                            <Select
+                                                name="politica_de_cancelacion"
+                                                value={formValues.politica_de_cancelacion}
+                                                onChange={handleChange}
+                                                label="Política de Cancelación"
+                                                required
+                                                error={!!errors.politica_de_cancelacion}
+                                            >
+                                                <MenuItem value="Flexible">Flexible</MenuItem>
+                                                <MenuItem value="Moderada">Moderada</MenuItem>
+                                                <MenuItem value="Estricta">Estricta</MenuItem>
+                                            </Select>
+                                            <FormHelperText error>{errors.politica_de_cancelacion}</FormHelperText>
+                                        </FormControl>
+                                    </Stack>
+                                </Box>
+                            </Box>
+
+                            <Box sx={{ mb: 4 }}>
+                                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                        <Typography variant="h6" fontWeight="500" color="text.secondary">
+                                            Ubicación
+                                        </Typography>
+                                    </Box>
+                                    <Box sx={{ display: "flex", gap: 2 }}>
+                                        <TextField
+                                            label="Latitud"
+                                            name="latitud"
+                                            type="number"
+                                            variant="outlined"
+                                            fullWidth
+                                            value={formValues.latitud}
+                                            onChange={handleChange}
+                                            required
+                                            error={!!errors.latitud}
+                                            helperText={errors.latitud}
+                                            size="small"
+                                        />
+                                        <TextField
+                                            label="Longitud"
+                                            name="longitud"
+                                            type="number"
+                                            variant="outlined"
+                                            fullWidth
+                                            value={formValues.longitud}
+                                            onChange={handleChange}
+                                            error={!!errors.longitud}
+                                            helperText={errors.longitud}
+                                            size="small"
+                                        />
+                                    </Box>
+                                </Paper>
+                            </Box>
+
+                            <Box sx={{ mb: 4 }}>
+                                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                                    <Typography variant="h6" fontWeight="500" color="text.secondary" gutterBottom>
+                                        Servicios disponibles
+                                    </Typography>
+                                    <Box sx={{ display: "flex", flexWrap: "wrap" }}>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="wifi" checked={formValues.wifi} onChange={handleChange} />}
+                                                label="WiFi"
+                                            />
+                                        </Box>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="aire_acondicionado" checked={formValues.aire_acondicionado} onChange={handleChange} />}
+                                                label="Aire Acondicionado"
+                                            />
+                                        </Box>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="calefaccion" checked={formValues.calefaccion} onChange={handleChange} />}
+                                                label="Calefacción"
+                                            />
+                                        </Box>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="parking" checked={formValues.parking} onChange={handleChange} />}
+                                                label="Parking"
+                                            />
+                                        </Box>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="mascotas" checked={formValues.mascotas} onChange={handleChange} />}
+                                                label="Mascotas"
+                                            />
+                                        </Box>
+                                        <Box sx={{ width: { xs: "50%", sm: "33%" } }}>
+                                            <FormControlLabel
+                                                control={<Checkbox color="primary" name="permitido_fumar" checked={formValues.permitido_fumar} onChange={handleChange} />}
+                                                label="Permitido Fumar"
+                                            />
+                                        </Box>
+                                    </Box>
+                                </Paper>
+                            </Box>
+
+                            <Box sx={{ mb: 4 }}>
+                                <Paper variant="outlined" sx={{ p: 3, borderRadius: 2 }}>
+                                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                                        <Typography variant="h6" fontWeight="500" color="text.secondary">
+                                            Fotografías
+                                        </Typography>
+                                        <Box>
+                                            <input
+                                                accept="image/*"
+                                                style={{ display: "none" }}
+                                                id="fotos"
+                                                name="fotos"
+                                                type="file"
+                                                multiple
+                                                onChange={handleChange}
+                                            />
+                                            <label htmlFor="fotos">
+                                                <Button
+                                                    variant="outlined"
+                                                    component="span"
+                                                    startIcon={<AddPhotoAlternateIcon />}
+                                                    size="small"
+                                                >
+                                                    Subir Fotos
+                                                </Button>
+                                            </label>
+                                        </Box>
+                                    </Box>
+
+                                    {errors.fotos && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>{errors.fotos}</Alert>
+                                    )}
+
+                                    {errors.portada && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>{errors.portada}</Alert>
+                                    )}
+
+                                    {photoPreviews.length > 0 && (
+                                        <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mt: 2, fontWeight: 500 }}>
+                                            Selecciona la foto de portada:
+                                        </Typography>
+                                    )}
+
+                                    {errors.portada && (
+                                        <Alert severity="error" sx={{ mb: 2 }}>
+                                            {errors.portada}
+                                        </Alert>
+                                    )}
+
+                                    <Box sx={{
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: 3,
+                                        mt: 2,
+                                        justifyContent: "flex-start",
+                                        width: "100%"
+                                    }}>
+                                        {photoPreviews.map((photo, index) => (
+                                            <Paper
+                                                key={index}
+                                                elevation={formValues.portada === index ? 3 : 1}
+                                                sx={{
+                                                    position: 'relative',
+                                                    width: 160,
+                                                    borderRadius: 2,
+                                                    overflow: 'hidden',
+                                                    transition: 'all 0.3s ease',
+                                                    border: formValues.portada === index ? '2px solid #1976d2' : '1px solid #e0e0e0',
+                                                    '&:hover': {
+                                                        transform: 'translateY(-4px)',
+                                                        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)'
+                                                    }
+                                                }}
+                                            >
+                                                <Box sx={{ position: 'relative' }}>
+                                                    <img
+                                                        src={photo}
+                                                        alt={`Foto ${index + 1}`}
+                                                        style={{
+                                                            width: "100%",
+                                                            height: 120,
+                                                            objectFit: "cover"
+                                                        }}
+                                                    />
+                                                    <IconButton
+                                                        onClick={() => handleRemovePhoto(index)}
+                                                        aria-label="Eliminar foto"
+                                                        sx={{
+                                                            position: 'absolute',
+                                                            top: 6,
+                                                            right: 6,
+                                                            backgroundColor: 'rgba(255, 255, 255, 0.85)',
+                                                            p: 0.5,
+                                                            '&:hover': {
+                                                                backgroundColor: 'rgba(255, 255, 255, 1)',
+                                                                color: 'error.main'
+                                                            },
+                                                            width: 24,
+                                                            height: 24,
+                                                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                                                        }}
+                                                        size="small"
+                                                    >
+                                                        <CloseIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Box>
+                                                <Box sx={{ p: 1.5, bgcolor: formValues.portada === index ? 'primary.lighter' : 'transparent' }}>
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Radio
+                                                                checked={formValues.portada === index}
+                                                                onChange={() => handlePortadaChange(index)}
+                                                                size="small"
+                                                                color="primary"
+                                                            />
+                                                        }
+                                                        label={
+                                                            <Typography variant="body2" sx={{ fontWeight: formValues.portada === index ? 500 : 400 }}>
+                                                                Portada
+                                                            </Typography>
+                                                        }
+                                                        sx={{ m: 0 }}
+                                                    />
+                                                </Box>
+                                            </Paper>
+                                        ))}
+                                    </Box>
+                                </Paper>
+                            </Box>
+
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                color="primary"
+                                size="large"
+                                startIcon={<SaveIcon />}
+                                fullWidth
+                                sx={{
+                                    py: 1.5,
+                                    borderRadius: 1.5,
+                                    textTransform: "none",
+                                    fontWeight: 600,
+                                    fontSize: "1rem",
+                                    boxShadow: 2,
+                                    "&:hover": { boxShadow: 4 }
+                                }}
+                            >
+                                Guardar Cambios
                             </Button>
                         </Box>
-                    </Box>
-                    {photoPreviews.length > 0 && <Typography variant="h6" gutterBottom sx={{ marginTop: "20px" }}>Selecciona la foto de portada:</Typography>}
-                    {errors.portada && <FormHelperText error>{errors.portada}</FormHelperText>}
-                    <Box sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px", justifyContent: "center" }}>
-                        {photoPreviews.length > 0 && (
-                            <>
-                                <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 1, alignItems: "center", justifyContent: "center" }}>
-                                    {photoPreviews.map((photo, index) => (
-                                        <Box key={index} sx={{ position: 'relative', margin: '10px', display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: "center" }}>
-                                            <img src={photo} alt={`Foto ${index + 1}`} style={{ width: "150px", height: "auto", objectFit: "cover", borderRadius: "8px" }} />
-                                            <Button onClick={() => handleRemovePhoto(index)} sx={{ position: 'absolute', top: '5px', right: '5px', minWidth: "16px", minHeight: "16px", backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: "50%" }}><CloseIcon sx={{ fontSize: "16px", color: "red" }} /></Button>
-                                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                                <FormControlLabel value={index} control={<Radio />} checked={formValues.portada === index} onChange={() => handlePortadaChange(index)} sx={{ alignSelf: "center", ml: "15px" }} />
-                                            </Box>
-                                        </Box>
-                                    ))}
-                                </Box>
-                            </>
-                        )}
-                    </Box>
+                    </Paper>
                 </Container>
             )}
         </Box>
-
     );
-}
+};
+
 
 export default EditProperty;
