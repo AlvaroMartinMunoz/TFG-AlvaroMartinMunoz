@@ -7,13 +7,18 @@ import {
   Typography,
   IconButton,
   InputAdornment,
+  Paper,
+  CircularProgress,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
 const Login = () => {
-  const [formData, setFormData] = useState("");
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+  });
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -67,7 +72,6 @@ const Login = () => {
       localStorage.setItem("refreshToken", data.refresh);
       navigate("/");
       window.location.reload();
-
     } catch (error) {
       setError(error.message);
     } finally {
@@ -76,29 +80,51 @@ const Login = () => {
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         backgroundColor: "#f4f7fc",
         minHeight: "80vh",
-        flexDirection: "column",
         display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 2,
       }}
     >
-      <Container
-        maxWidth="xs"
-        sx={{
-          minHeight: "80vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Box sx={{ textAlign: "center", width: "100%" }}>
-          <Typography variant="h4" gutterBottom>
-            {" "}
-            Iniciar Sesion{" "}
+      <Container maxWidth="xs" sx={{ py: 4 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: 4,
+            borderRadius: 2,
+            backgroundColor: "white",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: 6,
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            gutterBottom
+            sx={{
+              textAlign: "center",
+              fontWeight: 600,
+              color: "primary.main",
+              mb: 3,
+            }}
+          >
+            Iniciar Sesión
           </Typography>
-          {error && <Alert severity="error">{error}</Alert>}
+
+          {error && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2, borderRadius: 1 }}
+            >
+              {error}
+            </Alert>
+          )}
+
           <form onSubmit={handleSubmit}>
             <TextField
               fullWidth
@@ -108,6 +134,12 @@ const Login = () => {
               margin="normal"
               onChange={handleChange}
               required
+              sx={{
+                mb: 2,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1.5,
+                }
+              }}
             />
 
             <TextField
@@ -119,16 +151,24 @@ const Login = () => {
               margin="normal"
               onChange={handleChange}
               required
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton onClick={toggleShowPassword} edge="end">
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
+              sx={{
+                mb: 3,
+                "& .MuiOutlinedInput-root": {
+                  borderRadius: 1.5,
+                }
+              }}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={toggleShowPassword}
+                      edge="end"
+                      aria-label={showPassword ? "ocultar contraseña" : "mostrar contraseña"}
+                    >
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
             />
 
@@ -137,17 +177,32 @@ const Login = () => {
               variant="contained"
               color="primary"
               fullWidth
-              sx={{ mt: 2 }}
+              size="large"
               disabled={loading}
+              sx={{
+                mt: 2,
+                py: 1.5,
+                borderRadius: 1.5,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "1rem",
+                boxShadow: 2,
+                "&:hover": {
+                  boxShadow: 4,
+                }
+              }}
             >
-              Iniciar Sesion
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Iniciar Sesión"
+              )}
             </Button>
           </form>
-        </Box>
+        </Paper>
       </Container>
-
-    </div>
+    </Box>
   );
 };
 
-export default Login;
+export default Login; 
