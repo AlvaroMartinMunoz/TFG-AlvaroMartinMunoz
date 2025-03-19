@@ -1,14 +1,33 @@
-import { Box, Container, Typography, TextField, FormControlLabel, Checkbox, FormControl, InputLabel, Select, MenuItem, Button, FormHelperText, Radio } from "@mui/material";
-import React from "react";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
-import { useState } from "react";
-import refreshAccessToken from "./RefreshToken";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
+import {
+    Box,
+    Container,
+    Typography,
+    TextField,
+    FormControlLabel,
+    Checkbox,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Button,
+    FormHelperText,
+    Radio,
+    Paper,
+    IconButton,
+    Divider,
+    Card,
+    CardMedia,
+    CardContent,
+    Stack
+} from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
+import PhotoCamera from '@mui/icons-material/PhotoCamera';
+import AddHomeIcon from '@mui/icons-material/AddHome';
+import { useNavigate } from "react-router-dom";
+import refreshAccessToken from "./RefreshToken";
 
 const CreateProperty = () => {
-
     const storedInfo = localStorage.getItem("additionalInfo");
     const anfitrion = storedInfo ? JSON.parse(storedInfo).usuarioId : null;
     const [photoPreviews, setPhotoPreviews] = useState([]);
@@ -53,35 +72,46 @@ const CreateProperty = () => {
         } else {
             const newPortada = formValues.portada > index ? formValues.portada - 1 : formValues.portada;
             setFormValues({ ...formValues, fotos: newPhotos, portada: newPortada });
-
-            setFormValues({ ...formValues, fotos: newPhotos });
-            setPhotoPreviews(newPhotoPreviews);
         }
 
-    }
+        setPhotoPreviews(newPhotoPreviews);
+    };
 
     const handlePortadaChange = (index) => {
         setFormValues(prevState => ({ ...prevState, portada: index }));
-    }
+    };
 
     const handleChange = (e) => {
         const { name, value, type, checked, files } = e.target;
         const newValue = type === "checkbox" ? checked : value;
+
         if (name === "fotos") {
             const filesArray = Array.from(files);
-            const uniqueFilesArray = filesArray.filter(file => !formValues.fotos.some(photo => photo.name === file.name && photo.size === file.size));
-            setFormValues(prevState => ({ ...prevState, [name]: [...prevState[name], ...uniqueFilesArray] }));
-            setPhotoPreviews(prevState => ([...prevState, ...uniqueFilesArray.map(file => URL.createObjectURL(file))]));
+            const uniqueFilesArray = filesArray.filter(file =>
+                !formValues.fotos.some(photo =>
+                    photo.name === file.name && photo.size === file.size
+                )
+            );
+
+            setFormValues(prevState => ({
+                ...prevState,
+                [name]: [...prevState[name], ...uniqueFilesArray]
+            }));
+
+            setPhotoPreviews(prevState => ([
+                ...prevState,
+                ...uniqueFilesArray.map(file => URL.createObjectURL(file))
+            ]));
         } else {
             setFormValues({ ...formValues, [name]: newValue });
         }
-    }
+    };
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
-    }
+    };
 
     const handleSubmit = async (e, retried = false) => {
         e.preventDefault();
@@ -122,17 +152,9 @@ const CreateProperty = () => {
                     const formData = new FormData();
                     formValues.fotos.forEach((foto, index) => {
                         formData.append("fotos", foto);
-                        if (index === formValues.portada) {
-                            formData.append("es_portada", "true");
-                        } else {
-                            formData.append("es_portada", "false");
-                        }
+                        formData.append("es_portada", index === formValues.portada ? "true" : "false");
                     });
                     formData.append("propiedadId", propiedadId);
-
-                    for (let pair of formData.entries()) {
-                        console.log(pair[0] + ': ' + pair[1]);
-                    }
 
                     const uploadResponse = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/upload_photos/", {
                         method: "POST",
@@ -141,6 +163,7 @@ const CreateProperty = () => {
                         },
                         body: formData
                     });
+
                     if (!uploadResponse.ok) {
                         console.error("Error al subir las fotos", await uploadResponse.text());
                         return;
@@ -148,13 +171,11 @@ const CreateProperty = () => {
                 }
 
                 navigate("/mis-propiedades");
-
             } catch (error) {
                 console.error("Error al crear la propiedad", error);
             }
         }
     };
-
 
     const validateForm = async () => {
         const errors = {};
@@ -164,18 +185,17 @@ const CreateProperty = () => {
         const empiezaConLetraRegex = /^[a-zA-Z]/;
 
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/")
+            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/");
             const propiedades = await response.json();
             const existeNombrePropiedad = propiedades.some(propiedad => propiedad.nombre === formValues.nombre);
             if (existeNombrePropiedad) {
                 errors.nombre = "Ya existe una propiedad con ese nombre";
             }
-            setErrors(errors);
         } catch (error) {
             console.error("Error al validar el nombre de la propiedad", error);
         }
 
-        if (formValues.portada === null) {
+        if (formValues.portada === null && formValues.fotos.length > 0) {
             errors.portada = "Debes seleccionar una foto como portada";
         }
 
@@ -242,6 +262,7 @@ const CreateProperty = () => {
         if (!formValues.politica_de_cancelacion) {
             errors.politica_de_cancelacion = "La política de cancelación es obligatoria";
         }
+
         if (formValues.fotos.length < 4) {
             errors.fotos = "Debes subir al menos 4 fotos";
         }
@@ -250,95 +271,451 @@ const CreateProperty = () => {
         return Object.keys(errors).length === 0;
     };
 
+    // Group amenities
+    const amenities = [
+        { name: "wifi", label: "WiFi", checked: formValues.wifi },
+        { name: "aire_acondicionado", label: "Aire Acondicionado", checked: formValues.aire_acondicionado },
+        { name: "calefaccion", label: "Calefacción", checked: formValues.calefaccion },
+        { name: "parking", label: "Parking", checked: formValues.parking },
+        { name: "mascotas", label: "Mascotas", checked: formValues.mascotas },
+        { name: "permitido_fumar", label: "Permitido Fumar", checked: formValues.permitido_fumar }
+    ];
+
     return (
-        <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", bgcolor: "#f4f7fc" }}>
+        <Box sx={{ bgcolor: "#f8f9fa", minHeight: "100vh", py: 4 }}>
+            <Container maxWidth="lg">
+                <Paper elevation={3} sx={{ p: 4, borderRadius: 2 }}>
+                    <Typography variant="h4" gutterBottom sx={{
+                        color: "#1e3a8a",
+                        fontWeight: 600,
+                        mb: 3,
+                        textAlign: "center"
+                    }}>
+                        <AddHomeIcon sx={{ mr: 1, verticalAlign: "middle" }} />
+                        Crear nueva propiedad
+                    </Typography>
 
-            <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                <Box sx={{ mt: "20px" }}><Typography variant="h4" gutterBottom> Crear nueva propiedad</Typography></Box>
-                <Box component="form" onSubmit={handleSubmit} sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px" }}>
-                    <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                        <TextField label="Nombre" name="nombre" variant="outlined" value={formValues.nombre} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.nombre} helperText={errors.nombre} />
-                        <TextField label="Descripción" name="descripcion" variant="outlined" value={formValues.descripcion} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.descripcion} helperText={errors.descripcion} />
-                        <TextField label="Dirección" name="direccion" variant="outlined" value={formValues.direccion} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.direccion} helperText={errors.direccion} />
-                        <TextField label="Ciudad" name="ciudad" variant="outlined" value={formValues.ciudad} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.ciudad} helperText={errors.ciudad} />
-                        <TextField label="Pais" name="pais" variant="outlined" value={formValues.pais} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.pais} helperText={errors.pais} />
-                        <TextField label="Código Postal" name="codigo_postal" variant="outlined" value={formValues.codigo_postal} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.codigo_postal} helperText={errors.codigo_postal} />
-                    </Box>
-                    <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                        <FormControl variant="outlined" sx={{ marginBottom: "20px" }} error={!!errors.tipo_de_propiedad} >
-                            <InputLabel>Tipo de Propiedad</InputLabel>
-                            <Select name="tipo_de_propiedad" value={formValues.tipo_de_propiedad} onChange={handleChange} label="Tipo de Propiedad" required  >
-                                <MenuItem value="Apartamento">Apartamento</MenuItem>
-                                <MenuItem value="Casa">Casa</MenuItem>
-                                <MenuItem value="Villa">Villa</MenuItem>
-                            </Select>
-                            <FormHelperText>{errors.tipo_de_propiedad}</FormHelperText>
-                        </FormControl>
-                        <TextField label="Precio por Noche" name="precio_por_noche" type="number" variant="outlined" value={formValues.precio_por_noche} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.precio_por_noche} helperText={errors.precio_por_noche} />
-                        <TextField label="Máximo de Huéspedes" name="maximo_huespedes" type="number" variant="outlined" value={formValues.maximo_huespedes} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.maximo_huespedes} helperText={errors.maximo_huespedes} />
-                        <TextField label="Número de Habitaciones" name="numero_de_habitaciones" type="number" variant="outlined" value={formValues.numero_de_habitaciones} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.numero_de_habitaciones} helperText={errors.numero_de_habitaciones} />
-                        <TextField label="Número de Baños" name="numero_de_banos" type="number" variant="outlined" value={formValues.numero_de_banos} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.numero_de_banos} helperText={errors.numero_de_banos} />
-                    </Box>
-                    <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingRight: "10px" }}>
-                        <TextField label="Número de Camas" name="numero_de_camas" type="number" variant="outlined" value={formValues.numero_de_camas} onChange={handleChange} sx={{ marginBottom: "20px" }} required slotProps={{ input: { min: 1 } }} error={!!errors.numero_de_camas} helperText={errors.numero_de_camas} />
-                        <TextField label="Tamaño (m²)" name="tamano" type="number" variant="outlined" value={formValues.tamano} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.tamano} helperText={errors.tamano} />
-                        <TextField label="Latitud" name="latitud" type="number" variant="outlined" value={formValues.latitud} onChange={handleChange} sx={{ marginBottom: "20px" }} required error={!!errors.latitud} helperText={errors.latitud} />
-                        <TextField label="Longitud" name="longitud" type="number" variant="outlined" value={formValues.longitud} onChange={handleChange} sx={{ marginBottom: "20px" }} error={!!errors.longitud} helperText={errors.longitud} />
-                        <FormControl variant="outlined" sx={{ marginBottom: "20px" }}>
-                            <InputLabel>Política de Cancelación</InputLabel>
-                            <Select name="politica_de_cancelacion" value={formValues.politica_de_cancelacion} onChange={handleChange} label="Política de Cancelación" required error={!!errors.politica_de_cancelacion}  >
-                                <MenuItem value="Flexible">Flexible</MenuItem>
-                                <MenuItem value="Moderada">Moderada</MenuItem>
-                                <MenuItem value="Estricta">Estricta</MenuItem>
-                            </Select>
-                        </FormControl>
-                    </Box>
-                    <Box sx={{ display: "flex", flexDirection: "column", width: "25%", paddingLeft: "10px" }}>
-                        <FormControlLabel control={<Checkbox name="wifi" checked={formValues.wifi} onChange={handleChange} />} label="WiFi" />
-                        <FormControlLabel control={<Checkbox name="aire_acondicionado" checked={formValues.aire_acondicionado} onChange={handleChange} />} label="Aire Acondicionado" />
-                        <FormControlLabel control={<Checkbox name="calefaccion" checked={formValues.calefaccion} onChange={handleChange} />} label="Calefacción" />
-                        <FormControlLabel control={<Checkbox name="parking" checked={formValues.parking} onChange={handleChange} />} label="Parking" />
-                        <FormControlLabel control={<Checkbox name="mascotas" checked={formValues.mascotas} onChange={handleChange} />} label="Mascotas" />
-                        <FormControlLabel control={<Checkbox name="permitido_fumar" checked={formValues.permitido_fumar} onChange={handleChange} />} label="Permitido Fumar" />
-                        <input accept="image/*" style={{ display: "none" }} id="fotos" name="fotos" type="file" multiple onChange={handleChange} />
-                        <label htmlFor="fotos">
-                            <Button variant="contained" component="span" sx={{ mt: "20px" }}>
-                                Subir Fotos
-                            </Button>
-                        </label>
+                    <Divider sx={{ mb: 4 }} />
 
-                        {errors.fotos && <FormHelperText error>{errors.fotos}</FormHelperText>}
-                        <Button type="submit" sx={{ bgcolor: "#1976d2", mt: "135px", color: "white", padding: "10px 20px", borderRadius: "8px", '&:hover': { backgroundColor: "#1565c0" } }}>
-                            Crear propiedad
-                        </Button>
-                    </Box>
+                    <Box component="form" onSubmit={handleSubmit}>
+                        <Box sx={{ mb: 5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: "#2c3e50", mb: 2 }}>
+                                Información básica
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                                <TextField
+                                    label="Nombre"
+                                    name="nombre"
+                                    variant="outlined"
+                                    value={formValues.nombre}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.nombre}
+                                    helperText={errors.nombre}
+                                    sx={{ flexGrow: 1, minWidth: "300px" }}
+                                />
+                                <FormControl variant="outlined" sx={{ flexGrow: 1, minWidth: "300px" }} error={!!errors.tipo_de_propiedad}>
+                                    <InputLabel>Tipo de Propiedad</InputLabel>
+                                    <Select
+                                        name="tipo_de_propiedad"
+                                        value={formValues.tipo_de_propiedad}
+                                        onChange={handleChange}
+                                        label="Tipo de Propiedad"
+                                        required
+                                    >
+                                        <MenuItem value="Apartamento">Apartamento</MenuItem>
+                                        <MenuItem value="Casa">Casa</MenuItem>
+                                        <MenuItem value="Villa">Villa</MenuItem>
+                                    </Select>
+                                    <FormHelperText>{errors.tipo_de_propiedad}</FormHelperText>
+                                </FormControl>
+                            </Box>
 
-                </Box>
-                {photoPreviews.length > 0 && <Typography variant="h6" gutterBottom sx={{ marginTop: "20px" }}>Selecciona la foto de portada:</Typography>}
-                {errors.portada && <FormHelperText error>{errors.portada}</FormHelperText>}
-                <Box sx={{ display: "flex", flexDirection: "row", width: "100%", maxWidth: "1200px", marginTop: "20px", justifyContent: "center" }}>
-                    {photoPreviews.length > 0 && (
-                        <>
-                            <Box sx={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 1, alignItems: "center", justifyContent: "center" }}>
-                                {photoPreviews.map((photo, index) => (
-                                    <Box key={index} sx={{ position: 'relative', margin: '10px', display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center', justifyContent: "center" }}>
-                                        <img src={photo} alt={`Foto ${index + 1}`} style={{ width: "150px", height: "auto", objectFit: "cover", borderRadius: "8px" }} />
-                                        <Button onClick={() => handleRemovePhoto(index)} sx={{ position: 'absolute', top: '5px', right: '5px', minWidth: "16px", minHeight: "16px", backgroundColor: 'rgba(255, 255, 255, 0.8)', borderRadius: "50%" }}><CloseIcon sx={{ fontSize: "16px", color: "red" }} /></Button>
-                                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-                                            <FormControlLabel value={index} control={<Radio />} checked={formValues.portada === index} onChange={() => handlePortadaChange(index)} sx={{ alignSelf: "center", ml: "15px" }} />
-                                        </Box>
-                                    </Box>
+                            <TextField
+                                label="Descripción"
+                                name="descripcion"
+                                variant="outlined"
+                                value={formValues.descripcion}
+                                onChange={handleChange}
+                                multiline
+                                rows={3}
+                                required
+                                error={!!errors.descripcion}
+                                helperText={errors.descripcion}
+                                sx={{ width: "100%", mt: 2 }}
+                            />
+                        </Box>
+
+                        <Box sx={{ mb: 5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: "#2c3e50", mb: 2 }}>
+                                Ubicación
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                                <TextField
+                                    label="Dirección"
+                                    name="direccion"
+                                    variant="outlined"
+                                    value={formValues.direccion}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.direccion}
+                                    helperText={errors.direccion}
+                                    sx={{ flexGrow: 1, minWidth: "300px" }}
+                                />
+                                <TextField
+                                    label="Ciudad"
+                                    name="ciudad"
+                                    variant="outlined"
+                                    value={formValues.ciudad}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.ciudad}
+                                    helperText={errors.ciudad}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Código Postal"
+                                    name="codigo_postal"
+                                    variant="outlined"
+                                    value={formValues.codigo_postal}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.codigo_postal}
+                                    helperText={errors.codigo_postal}
+                                    sx={{ width: "150px" }}
+                                />
+                                <TextField
+                                    label="País"
+                                    name="pais"
+                                    variant="outlined"
+                                    value={formValues.pais}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.pais}
+                                    helperText={errors.pais}
+                                    sx={{ width: "200px" }}
+                                />
+                            </Box>
+
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 2 }}>
+                                <TextField
+                                    label="Latitud"
+                                    name="latitud"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.latitud}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.latitud}
+                                    helperText={errors.latitud}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Longitud"
+                                    name="longitud"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.longitud}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.longitud}
+                                    helperText={errors.longitud}
+                                    sx={{ width: "200px" }}
+                                />
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: "#2c3e50", mb: 2 }}>
+                                Detalles de la propiedad
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                                <TextField
+                                    label="Precio por Noche (€)"
+                                    name="precio_por_noche"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.precio_por_noche}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.precio_por_noche}
+                                    helperText={errors.precio_por_noche}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Máximo de Huéspedes"
+                                    name="maximo_huespedes"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.maximo_huespedes}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.maximo_huespedes}
+                                    helperText={errors.maximo_huespedes}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Número de Habitaciones"
+                                    name="numero_de_habitaciones"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.numero_de_habitaciones}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.numero_de_habitaciones}
+                                    helperText={errors.numero_de_habitaciones}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Número de Baños"
+                                    name="numero_de_banos"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.numero_de_banos}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.numero_de_banos}
+                                    helperText={errors.numero_de_banos}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Número de Camas"
+                                    name="numero_de_camas"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.numero_de_camas}
+                                    onChange={handleChange}
+                                    required
+                                    slotProps={{ input: { min: 1 } }}
+                                    error={!!errors.numero_de_camas}
+                                    helperText={errors.numero_de_camas}
+                                    sx={{ width: "200px" }}
+                                />
+                                <TextField
+                                    label="Tamaño (m²)"
+                                    name="tamano"
+                                    type="number"
+                                    variant="outlined"
+                                    value={formValues.tamano}
+                                    onChange={handleChange}
+                                    required
+                                    error={!!errors.tamano}
+                                    helperText={errors.tamano}
+                                    sx={{ width: "200px" }}
+                                />
+                                <FormControl variant="outlined" sx={{ width: "200px" }} error={!!errors.politica_de_cancelacion}>
+                                    <InputLabel>Política de Cancelación</InputLabel>
+                                    <Select
+                                        name="politica_de_cancelacion"
+                                        value={formValues.politica_de_cancelacion}
+                                        onChange={handleChange}
+                                        label="Política de Cancelación"
+                                        required
+                                    >
+                                        <MenuItem value="Flexible">Flexible</MenuItem>
+                                        <MenuItem value="Moderada">Moderada</MenuItem>
+                                        <MenuItem value="Estricta">Estricta</MenuItem>
+                                    </Select>
+                                    <FormHelperText>{errors.politica_de_cancelacion}</FormHelperText>
+                                </FormControl>
+                            </Box>
+                        </Box>
+
+                        <Box sx={{ mb: 5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: "#2c3e50", mb: 2 }}>
+                                Servicios y amenidades
+                            </Typography>
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
+                                {amenities.map((amenity) => (
+                                    <FormControlLabel
+                                        key={amenity.name}
+                                        control={
+                                            <Checkbox
+                                                name={amenity.name}
+                                                checked={amenity.checked}
+                                                onChange={handleChange}
+                                            />
+                                        }
+                                        label={amenity.label}
+                                        sx={{
+                                            border: "1px solid #e2e8f0",
+                                            borderRadius: 1,
+                                            p: 1,
+                                            width: "200px",
+                                            m: 0
+                                        }}
+                                    />
                                 ))}
                             </Box>
-                        </>
-                    )}
-                </Box>
+                        </Box>
 
+                        <Box sx={{ mb: 5 }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: "#2c3e50", mb: 2 }}>
+                                Fotografías
+                            </Typography>
+                            <Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
+                                <input
+                                    accept="image/*"
+                                    style={{ display: "none" }}
+                                    id="fotos"
+                                    name="fotos"
+                                    type="file"
+                                    multiple
+                                    onChange={handleChange}
+                                />
+                                <label htmlFor="fotos">
+                                    <Button
+                                        variant="contained"
+                                        component="span"
+                                        startIcon={<PhotoCamera />}
+                                        sx={{
+                                            bgcolor: "#334155",
+                                            "&:hover": { bgcolor: "#1e293b" }
+                                        }}
+                                    >
+                                        Subir Fotos
+                                    </Button>
+                                </label>
+                                <Typography variant="body2" color="textSecondary" sx={{ ml: 2 }}>
+                                    Mínimo 4 fotos. Selecciona una como portada.
+                                </Typography>
+                            </Box>
 
-            </Container >
+                            {errors.fotos && (
+                                <FormHelperText error sx={{ ml: 1, mb: 2 }}>
+                                    {errors.fotos}
+                                </FormHelperText>
+                            )}
 
-        </Box >
+                            {errors.portada && (
+                                <FormHelperText error sx={{ ml: 1, mb: 2 }}>
+                                    {errors.portada}
+                                </FormHelperText>
+                            )}
+
+                            {photoPreviews.length > 0 && (
+                                <Box sx={{ mt: 2 }}>
+                                    <Typography variant="subtitle1" gutterBottom>
+                                        Fotografías seleccionadas:
+                                    </Typography>
+                                    <Box
+                                        sx={{
+                                            display: "flex",
+                                            flexWrap: "wrap",
+                                            gap: 2,
+                                            justifyContent: "center"  // Mejor alineación
+                                        }}
+                                    >
+                                        {photoPreviews.map((photo, index) => (
+                                            <Card
+                                                key={index}
+                                                sx={{
+                                                    width: 200,
+                                                    position: "relative",
+                                                    transition: "transform 0.3s, box-shadow 0.3s",
+                                                    "&:hover": {
+                                                        transform: "translateY(-5px)",
+                                                        boxShadow: 6,
+                                                        "& .MuiCardMedia-root": {
+                                                            filter: "brightness(1.1)",
+                                                        }
+                                                    },
+                                                    overflow: "hidden",
+                                                    borderRadius: 2,
+                                                    boxShadow: 3
+                                                }}
+                                            >
+                                                <CardMedia
+                                                    component="img"
+                                                    height="150"  // Aumenté la altura para mejor visualización
+                                                    image={photo}
+                                                    alt={`Foto ${index + 1}`}
+                                                    sx={{
+                                                        transition: "filter 0.3s, transform 0.5s",
+                                                        "&:hover": {
+                                                            transform: "scale(1.05)",
+                                                        }
+                                                    }}
+                                                />
+                                                <IconButton
+                                                    onClick={() => handleRemovePhoto(index)}
+                                                    size="small"
+                                                    sx={{
+                                                        position: "absolute",
+                                                        top: 8,
+                                                        right: 8,
+                                                        bgcolor: "rgba(255, 255, 255, 0.7)",
+                                                        "&:hover": {
+                                                            bgcolor: "rgba(255, 255, 255, 0.9)",
+                                                            color: "error.main"
+                                                        },
+                                                        zIndex: 2,
+                                                        padding: 0.5
+                                                    }}
+                                                >
+                                                    <CloseIcon fontSize="small" />
+                                                </IconButton>
+                                                <CardContent
+                                                    sx={{
+                                                        p: 1.5,
+                                                        backgroundColor: "background.paper",
+                                                        transition: "background-color 0.3s",
+                                                        "&:hover": {
+                                                            backgroundColor: "action.hover"
+                                                        }
+                                                    }}
+                                                >
+                                                    <FormControlLabel
+                                                        control={
+                                                            <Radio
+                                                                checked={formValues.portada === index}
+                                                                onChange={() => handlePortadaChange(index)}
+                                                                size="small"
+                                                                sx={{
+                                                                    color: "primary.light",
+                                                                    '&.Mui-checked': {
+                                                                        color: "primary.main",
+                                                                    }
+                                                                }}
+                                                            />
+                                                        }
+                                                        label="Portada"
+                                                        sx={{
+                                                            margin: 0,
+                                                            "& .MuiTypography-root": {
+                                                                fontSize: "0.875rem",
+                                                                fontWeight: formValues.portada === index ? "medium" : "normal"
+                                                            }
+                                                        }}
+                                                    />
+                                                </CardContent>
+                                            </Card>
+                                        ))}
+                                    </Box>
+                                </Box>
+                            )}
+                        </Box>
+
+                        <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 4 }}>
+                            <Button
+                                type="submit"
+                                variant="contained"
+                                size="large"
+                                sx={{
+                                    bgcolor: "#1e3a8a",
+                                    px: 4,
+                                    py: 1,
+                                    "&:hover": { bgcolor: "#1e40af" }
+                                }}
+                            >
+                                Crear propiedad
+                            </Button>
+                        </Box>
+                    </Box>
+                </Paper>
+            </Container>
+        </Box>
     );
-}
+};
 
 export default CreateProperty;
