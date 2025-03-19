@@ -1,9 +1,36 @@
-import { Box, Button, CircularProgress, Container, Paper, Typography, Accordion, AccordionDetails, AccordionSummary, MenuItem, InputLabel, FormControl, Select } from "@mui/material";
-import { useState, useEffect, use } from "react";
+import {
+    Box,
+    Button,
+    CircularProgress,
+    Container,
+    Paper,
+    Typography,
+    Accordion,
+    AccordionDetails,
+    AccordionSummary,
+    MenuItem,
+    InputLabel,
+    FormControl,
+    Select,
+    Stack,
+    Chip,
+    Divider,
+    Card,
+    CardMedia,
+    CardContent,
+    CardActions,
+    Alert,
+    useTheme,
+    useMediaQuery
+} from "@mui/material";
+import { useState, useEffect } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-
-
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import CancelIcon from "@mui/icons-material/Cancel";
+import PendingIcon from "@mui/icons-material/Pending";
+import SortIcon from "@mui/icons-material/Sort";
+import FilterListIcon from "@mui/icons-material/FilterList";
 
 const MyReservationRequests = () => {
     const [solicitudes, setSolicitudes] = useState([]);
@@ -13,11 +40,10 @@ const MyReservationRequests = () => {
     const [estado, setEstado] = useState("");
     const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
     const [solicitudesFiltradas, setSolicitudesFiltradas] = useState([]);
-
-
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
     useEffect(() => {
-
         fetchSolicitudes();
         const intervalId = setInterval(fetchSolicitudes, 60000);
         return () => clearInterval(intervalId);
@@ -36,7 +62,6 @@ const MyReservationRequests = () => {
                 }
             });
             setSolicitudesFiltradas(sortedSolicitudes);
-            console.log(estado);
         }
     }, [estado, ordenFechaLLegada, solicitudes]);
 
@@ -71,20 +96,16 @@ const MyReservationRequests = () => {
             } else if (response.ok) {
                 const data = await response.json();
                 const dataFiltered = data.filter((solicitud) => solicitud.anfitrion === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
-                console.log(dataFiltered);
-                console.log(JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
                 setSolicitudes(dataFiltered);
                 setLoading(false);
                 if (dataFiltered.length > 0) {
                     fetchPropiedades(dataFiltered);
-
                 } else {
                     setLoading(false);
                 }
             } else {
                 console.log("Error al obtener las solicitudes de reserva");
             }
-
         } catch (error) {
             console.error("Error al obtener las solicitudes de reserva", error);
         }
@@ -107,7 +128,6 @@ const MyReservationRequests = () => {
             setPropiedades(propiedadesData);
             fetchFotosPropiedades(propiedadesData);
         } catch (error) {
-
             console.error("Error al obtener las propiedades", error);
         }
     }
@@ -125,11 +145,9 @@ const MyReservationRequests = () => {
                 const data = await response.json();
                 const dataFiltered = data.filter(foto => propiedades.some(propiedad => propiedad.id === foto.propiedad) && foto.es_portada);
                 setUrls(dataFiltered);
-                console.log(dataFiltered);
             }
         } catch (error) {
             console.error("Error al obtener las fotos de las propiedades", error);
-
         }
     }
 
@@ -177,96 +195,238 @@ const MyReservationRequests = () => {
         }
     }
 
+    const formatDate = (dateString) => {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+    };
 
+    const getStatusChip = (status) => {
+        switch (status) {
+            case "Pendiente":
+                return <Chip icon={<PendingIcon />} label="Pendiente" color="warning" size="small" />;
+            case "Aceptada":
+                return <Chip icon={<CheckCircleIcon />} label="Confirmada" color="success" size="small" />;
+            case "Cancelada":
+                return <Chip icon={<CancelIcon />} label="Cancelada" color="error" size="small" />;
+            default:
+                return <Chip label={status} size="small" />;
+        }
+    };
 
     return (
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", minHeight: "80vh", backgroundColor: "#f4f7fc", width: "100%" }}>
+        <Box sx={{
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: theme.palette.background.default,
+            width: "100%",
+            minHeight: "100vh",
+            px: isMobile ? 1 : 3,
+            py: 3
+        }}>
             {loading ? (
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
+                <Box sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "70vh"
+                }}>
                     <CircularProgress />
-                </Container>
+                </Box>
             ) : (
-                <Container maxWidth={false} sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>
-                        <Typography variant="h4" sx={{ marginBottom: 2, mt: 2 }}>Solicitudes de reserva</Typography>
-                    </Box>
-                    {solicitudes?.length !== 0 ? (
-                        <Accordion sx={{ width: "100%", mb: 2 }}>
-                            <AccordionSummary
-                                expandIcon={<ExpandMoreIcon />}>
-                                <Typography variant="h6">Filtros</Typography>
-                            </AccordionSummary>
-                            <AccordionDetails>
-                                <Box sx={{ display: "flex", flexDirection: "row", width: "100%" }}>
-                                    <FormControl fullWidth sx={{ mb: 2 }} size="small">
-                                        <InputLabel>Estado</InputLabel>
-                                        <Select name="estado" value={estado} onChange={handleEstadoChange}>
-                                            <MenuItem value=""><em>None</em></MenuItem>
-                                            <MenuItem value="Pendiente">Pendiente</MenuItem>
-                                            <MenuItem value="Aceptada">Confirmada</MenuItem>
-                                            <MenuItem value="Cancelada">Cancelada</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                    <FormControl fullWidth sx={{ mb: 2 }} size="small">
-                                        <InputLabel>Ordenar por fecha de llegada</InputLabel>
-                                        <Select
-                                            value={ordenFechaLLegada}
-                                            label="Ordenar por fecha de llegada"
-                                            onChange={(e) => setOrdenFechaLLegada(e.target.value)}
-                                        >
-                                            <MenuItem value="asc">Ascendente</MenuItem>
-                                            <MenuItem value="desc">Descendente</MenuItem>
-                                        </Select>
-                                    </FormControl>
-                                </Box>
-                            </AccordionDetails>
-                        </Accordion>
-                    ) : null}
-                    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", width: "100%" }}>
+                <Container maxWidth="lg" disableGutters>
+                    <Stack spacing={3} width="100%">
+                        <Typography variant="h4" component="h1" sx={{
+                            fontWeight: 600,
+                            textAlign: "center",
+                            color: theme.palette.text.primary,
+                            mb: 2
+                        }}>
+                            Solicitudes de Reserva
+                        </Typography>
+
+                        {solicitudes?.length !== 0 && (
+                            <Accordion
+                                elevation={2}
+                                sx={{
+                                    borderRadius: 1,
+                                    overflow: 'hidden',
+                                    '&:before': { display: 'none' },
+                                }}
+                            >
+                                <AccordionSummary
+                                    expandIcon={<ExpandMoreIcon />}
+                                    sx={{
+                                        backgroundColor: theme.palette.primary.light,
+                                        color: theme.palette.primary.contrastText
+                                    }}
+                                >
+                                    <Stack direction="row" spacing={1} alignItems="center">
+                                        <FilterListIcon />
+                                        <Typography variant="subtitle1" fontWeight={500}>Filtros y Ordenación</Typography>
+                                    </Stack>
+                                </AccordionSummary>
+                                <AccordionDetails>
+                                    <Stack
+                                        direction={isMobile ? "column" : "row"}
+                                        spacing={2}
+                                        sx={{ width: "100%" }}
+                                    >
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>Estado de la reserva</InputLabel>
+                                            <Select
+                                                value={estado}
+                                                label="Estado de la reserva"
+                                                onChange={handleEstadoChange}
+                                            >
+                                                <MenuItem value=""><em>Todos</em></MenuItem>
+                                                <MenuItem value="Pendiente">Pendiente</MenuItem>
+                                                <MenuItem value="Aceptada">Confirmada</MenuItem>
+                                                <MenuItem value="Cancelada">Cancelada</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>Ordenar por fecha</InputLabel>
+                                            <Select
+                                                value={ordenFechaLLegada}
+                                                label="Ordenar por fecha"
+                                                onChange={(e) => setOrdenFechaLLegada(e.target.value)}
+                                                startAdornment={<SortIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />}
+                                            >
+                                                <MenuItem value="asc">Próximas primero</MenuItem>
+                                                <MenuItem value="desc">Antiguas primero</MenuItem>
+                                            </Select>
+                                        </FormControl>
+                                    </Stack>
+                                </AccordionDetails>
+                            </Accordion>
+                        )}
+
                         {solicitudes.length === 0 ? (
-                            <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No tienes solicitudes de reserva</Typography>
+                            <Paper
+                                sx={{
+                                    p: 4,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    borderRadius: 2,
+                                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                                }}
+                            >
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        color: '#718096',
+                                        textAlign: 'center'
+                                    }}
+                                >
+                                    No tienes solicitudes de reserva
+                                </Typography>
+                            </Paper>
                         ) : (
                             solicitudesFiltradas.length === 0 ? (
-                                <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No tienes solicitudes de reserva con estos filtros</Typography>
+                                <Alert severity="info" sx={{ mt: 2 }}>
+                                    No hay solicitudes que coincidan con los filtros aplicados
+                                </Alert>
                             ) : (
-                                solicitudesFiltradas.map((solicitud) => {
-                                    const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
-                                    return (
-                                        <Box key={solicitud.id} sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "100%" }}>
-                                            <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", width: "80%" }}>
-                                                <Paper sx={{ width: "100%", padding: 2, marginBottom: 2, display: "flex", alignItems: "center", boxShadow: 3 }} elevation={3}>
-                                                    <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "flex-start", width: "100%" }}>
-                                                        <Box sx={{ width: "150px", height: "150px", marginRight: 2 }}>
-                                                            <img src={urls.find((url) => url.propiedad === solicitud.propiedad)?.foto || "ruta-a-imagen-por-defecto.jpg"} alt="propiedad" style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "8px" }} />
-                                                        </Box>
-                                                        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center" }}>
-                                                            <Typography variant="h6" sx={{ fontWeight: "bold" }}><a style={{ textDecoration: "none", color: "inherit" }} href={`/detalles/${propiedad?.id}`}>{propiedad ? propiedad.nombre : solicitud.propiedad}</a></Typography>
-                                                            <Typography variant="body1"><strong>Fecha de inicio:</strong> {solicitud.fecha_llegada}</Typography>
-                                                            <Typography variant="body1"><strong>Fecha de fin:</strong> {solicitud.fecha_salida}</Typography>
-                                                            <Typography variant="body1"><strong>Estado:</strong> {solicitud.estado}</Typography>
-                                                        </Box>
-                                                        {solicitud.estado === "Aceptada" ? (
-                                                            <Typography variant="body1" sx={{ fontWeight: "bold", color: "green", marginLeft: 2 }}>Aceptada</Typography>
-                                                        ) : solicitud.estado === "Cancelada" ? (
-                                                            <Typography variant="body1" sx={{ fontWeight: "bold", color: "red", marginLeft: 2 }}>Rechazada</Typography>
-                                                        ) : (
-                                                            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", marginLeft: 2, width: "150px" }}>
-                                                                <Button variant="contained" sx={{ bgcolor: "green", marginBottom: 1, width: "100%" }} onClick={() => handleAccept(solicitud.id)}>Aceptar</Button>
-                                                                <Button variant="contained" sx={{ bgcolor: "red", width: "100%" }} onClick={() => handleDecline(solicitud.id)}>Rechazar</Button>
-                                                            </Box>
+                                <Stack spacing={2}>
+                                    {solicitudesFiltradas.map((solicitud) => {
+                                        const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
+                                        const imagenUrl = urls.find((url) => url.propiedad === solicitud.propiedad)?.foto || "https://via.placeholder.com/150";
+
+                                        return (
+                                            <Card key={solicitud.id} sx={{
+                                                width: "100%",
+                                                overflow: "hidden",
+                                                transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+                                                '&:hover': {
+                                                    boxShadow: 6,
+                                                    transform: 'translateY(-2px)'
+                                                }
+                                            }}>
+                                                <Stack direction={isMobile ? "column" : "row"}>
+                                                    <CardMedia
+                                                        component="img"
+                                                        image={imagenUrl}
+                                                        alt={propiedad?.nombre || "Propiedad"}
+                                                        sx={{
+                                                            width: isMobile ? "100%" : 200,
+                                                            height: isMobile ? 140 : 200,
+                                                            objectFit: "cover"
+                                                        }}
+                                                    />
+                                                    <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                                                        <CardContent sx={{ flex: "1 0 auto", pb: 1 }}>
+                                                            <Stack direction="row" justifyContent="space-between" alignItems="center" mb={1}>
+                                                                <Typography variant="h6" component="div" sx={{
+                                                                    fontWeight: 600,
+                                                                    color: theme.palette.primary.main
+                                                                }}>
+                                                                    <a style={{
+                                                                        textDecoration: "none",
+                                                                        color: "inherit",
+                                                                        transition: "color 0.2s",
+                                                                        '&:hover': {
+                                                                            color: theme.palette.primary.dark
+                                                                        }
+                                                                    }} href={`/detalles/${propiedad?.id}`}>
+                                                                        {propiedad ? propiedad.nombre : `Propiedad #${solicitud.propiedad}`}
+                                                                    </a>
+                                                                </Typography>
+                                                                {getStatusChip(solicitud.estado)}
+                                                            </Stack>
+
+                                                            <Divider sx={{ my: 1 }} />
+
+                                                            <Stack spacing={1} sx={{ mt: 1 }}>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    <strong>Llegada:</strong> {formatDate(solicitud.fecha_llegada)}
+                                                                </Typography>
+                                                                <Typography variant="body2" color="text.secondary">
+                                                                    <strong>Salida:</strong> {formatDate(solicitud.fecha_salida)}
+                                                                </Typography>
+                                                            </Stack>
+                                                        </CardContent>
+
+                                                        {solicitud.estado === "Pendiente" && (
+                                                            <CardActions sx={{
+                                                                justifyContent: isMobile ? "center" : "flex-end",
+                                                                px: 2,
+                                                                pb: 2
+                                                            }}>
+                                                                <Button
+                                                                    variant="contained"
+                                                                    color="error"
+                                                                    onClick={() => handleDecline(solicitud.id)}
+                                                                    startIcon={<CancelIcon />}
+                                                                    size="small"
+                                                                >
+                                                                    Rechazar
+                                                                </Button>
+                                                                <Button
+                                                                    variant="contained"
+                                                                    color="success"
+                                                                    onClick={() => handleAccept(solicitud.id)}
+                                                                    startIcon={<CheckCircleIcon />}
+                                                                    size="small"
+                                                                    sx={{ ml: 1 }}
+                                                                >
+                                                                    Aceptar
+                                                                </Button>
+                                                            </CardActions>
                                                         )}
                                                     </Box>
-                                                </Paper>
-                                            </Box>
-                                        </Box>
-                                    );
-                                })
+                                                </Stack>
+                                            </Card>
+                                        );
+                                    })}
+                                </Stack>
                             )
                         )}
-                    </Box>
+                    </Stack>
                 </Container>
             )}
         </Box>
     );
 }
+
 export default MyReservationRequests;
