@@ -8,9 +8,9 @@ import {
   InputAdornment,
   IconButton,
   Alert,
+  Paper,
+  CircularProgress,
 } from "@mui/material";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 
@@ -84,7 +84,6 @@ const Register = () => {
         "Debes ser mayor de 18 años para registrarte";
     }
 
-
     if (formData.password.length < 8) {
       errors.password = "La contraseña debe tener al menos 8 caracteres";
     }
@@ -147,60 +146,90 @@ const Register = () => {
       return;
     }
 
-    const response = await fetch("http://localhost:8000/api/usuarios/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(formData),
-    });
+    try {
+      const response = await fetch("http://localhost:8000/api/usuarios/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
 
-    if (response.ok) {
-      const responseData = await response.json();
-      const { access, refresh } = responseData;
+      if (response.ok) {
+        const responseData = await response.json();
+        const { access, refresh } = responseData;
 
-      localStorage.setItem("accessToken", access);
-      localStorage.setItem("refreshToken", refresh);
+        localStorage.setItem("accessToken", access);
+        localStorage.setItem("refreshToken", refresh);
 
-      navigate("/inicio-de-sesion");
-
-      setMessage("Registro exitoso");
-    } else {
-      const errorData = await response.json();
-      setMessage(errorData.detail || "Error al registrar");
+        navigate("/inicio-de-sesion");
+        setMessage("Registro exitoso");
+      } else {
+        const errorData = await response.json();
+        setMessage(errorData.detail || "Error al registrar");
+      }
+    } catch (error) {
+      setMessage("Error en la conexión con el servidor");
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (
-    <div
-      style={{
+    <Box
+      sx={{
         backgroundColor: "#f4f7fc",
-        minHeight: "80vh",
+        minHeight: "100vh",
         display: "flex",
-        flexDirection: "column",
-        flex: "1",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: 2,
       }}
     >
-      <Container
-        maxWidth="md"
-        sx={{
-          minHeight: "80vh",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        }}
-      >
-        <Box sx={{ textAlign: "center", width: "100%" }}>
-          <Typography variant="h4" gutterBottom>
+      <Container maxWidth="md" sx={{ py: 4 }}>
+        <Paper
+          elevation={3}
+          sx={{
+            p: { xs: 2, sm: 3, md: 4 },
+            borderRadius: 2,
+            backgroundColor: "white",
+            transition: "all 0.3s ease",
+            "&:hover": {
+              boxShadow: 6,
+            },
+          }}
+        >
+          <Typography
+            variant="h4"
+            gutterBottom
+            sx={{
+              textAlign: "center",
+              fontWeight: 600,
+              color: "primary.main",
+              mb: 3,
+            }}
+          >
             Registro
           </Typography>
 
-          {message && <Alert severity="error">{message}</Alert>}
+          {message && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2, borderRadius: 1 }}
+            >
+              {message}
+            </Alert>
+          )}
 
           <form onSubmit={handleSubmit}>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", md: "row" },
+                gap: 2
+              }}
+            >
+              {/* Primera columna */}
               <Box sx={{ flex: "1 1 48%" }}>
                 <TextField
                   fullWidth
@@ -213,6 +242,12 @@ const Register = () => {
                   error={!!errors.usuario}
                   helperText={errors.usuario}
                   size="small"
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -225,7 +260,12 @@ const Register = () => {
                   error={!!errors.email}
                   helperText={errors.email}
                   size="small"
-
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -237,19 +277,26 @@ const Register = () => {
                   onChange={handleChange}
                   required
                   size="small"
-
                   error={!!errors.password}
                   helperText={errors.password}
-                  slotProps={{
-                    input: {
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={toggleShowPassword} edge="end">
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    },
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
+                  InputProps={{
+                    endAdornment: (
+                      <InputAdornment position="end">
+                        <IconButton
+                          onClick={toggleShowPassword}
+                          edge="end"
+                          aria-label={showPassword ? "ocultar contraseña" : "mostrar contraseña"}
+                        >
+                          {showPassword ? <VisibilityOff /> : <Visibility />}
+                        </IconButton>
+                      </InputAdornment>
+                    ),
                   }}
                 />
                 <TextField
@@ -263,7 +310,12 @@ const Register = () => {
                   error={!!errors.dni}
                   helperText={errors.dni}
                   size="small"
-
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -276,7 +328,12 @@ const Register = () => {
                   error={!!errors.telefono}
                   helperText={errors.telefono}
                   size="small"
-
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
               </Box>
 
@@ -290,8 +347,13 @@ const Register = () => {
                   margin="normal"
                   onChange={handleChange}
                   size="small"
-
                   required
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -302,7 +364,12 @@ const Register = () => {
                   onChange={handleChange}
                   required
                   size="small"
-
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
+                  }}
                 />
                 <TextField
                   fullWidth
@@ -314,13 +381,16 @@ const Register = () => {
                   onChange={handleChange}
                   required
                   size="small"
-
                   error={!!errors.fecha_de_nacimiento}
                   helperText={errors.fecha_de_nacimiento}
-                  SlotProps={{
-                    input: {
-                      shrink: true,
-                    },
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
                   }}
                 />
                 <TextField
@@ -331,13 +401,16 @@ const Register = () => {
                   variant="outlined"
                   margin="normal"
                   onChange={handleChange}
-                  slotProps={{
-                    input: {
-                      shrink: true,
-                    },
+                  InputLabelProps={{
+                    shrink: true,
+                  }}
+                  sx={{
+                    mb: 1,
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 1.5,
+                    }
                   }}
                 />
-
               </Box>
             </Box>
 
@@ -345,18 +418,31 @@ const Register = () => {
               type="submit"
               variant="contained"
               color="primary"
-              size="small"
-
               fullWidth
               disabled={loading}
-              sx={{ mt: 2 }}
+              sx={{
+                mt: 3,
+                py: 1.2,
+                borderRadius: 1.5,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "1rem",
+                boxShadow: 2,
+                "&:hover": {
+                  boxShadow: 4,
+                }
+              }}
             >
-              Registrarse
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                "Completar Registro"
+              )}
             </Button>
           </form>
-        </Box>
+        </Paper>
       </Container>
-    </div>
+    </Box>
   );
 };
 
