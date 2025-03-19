@@ -1,15 +1,32 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import NavBar from "./NavBar";
 import Footer from "./Footer";
-import { Box, Button, Container, Typography, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Paper, CircularProgress } from "@mui/material";
-import { useState } from "react";
+import {
+    Box,
+    Button,
+    Container,
+    Typography,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
+    Paper,
+    CircularProgress,
+    Card,
+    CardMedia,
+    CardContent,
+    CardActions,
+    Divider,
+    IconButton,
+    Tooltip,
+    Fade,
+    Chip
+} from "@mui/material";
+import { Edit as EditIcon, Delete as DeleteIcon, Home as HomeIcon, Add as AddIcon } from "@mui/icons-material";
 import refreshAccessToken from "./RefreshToken";
-import { set } from "date-fns";
-
-
 
 const MyProperties = () => {
-
     const [mispropiedades, setMisPropiedades] = useState([]);
     const [open, setOpen] = useState(false);
     const [selectedProperty, setSelectedProperty] = useState(null);
@@ -18,22 +35,17 @@ const MyProperties = () => {
     const [imageLoading, setImageLoading] = useState({});
 
     useEffect(() => {
-
         fetchMyProperties();
-    }
-        , []);
+    }, []);
 
     useEffect(() => {
-
         const fetchData = async () => {
             const photoPromises = mispropiedades.map((propiedad) => fetchPropertyPhotos(propiedad.id));
             await Promise.all(photoPromises);
             setLoading(false);
-        }
+        };
         fetchData();
-
     }, [mispropiedades]);
-
 
     const fetchPropertyPhotos = async (propiedadId) => {
         setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
@@ -56,17 +68,17 @@ const MyProperties = () => {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         window.location.reload();
-    }
+    };
 
     const handleClickOpen = (propertyId) => {
         setSelectedProperty(propertyId);
         setOpen(true);
-    }
+    };
 
     const handleClose = () => {
         setOpen(false);
         setSelectedProperty(null);
-    }
+    };
 
     const handleConfirmDelete = () => {
         if (selectedProperty) {
@@ -103,14 +115,13 @@ const MyProperties = () => {
         } catch (error) {
             console.error("Error al eliminar la propiedad", error);
         }
-    }
+    };
 
     const fetchMyProperties = async () => {
         const usuarioIdSinParse = localStorage.getItem("additionalInfo");
         const usuarioId = JSON.parse(usuarioIdSinParse).usuarioId;
 
         try {
-
             const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
                 method: "GET",
                 headers: {
@@ -132,96 +143,266 @@ const MyProperties = () => {
 
             if (response.ok) {
                 const data = await response.json();
-                console.log(data);
-                console.log(usuarioId);
                 const filtro = await data.filter(propiedad => propiedad.anfitrion === usuarioId);
                 setMisPropiedades(filtro);
             }
-        }
-        catch (error) {
+        } catch (error) {
             console.error("Error al obtener las propiedades", error);
         }
-    }
-
+    };
 
     return (
-        <Box sx={{ minHeight: "80vh", display: "flex", flexDirection: "column", backgroundColor: "#f4f7fc", width: "100%" }}>
+        <Box sx={{
+            minHeight: "80vh",
+            display: "flex",
+            flexDirection: "column",
+            backgroundColor: "#f5f7fa",
+            width: "100%",
+            pb: 5
+        }}>
             {loading ? (
-                <Container maxWidth="false" sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                    <CircularProgress />
-                </Container>
+                <Box sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: "80vh"
+                }}>
+                    <CircularProgress color="primary" />
+                </Box>
             ) : (
-
-                <Container maxWidth="false" sx={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "80vh", flexDirection: "column", width: "100%" }}>
-                    <Box sx={{ textAlign: "center", width: "100%", marginTop: "20px" }}>
-                        <Typography variant="h4" gutterBottom> Mis propiedades </Typography>
-                        <p>En esta sección podrás ver todas tus propiedades publicadas</p>
+                <Container maxWidth="lg" sx={{ flex: 1, py: 4 }}>
+                    <Box sx={{
+                        mb: 5,
+                        textAlign: "center",
+                        backgroundColor: "white",
+                        p: 3,
+                        borderRadius: 2,
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.04)"
+                    }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
+                            <HomeIcon sx={{ fontSize: 32, color: "#1976d2", mr: 1 }} />
+                            <Typography variant="h4" fontWeight="600">
+                                Mis Propiedades
+                            </Typography>
+                        </Box>
+                        <Divider sx={{ my: 2 }} />
+                        <Typography variant="body1" color="text.secondary">
+                            Administra todas tus propiedades publicadas desde un solo lugar
+                        </Typography>
                     </Box>
-                    <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
-                        {mispropiedades.map((propiedad, index) => (
 
-                            <Paper key={index}
-                                elevation={3}
-                                sx={{
-                                    backgroundColor: "white",
-                                    flex: "0 0 calc(33.333% - 16px)",
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    justifyContent: "center",
-                                    alignItems: "center",
-                                    borderRadius: 2,
-                                    overflow: "hidden",
-                                    mr: 2,
-                                    ml: 2,
-
-                                }}>
-
-                                {imageLoading[propiedad.id] ? (
-                                    <CircularProgress />
-                                ) : (
-                                    <img src={url[propiedad.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />)}
-                                <Typography variant="h6" gutterBottom> <a
-                                    href={`/detalles/${propiedad.id}`}
-                                    style={{ textDecoration: "none", color: "inherit" }}>{propiedad.nombre}</a></Typography>
-                                <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-                                    {propiedad.precio_por_noche}€/noche
-                                </Typography>
-                                <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", justifyContent: "center", padding: "10px" }}>
-                                    <Button variant="contained" color="primary" onClick={() => window.location.href = `/editar-propiedad/${propiedad.id}`} sx={{ mr: 1 }}>Editar</Button>
-                                    <Button variant="contained" color="error" onClick={() => handleClickOpen(propiedad.id)} sx={{ ml: 1 }}>Eliminar</Button>
-                                </Box>
-                            </Paper>
-                        ))}
-
-
-                    </Box>
-                    <Box>
-                        <Button onClick={() => window.location.href = "/crear-propiedad"} sx={{ bgcolor: "#1976d2", color: "white", padding: "10px 20px", mb: "20px" }}> Agregar propiedad </Button>
-                    </Box>
-                </Container >
+                    {mispropiedades.length === 0 ? (
+                        <Box sx={{
+                            textAlign: "center",
+                            p: 5,
+                            backgroundColor: "white",
+                            borderRadius: 2,
+                            boxShadow: "0 4px 20px rgba(0,0,0,0.04)"
+                        }}>
+                            <Typography variant="h6" gutterBottom>
+                                Aún no tienes propiedades publicadas
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                startIcon={<AddIcon />}
+                                onClick={() => window.location.href = "/crear-propiedad"}
+                                sx={{ mt: 2 }}
+                            >
+                                Agregar propiedad
+                            </Button>
+                        </Box>
+                    ) : (
+                        <>
+                            <Box sx={{
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 3,
+                                justifyContent: { xs: "center", sm: "flex-start" },
+                                mb: 4
+                            }}>
+                                {mispropiedades.map((propiedad) => (
+                                    <Card
+                                        key={propiedad.id}
+                                        sx={{
+                                            width: { xs: "100%", sm: "calc(50% - 16px)", md: "calc(33.333% - 16px)" },
+                                            minWidth: { xs: "100%", sm: "300px", md: "280px" },
+                                            maxWidth: "350px",
+                                            borderRadius: 2,
+                                            overflow: "hidden",
+                                            boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                                            transition: "transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out",
+                                            "&:hover": {
+                                                transform: "translateY(-5px)",
+                                                boxShadow: "0 8px 25px rgba(0,0,0,0.12)"
+                                            }
+                                        }}
+                                    >
+                                        <Box sx={{ position: "relative", height: 200 }}>
+                                            {imageLoading[propiedad.id] ? (
+                                                <Box sx={{
+                                                    height: "100%",
+                                                    display: "flex",
+                                                    alignItems: "center",
+                                                    justifyContent: "center",
+                                                    backgroundColor: "#f0f2f5"
+                                                }}>
+                                                    <CircularProgress size={40} />
+                                                </Box>
+                                            ) : (
+                                                <CardMedia
+                                                    component="img"
+                                                    height="200"
+                                                    image={url[propiedad.id]}
+                                                    alt={propiedad.nombre}
+                                                    sx={{ objectFit: "cover" }}
+                                                />
+                                            )}
+                                            <Chip
+                                                label={`${propiedad.precio_por_noche}€/noche`}
+                                                sx={{
+                                                    position: "absolute",
+                                                    bottom: 10,
+                                                    right: 10,
+                                                    backgroundColor: "rgba(255, 255, 255, 0.9)",
+                                                    color: "#1976d2",
+                                                    fontWeight: "bold",
+                                                    boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
+                                                }}
+                                            />
+                                        </Box>
+                                        <CardContent sx={{ p: 2.5 }}>
+                                            <Typography
+                                                variant="h6"
+                                                component="a"
+                                                href={`/detalles/${propiedad.id}`}
+                                                sx={{
+                                                    textDecoration: "none",
+                                                    color: "inherit",
+                                                    display: "block",
+                                                    mb: 1,
+                                                    fontWeight: 600,
+                                                    "&:hover": {
+                                                        color: "#1976d2"
+                                                    }
+                                                }}
+                                            >
+                                                {propiedad.nombre}
+                                            </Typography>
+                                            <Divider sx={{ my: 1.5 }} />
+                                        </CardContent>
+                                        <CardActions sx={{ px: 2, pb: 2.5, pt: 0.5, justifyContent: "space-between" }}>
+                                            <Tooltip title="Editar propiedad" arrow TransitionComponent={Fade} TransitionProps={{ timeout: 600 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<EditIcon />}
+                                                    onClick={() => window.location.href = `/editar-propiedad/${propiedad.id}`}
+                                                    size="medium"
+                                                    sx={{
+                                                        flex: 1,
+                                                        mr: 1,
+                                                        borderRadius: 1.5,
+                                                        textTransform: "none",
+                                                        fontSize: "0.9rem"
+                                                    }}
+                                                >
+                                                    Editar
+                                                </Button>
+                                            </Tooltip>
+                                            <Tooltip title="Eliminar propiedad" arrow TransitionComponent={Fade} TransitionProps={{ timeout: 600 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    startIcon={<DeleteIcon />}
+                                                    onClick={() => handleClickOpen(propiedad.id)}
+                                                    color="error"
+                                                    size="medium"
+                                                    sx={{
+                                                        flex: 1,
+                                                        ml: 1,
+                                                        borderRadius: 1.5,
+                                                        textTransform: "none",
+                                                        fontSize: "0.9rem"
+                                                    }}
+                                                >
+                                                    Eliminar
+                                                </Button>
+                                            </Tooltip>
+                                        </CardActions>
+                                    </Card>
+                                ))}
+                            </Box>
+                            <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                                <Button
+                                    variant="contained"
+                                    startIcon={<AddIcon />}
+                                    onClick={() => window.location.href = "/crear-propiedad"}
+                                    sx={{
+                                        px: 4,
+                                        py: 1.2,
+                                        borderRadius: 2,
+                                        fontSize: "1rem",
+                                        textTransform: "none",
+                                        boxShadow: "0 4px 14px rgba(25, 118, 210, 0.3)",
+                                        "&:hover": {
+                                            boxShadow: "0 6px 20px rgba(25, 118, 210, 0.4)"
+                                        }
+                                    }}
+                                >
+                                    Agregar propiedad
+                                </Button>
+                            </Box>
+                        </>
+                    )}
+                </Container>
             )}
+
             <Dialog
                 open={open}
                 onClose={handleClose}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
+                PaperProps={{
+                    sx: {
+                        borderRadius: 2,
+                        p: 1,
+                        maxWidth: 400
+                    }
+                }}
             >
-                <DialogTitle id="alert-dialog-title">Eliminar propiedad</DialogTitle>
+                <DialogTitle sx={{ fontSize: "1.2rem", fontWeight: 600 }}>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                        <DeleteIcon color="error" sx={{ mr: 1.5 }} />
+                        Eliminar propiedad
+                    </Box>
+                </DialogTitle>
                 <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
-                        ¿Estás seguro de que deseas eliminar esta propiedad?
+                    <DialogContentText sx={{ color: "text.primary" }}>
+                        ¿Estás seguro de que deseas eliminar esta propiedad? Esta acción no se puede deshacer.
                     </DialogContentText>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Cancelar</Button>
-                    <Button onClick={handleConfirmDelete} autoFocus>
+                <DialogActions sx={{ px: 3, pb: 3 }}>
+                    <Button
+                        onClick={handleClose}
+                        variant="outlined"
+                        sx={{ borderRadius: 1.5, textTransform: "none" }}
+                    >
+                        Cancelar
+                    </Button>
+                    <Button
+                        onClick={handleConfirmDelete}
+                        variant="contained"
+                        color="error"
+                        autoFocus
+                        sx={{
+                            borderRadius: 1.5,
+                            ml: 1.5,
+                            textTransform: "none",
+                            boxShadow: "0 2px 8px rgba(211, 47, 47, 0.2)"
+                        }}
+                    >
                         Eliminar
                     </Button>
                 </DialogActions>
             </Dialog>
-
-        </Box >
-    )
-}
+        </Box>
+    );
+};
 
 export default MyProperties;
