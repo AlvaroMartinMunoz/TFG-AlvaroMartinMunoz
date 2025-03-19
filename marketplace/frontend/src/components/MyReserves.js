@@ -1,14 +1,30 @@
-import { Accordion, Box, CircularProgress, Container, Paper, Typography, AccordionSummary, Button, TextField, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
-import { useState, useEffect, use } from "react";
+import {
+    Accordion,
+    Box,
+    CircularProgress,
+    Container,
+    Paper,
+    Typography,
+    AccordionSummary,
+    Button,
+    Select,
+    MenuItem,
+    FormControl,
+    InputLabel,
+    Chip,
+    Divider,
+    Stack,
+    Alert
+} from "@mui/material";
+import { useState, useEffect } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import FilterListIcon from "@mui/icons-material/FilterList";
 import { AccordionDetails } from "@mui/material";
 import { useLocation } from "react-router-dom";
-
-
+import { alpha } from "@mui/material/styles";
 
 const MyReserves = () => {
-
     const [misReservas, setMisReservas] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
     const [url, setUrl] = useState([]);
@@ -17,8 +33,8 @@ const MyReserves = () => {
     const [misReservasFiltradas, setMisReservasFiltradas] = useState([]);
     const [estado, setEstado] = useState("");
     const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
+    const [notification, setNotification] = useState(null);
     const location = useLocation();
-
 
     useEffect(() => {
         if (misReservas.length !== 0) {
@@ -59,36 +75,39 @@ const MyReserves = () => {
                         if (data.status === 'success') {
                             fetchReservas();
                             window.history.replaceState({}, '', '/mis-reservas');
-                            alert('¡Reserva confirmada exitosamente!');
-
+                            setNotification({
+                                type: 'success',
+                                message: '¡Reserva confirmada exitosamente!'
+                            });
+                            setTimeout(() => setNotification(null), 5000);
                         }
                     }
                 } catch (error) {
                     console.error('Error verificando pago:', error);
+                    setNotification({
+                        type: 'error',
+                        message: 'Error al verificar el pago'
+                    });
+                    setTimeout(() => setNotification(null), 5000);
                 }
             }
         };
         checkPayment();
     }, [location.search]);
 
-
     useEffect(() => {
         fetchReservas();
         const intervalId = setInterval(fetchReservas, 60000);
         return () => clearInterval(intervalId);
-    }
-
-        , []);
+    }, []);
 
     useEffect(() => {
-
         const fetchData = async () => {
             const photoPromises = misReservas.map((reserva) => fetchPropertyPhotos(reserva.propiedad));
             await Promise.all(photoPromises);
             setLoading(false);
         }
         fetchData();
-
     }, [propiedades]);
 
     const handleLogOut = () => {
@@ -108,13 +127,26 @@ const MyReserves = () => {
                 body: JSON.stringify({ estado: "Cancelada", fecha_aceptacion_rechazo: new Date() })
             });
             if (response.ok) {
-                console.log("Reserva cancelada");
+                setNotification({
+                    type: 'success',
+                    message: 'Reserva cancelada con éxito'
+                });
+                setTimeout(() => setNotification(null), 5000);
                 fetchReservas();
             } else {
-                console.log("Error al cancelar la reserva");
+                setNotification({
+                    type: 'error',
+                    message: 'Error al cancelar la reserva'
+                });
+                setTimeout(() => setNotification(null), 5000);
             }
         } catch (error) {
             console.error("Error al cancelar la reserva", error);
+            setNotification({
+                type: 'error',
+                message: 'Error al cancelar la reserva'
+            });
+            setTimeout(() => setNotification(null), 5000);
         }
     };
 
@@ -141,8 +173,6 @@ const MyReserves = () => {
                 const dataFiltered = data.filter(reserva => reserva.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
                 setMisReservas(dataFiltered);
                 fetchProperties(dataFiltered);
-                console.log(dataFiltered);
-
             } else {
                 console.log("Error al obtener las reservas");
             }
@@ -174,7 +204,6 @@ const MyReserves = () => {
                     }
                 } else if (response.ok) {
                     const data = await response.json();
-
                     propiedadesData[reserva.propiedad] = data;
                 } else {
                     console.log("Error al obtener las propiedades");
@@ -204,100 +233,356 @@ const MyReserves = () => {
         }
     };
 
+    const getStatusColor = (status) => {
+        switch (status) {
+            case "Pendiente":
+                return { bg: "#FFF7E6", text: "#FF9800", border: "#FFB74D" };
+            case "Aceptada":
+                return { bg: "#E8F5E9", text: "#4CAF50", border: "#81C784" };
+            case "Cancelada":
+                return { bg: "#FFEBEE", text: "#F44336", border: "#E57373" };
+            default:
+                return { bg: "#E0E0E0", text: "#757575", border: "#BDBDBD" };
+        }
+    };
+
+    const formatDate = (dateString) => {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date(dateString).toLocaleDateString('es-ES', options);
+    };
 
     return (
-        <Box sx={{ display: 'flex', minHeight: '80vh', flexDirection: 'column', backgroundColor: '#f4f7fc', width: '100%' }}>
-            <Container sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '80vh', flexDirection: 'column', width: '100%' }}>
-                <Typography variant="h4" sx={{ mt: 2, mb: 2 }}>Mis Reservas</Typography>
-                {misReservas?.length !== 0 ? (
-                    <Accordion sx={{ width: "100%" }}>
-                        <AccordionSummary
-                            expandIcon={<ExpandMoreIcon />}>
-                            <Typography variant="h6">Filtros</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Box sx={{ display: "flex", flexDirection: "row", width: "100%" }}>
-                                <FormControl fullWidth sx={{ mb: 2 }} size="small">
-                                    <InputLabel>Estado</InputLabel>
-                                    <Select name="estado" value={estado} onChange={handleEstadoChange}>
-                                        <MenuItem value=""><em>None</em></MenuItem>
-                                        <MenuItem value="Pendiente">Pendiente</MenuItem>
-                                        <MenuItem value="Aceptada">Confirmada</MenuItem>
-                                        <MenuItem value="Cancelada">Cancelada</MenuItem>
-                                    </Select>
-                                </FormControl>
-                                <FormControl fullWidth sx={{ mb: 2 }} size="small">
-                                    <InputLabel>Ordenar por fecha de llegada</InputLabel>
-                                    <Select
-                                        value={ordenFechaLLegada}
-                                        label="Ordenar por fecha de llegada"
-                                        onChange={(e) => setOrdenFechaLLegada(e.target.value)}
-                                    >
-                                        <MenuItem value="asc">Ascendente</MenuItem>
-                                        <MenuItem value="desc">Descendente</MenuItem>
-                                    </Select>
-                                </FormControl>
-                            </Box>
-                        </AccordionDetails>
-                    </Accordion>
-                ) : null}
+        <Box sx={{
+            display: 'flex',
+            minHeight: '80vh',
+            flexDirection: 'column',
+            backgroundColor: '#f8fafc',
+            width: '100%',
+            py: 4
+        }}>
+            <Container maxWidth="lg">
+                {notification && (
+                    <Alert
+                        severity={notification.type}
+                        sx={{
+                            mb: 3,
+                            borderRadius: 2,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                        }}
+                        onClose={() => setNotification(null)}
+                    >
+                        {notification.message}
+                    </Alert>
+                )}
 
-                {misReservas.length === 0 ? (
-                    <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No tienes reservas</Typography>
-                ) : (
-                    misReservasFiltradas.length === 0 ? (
-                        <Typography variant="h6" sx={{ mt: 4, color: "red" }}>No hay reservas que cumplan los filtros seleccionados</Typography>
-                    ) : (
-                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", flexWrap: "wrap", width: "100%", padding: "20px", borderRadius: "10px", overflow: "auto", }}>
-                            {misReservasFiltradas?.map((reserva, index) => {
-                                const propiedad = propiedades[reserva.propiedad];
-                                return (
-                                    <Paper key={index}
-                                        elevation={3}
+                <Typography
+                    variant="h4"
+                    sx={{
+                        mb: 4,
+                        fontWeight: 600,
+                        color: '#1a365d',
+                        textAlign: 'center'
+                    }}
+                >
+                    Mis Reservas
+                </Typography>
+
+                {misReservas?.length !== 0 && (
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            mb: 4,
+                            overflow: 'hidden',
+                            borderRadius: 2,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                        }}
+                    >
+                        <Accordion
+                            disableGutters
+                            elevation={0}
+                            sx={{
+                                '&:before': { display: 'none' }
+                            }}
+                        >
+                            <AccordionSummary
+                                expandIcon={<ExpandMoreIcon />}
+                                sx={{
+                                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                    borderBottom: '1px solid rgba(0, 0, 0, 0.08)'
+                                }}
+                            >
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <FilterListIcon sx={{ mr: 1, color: '#4a5568' }} />
+                                    <Typography variant="h6" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                        Filtros
+                                    </Typography>
+                                </Box>
+                            </AccordionSummary>
+                            <AccordionDetails sx={{ p: 3 }}>
+                                <Box sx={{
+                                    display: "flex",
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: 2
+                                }}>
+                                    <FormControl
+                                        fullWidth
+                                        size="small"
                                         sx={{
-                                            backgroundColor: "white",
-                                            flex: "0 0 calc(27.333% - 16px)",
-                                            display: "flex",
-                                            flexDirection: "column",
-                                            justifyContent: "center",
-                                            alignItems: "center",
-                                            borderRadius: 2,
-                                            overflow: "hidden",
-                                            mt: 2,
-                                            mr: 2,
-                                            ml: 2,
-                                        }}>
-                                        {imageLoading[propiedad?.id] ? (
-                                            <CircularProgress />
-                                        ) : (
-                                            <img src={url[propiedad?.id]} alt="propiedad" style={{ width: "100%", height: "200px", objectFit: "cover", borderRadius: "8px" }} />
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: 2
+                                            }
+                                        }}
+                                    >
+                                        <InputLabel>Estado</InputLabel>
+                                        <Select
+                                            name="estado"
+                                            value={estado}
+                                            onChange={handleEstadoChange}
+                                            label="Estado"
+                                        >
+                                            <MenuItem value=""><em>Todos</em></MenuItem>
+                                            <MenuItem value="Pendiente">Pendiente</MenuItem>
+                                            <MenuItem value="Aceptada">Confirmada</MenuItem>
+                                            <MenuItem value="Cancelada">Cancelada</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                    <FormControl
+                                        fullWidth
+                                        size="small"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: 2
+                                            }
+                                        }}
+                                    >
+                                        <InputLabel>Ordenar por fecha de llegada</InputLabel>
+                                        <Select
+                                            value={ordenFechaLLegada}
+                                            label="Ordenar por fecha de llegada"
+                                            onChange={(e) => setOrdenFechaLLegada(e.target.value)}
+                                        >
+                                            <MenuItem value="asc">Más próximas primero</MenuItem>
+                                            <MenuItem value="desc">Más lejanas primero</MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Box>
+                            </AccordionDetails>
+                        </Accordion>
+                    </Paper>
+                )}
 
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', my: 8 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : misReservas.length === 0 ? (
+                    <Paper
+                        sx={{
+                            p: 4,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            borderRadius: 2,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                        }}
+                    >
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                color: '#718096',
+                                textAlign: 'center'
+                            }}
+                        >
+                            No tienes reservas
+                        </Typography>
+                    </Paper>
+                ) : misReservasFiltradas.length === 0 ? (
+                    <Paper
+                        sx={{
+                            p: 4,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            borderRadius: 2,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                        }}
+                    >
+                        <Typography
+                            variant="h6"
+                            sx={{
+                                color: '#718096',
+                                textAlign: 'center'
+                            }}
+                        >
+                            No hay reservas que cumplan los filtros seleccionados
+                        </Typography>
+                    </Paper>
+                ) : (
+                    <Box sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        flexWrap: "wrap",
+                        gap: 3,
+                        justifyContent: { xs: 'center', md: 'flex-start' }
+                    }}>
+                        {misReservasFiltradas?.map((reserva, index) => {
+                            const propiedad = propiedades[reserva.propiedad];
+                            const statusColor = getStatusColor(reserva?.estado);
+
+                            return (
+                                <Paper
+                                    key={index}
+                                    elevation={0}
+                                    sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        width: { xs: '100%', sm: 'calc(50% - 16px)', md: 'calc(33.333% - 16px)' },
+                                        borderRadius: 2,
+                                        overflow: "hidden",
+                                        transition: 'transform 0.2s, box-shadow 0.2s',
+                                        boxShadow: '0 2px 10px rgba(0,0,0,0.08)',
+                                        '&:hover': {
+                                            transform: 'translateY(-4px)',
+                                            boxShadow: '0 10px 20px rgba(0,0,0,0.12)'
+                                        }
+                                    }}
+                                >
+                                    <Box sx={{
+                                        position: 'relative',
+                                        width: "100%",
+                                        height: "200px",
+                                        backgroundColor: '#e2e8f0'
+                                    }}>
+                                        {imageLoading[propiedad?.id] ? (
+                                            <Box sx={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                                height: '100%'
+                                            }}>
+                                                <CircularProgress size={40} />
+                                            </Box>
+                                        ) : (
+                                            <>
+                                                <img
+                                                    src={url[propiedad?.id]}
+                                                    alt={propiedad?.nombre || 'Propiedad'}
+                                                    style={{
+                                                        width: "100%",
+                                                        height: "200px",
+                                                        objectFit: "cover"
+                                                    }}
+                                                />
+                                                <Chip
+                                                    label={reserva?.estado}
+                                                    sx={{
+                                                        position: 'absolute',
+                                                        top: 12,
+                                                        right: 12,
+                                                        backgroundColor: statusColor.bg,
+                                                        color: statusColor.text,
+                                                        border: `1px solid ${statusColor.border}`,
+                                                        fontWeight: 600,
+                                                        fontSize: '0.75rem'
+                                                    }}
+                                                />
+                                            </>
                                         )}
-                                        <Box sx={{ p: 2, width: "100%" }}>
-                                            <Typography variant="h6" gutterBottom> <a
+                                    </Box>
+
+                                    <Box sx={{
+                                        p: 3,
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        flexGrow: 1
+                                    }}>
+                                        <Typography
+                                            variant="h6"
+                                            gutterBottom
+                                            sx={{
+                                                fontWeight: 600,
+                                                color: '#2d3748',
+                                                mb: 1
+                                            }}
+                                        >
+                                            <a
                                                 href={`/detalles/${propiedad?.id}`}
-                                                style={{ textDecoration: "none", color: "inherit" }}><strong>{propiedad?.nombre}</strong></a></Typography>
-                                            <Typography variant="body2" gutterBottom><strong>Fecha de inicio:</strong> {reserva?.fecha_llegada}</Typography>
-                                            <Typography variant="body2" gutterBottom><strong>Fecha de fin: </strong>{reserva?.fecha_salida}</Typography>
-                                            <Typography variant="body2" gutterBottom><strong>Método de Pago: </strong>{reserva?.metodo_pago}</Typography>
-                                            <Typography variant="body2" gutterBottom><strong>Precio total: </strong> {reserva?.precio_total}€</Typography>
-                                            <Typography variant="body2" gutterBottom><strong>Estado: </strong>{reserva?.estado}</Typography>
-                                            {reserva.estado === "Pendiente" && (
-                                                <Button variant="contained" color="secondary" onClick={() => cancelarReserva(reserva.id)} disabled={reserva.estado !== "Pendiente"}>Cancelar Reserva</Button>
+                                                style={{
+                                                    textDecoration: "none",
+                                                    color: "inherit",
+                                                    transition: 'color 0.2s'
+                                                }}
+                                                onMouseOver={(e) => e.target.style.color = '#3182ce'}
+                                                onMouseOut={(e) => e.target.style.color = '#2d3748'}
+                                            >
+                                                {propiedad?.nombre || 'Propiedad'}
+                                            </a>
+                                        </Typography>
+
+                                        <Stack spacing={1} sx={{ mb: 2 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Entrada:
+                                                </Typography>
+                                                <Typography variant="body2" fontWeight={500}>
+                                                    {formatDate(reserva?.fecha_llegada)}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Salida:
+                                                </Typography>
+                                                <Typography variant="body2" fontWeight={500}>
+                                                    {formatDate(reserva?.fecha_salida)}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Pago:
+                                                </Typography>
+                                                <Typography variant="body2" fontWeight={500}>
+                                                    {reserva?.metodo_pago || 'No especificado'}
+                                                </Typography>
+                                            </Box>
+
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Precio:
+                                                </Typography>
+                                                <Typography variant="body2" fontWeight={600} color="primary">
+                                                    {reserva?.precio_total}€
+                                                </Typography>
+                                            </Box>
+                                        </Stack>
+
+                                        <Box sx={{ mt: 'auto', pt: 2 }}>
+                                            {reserva?.estado === "Pendiente" && (
+                                                <Button
+                                                    variant="outlined"
+                                                    color="error"
+                                                    onClick={() => cancelarReserva(reserva.id)}
+                                                    fullWidth
+                                                    sx={{
+                                                        borderRadius: 2,
+                                                        textTransform: 'none',
+                                                        py: 1
+                                                    }}
+                                                >
+                                                    Cancelar Reserva
+                                                </Button>
                                             )}
                                         </Box>
-
-
-                                    </Paper>
-                                );
-                            })}
-                        </Box>
-                    )
+                                    </Box>
+                                </Paper>
+                            );
+                        })}
+                    </Box>
                 )}
             </Container>
         </Box>
     );
 };
-
 
 export default MyReserves;
