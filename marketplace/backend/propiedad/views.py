@@ -33,7 +33,7 @@ def create_checkout_session(request):
         try:
             data = json.loads(request.body)
             reservationdata = data['reservationData']
-            amount = reservationdata['precio_total']*100
+            amount = int(reservationdata['precio_total']*100)
             currency = reservationdata['currency']
             propiedad_id = reservationdata['propiedad']
             fecha_llegada = reservationdata['fecha_llegada']
