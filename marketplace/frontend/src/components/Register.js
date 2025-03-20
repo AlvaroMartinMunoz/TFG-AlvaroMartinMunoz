@@ -61,6 +61,21 @@ const Register = () => {
 
     const dniRegex = /^[0-9]{8}[A-Za-z]$/;
 
+    const usernameRegex = /^[^\d\s][a-zA-Z0-9\s]*$/;
+
+    if (!usernameRegex.test(formData.direccion)) {
+      errors.direccion = "La dirección no puede empezar con espacios ni con numeros";
+    }
+
+    if (!usernameRegex.test(formData.biografia)) {
+      errors.biografia = "La biografía no puede empezar con espacios ni con numeros";
+    }
+
+    if (!usernameRegex.test(formData.username)) {
+      errors.usuario =
+        "El nombre de usuario no puede contener espacios ni empezar con números";
+    }
+
     if (!emailRegex.test(formData.email)) {
       errors.email = "El email debe tener un formato válido";
     }
@@ -139,6 +154,7 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setErrors({});
 
     if (!(await validateForm())) {
       setMessage("Por favor, corrija los errores en el formulario");
@@ -162,7 +178,8 @@ const Register = () => {
         localStorage.setItem("accessToken", access);
         localStorage.setItem("refreshToken", refresh);
 
-        navigate("/inicio-de-sesion");
+        window.location.href = "/inicio-de-sesion";
+
         setMessage("Registro exitoso");
       } else {
         const errorData = await response.json();
@@ -346,6 +363,8 @@ const Register = () => {
                   variant="outlined"
                   margin="normal"
                   onChange={handleChange}
+                  error={!!errors.direccion}
+                  helperText={errors.direccion}
                   size="small"
                   required
                   sx={{
@@ -362,6 +381,8 @@ const Register = () => {
                   variant="outlined"
                   margin="normal"
                   onChange={handleChange}
+                  error={!!errors.biografia}
+                  helperText={errors.biografia}
                   required
                   size="small"
                   sx={{
