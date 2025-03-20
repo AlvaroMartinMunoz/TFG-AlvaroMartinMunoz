@@ -7,12 +7,14 @@ import {
   IconButton,
   MenuItem,
   Menu,
+  Avatar,
+  Container,
+  Button,
 } from "@mui/material";
 import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
-
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
@@ -27,11 +29,9 @@ const NavBar = () => {
 
         if (decodedToken && decodedToken.user_id) {
           fetchAllUsers(decodedToken.user_id);
-
         } else {
           console.log("Token inválido, cerrando sesión...");
           handleLogOut();
-
         }
       } catch (error) {
         console.error("Error al decodificar el token:", error);
@@ -73,10 +73,9 @@ const NavBar = () => {
 
         const additionalInfo = {
           usuarioId: usuarioId,
-        }
+        };
 
         localStorage.setItem("additionalInfo", JSON.stringify(additionalInfo));
-
 
         if (user) {
           setUsername(user.usuario.username);
@@ -137,226 +136,170 @@ const NavBar = () => {
     }
   };
 
+  const navLinks = [
+    { title: "Explorar", path: "/explorar" },
+    { title: "Eventos", path: "/eventos" },
+    { title: "Clima", path: "/pronostico-clima" },
+  ];
+
+  const userMenuItems = isAuthenticated()
+    ? [
+      { title: "Perfil", path: "/perfil" },
+      { title: "Mis propiedades", path: "/mis-propiedades" },
+      { title: "Mis reservas", path: "/mis-reservas" },
+      { title: "Solicitudes de reserva", path: "/solicitudes-de-reserva" },
+      { title: "Cerrar Sesión", action: handleLogOut },
+    ]
+    : [
+      { title: "Iniciar Sesión", path: "/inicio-de-sesion" },
+      { title: "Registrarse", path: "/registro" },
+    ];
+
   return (
     <AppBar
-      position="static"
+      position="sticky"
+      elevation={1}
       sx={{
-        flexGrow: 1,
-        // backgroundColor: "transparent",
         backgroundColor: "white",
-        maxHeight: "10vh",
-        zIndex: 2,
+        height: "70px",
+        justifyContent: "center",
       }}
     >
-      <Toolbar sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Box sx={{ display: "flex", alignItems: "center", flexGrow: 1 }}>
-          <img
-            src={logo}
-            alt="logo"
-            style={{ width: "40px", height: "40px", marginLeft: "2.5rem" }}
-          />
-          <Typography variant="h6" sx={{ flexGrow: 1, textAlign: "left" }}>
-            <a
+      <Container maxWidth="xl">
+        <Toolbar disableGutters sx={{ justifyContent: "space-between" }}>
+          {/* Logo y enlaces de navegación agrupados a la izquierda */}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Avatar
+              src={logo}
+              alt="logo"
+              sx={{
+                width: 40,
+                height: 40,
+                marginRight: 2,
+                backgroundColor: "transparent",
+              }}
+            />
+            <Typography
+              variant="h6"
+              component="a"
               href="/"
-              style={{
-                textDecoration: "none",
+              sx={{
+                fontWeight: 600,
                 color: "black",
-                marginLeft: "1rem",
-                fontSize: "1.25rem",
+                textDecoration: "none",
+                letterSpacing: ".1rem",
+                transition: "color 0.3s ease",
+                "&:hover": {
+                  color: "primary.main",
+                },
+                marginRight: 4,
               }}
             >
               Marketplace
-            </a>
-          </Typography>
-        </Box>
-        {!isAuthenticated() ? (
-          <Box sx={{ display: "flex", alignItems: "center", zIndex: 1 }}>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: 1,
-                mr: 3,
-
-              }}
-            >
-              <Link
-                to="/explorar"
-                style={{ textDecoration: "none", color: "inherit", zIndex: 1 }}
-              >
-                Explorar
-              </Link>
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: -1,
-                mr: 3,
-              }}>
-              <Link
-                to="/eventos"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                {" "}
-                Eventos{" "}
-              </Link>
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: 1,
-                marginLeft: 0,
-                mr: 3,
-              }}
-            >
-              <Link
-                to="/pronostico-clima"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                {" "}
-                Clima{" "}
-              </Link>
             </Typography>
 
-          </Box>
-        ) : (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 1,
-              marginRight: "20px",
-            }}
-          >
-
-
-
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: -1,
-                marginLeft: 0,
-                mr: 3,
-              }}
-            >
-              <Link
-                to="/explorar"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                {" "}
-                Explorar{" "}
-              </Link>
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: -1,
-                mr: 3,
-              }}>
-              <Link
-                to="/eventos"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                {" "}
-                Eventos{" "}
-              </Link>
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: "black",
-                display: "flex",
-                alignItems: "center",
-                zIndex: 1,
-                marginLeft: 0,
-                mr: 3,
-              }}
-            >
-              <Link
-                to="/pronostico-clima"
-                style={{ textDecoration: "none", color: "inherit" }}
-              >
-                {" "}
-                Clima{" "}
-              </Link>
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{ color: "black", width: "auto", }}
-            >
-              Bienvenido, {username}
-            </Typography>
-
-          </Box>
-        )}
-
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: "50px",
-            height: "50px",
-            borderRadius: "50%",
-            border: "2px solid grey",
-            marginRight: "1.5rem",
-          }}
-        >
-          <IconButton onClick={handleClick}>
-            <PersonIcon />
-          </IconButton>
-
-          <Menu
-            anchorEl={anchorEl}
-            open={Boolean(anchorEl)}
-            onClose={handleClose}
-          >
-            {!isAuthenticated() ? (
-              <>
-                <MenuItem
-                  onClick={() => {
-                    handleClose();
-                    window.location.href = "/inicio-de-sesion";
+            {/* Links de navegación (ahora a la izquierda) */}
+            <Box sx={{ display: "flex", gap: 3 }}>
+              {navLinks.map((link) => (
+                <Button
+                  key={link.title}
+                  component={Link}
+                  to={link.path}
+                  sx={{
+                    color: "text.primary",
+                    display: "block",
+                    textTransform: "none",
+                    fontSize: "0.95rem",
+                    fontWeight: 500,
+                    padding: "6px 10px",
+                    "&:hover": {
+                      backgroundColor: "transparent",
+                      color: "primary.main",
+                    },
                   }}
                 >
-                  Iniciar Sesion
-                </MenuItem>
-                <MenuItem
-                  onClick={() => {
-                    handleClose();
-                    window.location.href = "/registro";
-                  }}
-                >
-                  Registrarse
-                </MenuItem>
-              </>
-            ) : (
-              <>
-                <MenuItem onClick={() => { window.location.href = "/perfil"; handleClose(); }}>Perfil</MenuItem>
-                <MenuItem onClick={() => { window.location.href = "/mis-propiedades"; handleClose(); }}>Mis propiedades</MenuItem>
-                <MenuItem onClick={() => { window.location.href = "/mis-reservas"; handleClose(); }}>Mis reservas</MenuItem>
-                <MenuItem onClick={() => { window.location.href = "/solicitudes-de-reserva"; handleClose(); }}>Solicitudes de reserva</MenuItem>
-                <MenuItem onClick={handleLogOut}>Cerrar Sesion</MenuItem>
-              </>
+                  {link.title}
+                </Button>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Sección de usuario a la derecha */}
+          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+            {isAuthenticated() && (
+              <Typography
+                variant="body1"
+                sx={{
+                  color: "text.primary",
+                  fontWeight: 500,
+                }}
+              >
+                Bienvenido, {username}
+              </Typography>
             )}
-          </Menu>
-        </Box>
-      </Toolbar>
+
+            <Avatar
+              sx={{
+                width: 40,
+                height: 40,
+                border: "2px solid",
+                borderColor: "divider",
+                backgroundColor: "action.hover",
+                cursor: "pointer",
+                transition: "transform 0.2s, box-shadow 0.2s",
+                "&:hover": {
+                  transform: "scale(1.05)",
+                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                  borderColor: "primary.light",
+                },
+              }}
+              onClick={handleClick}
+            >
+              <PersonIcon color="action" />
+            </Avatar>
+
+            <Menu
+              anchorEl={anchorEl}
+              open={Boolean(anchorEl)}
+              onClose={handleClose}
+              PaperProps={{
+                elevation: 3,
+                sx: {
+                  minWidth: 180,
+                  borderRadius: 2,
+                  mt: 1.5,
+                  "& .MuiMenuItem-root": {
+                    px: 2,
+                    py: 1.5,
+                    fontSize: "0.9rem",
+                  },
+                },
+              }}
+              transformOrigin={{ horizontal: "right", vertical: "top" }}
+              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+            >
+              {userMenuItems.map((item) => (
+                <MenuItem
+                  key={item.title}
+                  onClick={() => {
+                    handleClose();
+                    if (item.action) {
+                      item.action();
+                    } else if (item.path) {
+                      window.location.href = item.path;
+                    }
+                  }}
+                  sx={{
+                    "&:hover": { backgroundColor: "action.hover" },
+                  }}
+                >
+                  {item.title}
+                </MenuItem>
+              ))}
+            </Menu>
+          </Box>
+        </Toolbar>
+      </Container>
     </AppBar>
   );
 };
