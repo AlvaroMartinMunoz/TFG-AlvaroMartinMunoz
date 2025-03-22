@@ -7,6 +7,8 @@ from .views import FechaBloqueadaViewSet
 from .views import ReservaViewSet
 from .views import create_checkout_session
 from .views import confirmar_pago
+from .views import confirmar_pago_paypal
+from .views import create_payment
 
 router = DefaultRouter()
 router.register(r'propiedades', PropiedadViewSet)
@@ -20,4 +22,6 @@ urlpatterns = [
     path('fotos-propiedades/upload_photos/', FotoPropiedadViewSet.as_view({'post': 'upload_photos'})),
     path('create-checkout-session/', create_checkout_session),
     path('confirmar-pago/<str:session_id>', confirmar_pago),
+    path('create-checkout-paypal/', create_payment),
+    path('confirmar-pago-paypal/', confirmar_pago_paypal),
 ]

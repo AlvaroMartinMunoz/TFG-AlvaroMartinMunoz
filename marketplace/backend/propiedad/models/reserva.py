@@ -31,6 +31,7 @@ class Reserva(models.Model):
     fecha_creacion = models.DateTimeField(auto_now_add=True)
     fecha_aceptacion_rechazo = models.DateTimeField(blank=True, null=True)  
     comentarios_usuario = models.TextField(blank=True, null=True, help_text='Introduzca un comentario para el anfitrión.')
+    payment_id = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
         return f'{self.propiedad} - {self.fecha_llegada} - {self.fecha_salida}'

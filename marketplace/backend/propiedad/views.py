@@ -23,10 +23,14 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
+import paypalrestsdk
 from django.views.decorators.http import require_POST
+from django.db import transaction
 
+#STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
-        
+
+
 @csrf_exempt
 def create_checkout_session(request):
     if request.method == 'POST':
@@ -102,7 +106,8 @@ def confirmar_pago(request, session_id):
                 precio_total=metadata['precio_total'],
                 estado=metadata['estado'],
                 metodo_pago=metadata['metodo_pago'],
-                comentarios_usuario=metadata['comentarios_usuario']
+                comentarios_usuario=metadata['comentarios_usuario'],
+                fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1)
             )
             
             return JsonResponse({
@@ -114,8 +119,111 @@ def confirmar_pago(request, session_id):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-        
+    
+#PAYPAL
+paypalrestsdk.configure({
+    "client_id": settings.PAYPAL_CLIENT_ID,
+    "client_secret": settings.PAYPAL_CLIENT_SECRET,
+    "mode": "sandbox"
+    })
 
+@require_POST
+@csrf_exempt
+def create_payment(request):
+
+    data = json.loads(request.body)
+    reservationdata = data['reservationData']
+    amount = reservationdata['precio_total']
+    descripcion = "Pago para reserva de propiedad"
+
+    payment = paypalrestsdk.Payment({
+        "intent": "sale",
+        "payer": {
+            "payment_method": "paypal"
+        },
+        "transactions": [{
+            "amount": {
+                "total": f"{amount:.2f}",
+                "currency": 'EUR'
+            },
+            "description": descripcion
+        }],
+        "redirect_urls": {
+            "return_url": "http://localhost:3000/mis-reservas",
+            "cancel_url": "http://localhost:3000/detalles"
+        }
+    })
+
+    if payment.create():
+        approval_url = None
+        for link in payment.links:
+            if link.rel == "approval_url":
+                approval_url = link.href
+                break
+        if approval_url:
+            return JsonResponse({"approval_url": approval_url})
+        else:
+            return JsonResponse({"error": "No se encontró la URL de aprobación"}, status=400)
+    else:
+        print("Error al crear el pago", payment.error)
+        return JsonResponse({"error": payment.error}, status=400)
+    
+@require_POST
+@csrf_exempt
+def confirmar_pago_paypal(request):
+    try:
+        data = json.loads(request.body)
+        payment_id = data['paymentId']
+        payer_id = data['payerId']
+
+        if not payer_id or not payment_id:
+            return JsonResponse({'error': 'Se requieren paymentId y payerId'}, status=400)
+
+        # Bloqueo de fila para prevenir condiciones de carrera
+        with transaction.atomic():
+            # Verificación con select_for_update para bloquear el registro
+            reserva_existente = Reserva.objects.select_for_update().filter(payment_id=payment_id).first()
+            
+            if reserva_existente:
+                print("⛔ Reserva ya existe con payment_id:", payment_id)
+                return JsonResponse({'status': 'success', 'message': 'Pago ya procesado'})
+
+            payment = paypalrestsdk.Payment.find(payment_id)
+            
+            # Verificación adicional del estado en PayPal
+            if payment.state == 'approved':
+                print("⚠️ Pago ya aprobado en PayPal pero sin registro local")
+                return JsonResponse({'error': 'Inconsistencia detectada'}, status=409)
+
+            # Ejecutar pago y crear reserva en la misma transacción
+            if payment.execute({"payer_id": payer_id}):
+                datos = data['reservationData']
+                
+                reserva = Reserva.objects.create(
+                    propiedad_id=datos['propiedad'],
+                    usuario_id=datos['usuario'],
+                    anfitrion_id=datos['anfitrion'],
+                    fecha_aceptacion_rechazo=datetime.now() - timedelta(hours=1),  
+                    fecha_llegada=datos['fecha_llegada'],
+                    fecha_salida=datos['fecha_salida'],
+                    numero_personas=datos['numero_personas'],
+                    precio_por_noche=datos['precio_por_noche'],
+                    precio_total=datos['precio_total'],
+                    estado=datos['estado'],
+                    metodo_pago='PayPal',
+                    comentarios_usuario=datos['comentarios_usuario'],
+                    payment_id=payment_id
+                )
+                print("✅ Reserva creada ID:", reserva.id)
+                return JsonResponse({'status': 'success', 'reserva_id': reserva.id})
+            
+            return JsonResponse({'error': payment.error}, status=400)
+
+    except Exception as e:
+        print(f"🔥 Error crítico: {str(e)}")
+        return JsonResponse({'error': 'Error procesando el pago'}, status=500)
+
+    
 class PropiedadViewSet(viewsets.ModelViewSet):
      
     queryset = Propiedad.objects.all()
