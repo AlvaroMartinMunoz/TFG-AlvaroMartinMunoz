@@ -9,6 +9,7 @@ from .views import create_checkout_session
 from .views import confirmar_pago
 from .views import confirmar_pago_paypal
 from .views import create_payment
+from .views import FavoritoViewSet
 
 router = DefaultRouter()
 router.register(r'propiedades', PropiedadViewSet)
@@ -16,6 +17,7 @@ router.register(r'valoraciones-propiedades', ValoracionPropiedadViewSet)
 router.register(r'fotos-propiedades', FotoPropiedadViewSet)
 router.register(r'fechas-bloqueadas', FechaBloqueadaViewSet)
 router.register(r'reservas', ReservaViewSet)
+router.register(r'favoritos', FavoritoViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

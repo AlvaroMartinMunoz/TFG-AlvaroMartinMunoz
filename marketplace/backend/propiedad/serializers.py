@@ -3,6 +3,7 @@ from .models.propiedad import Propiedad, FechaBloqueada
 from propiedad.models.valoracionPropiedad import ValoracionPropiedad
 from .models.fotoPropiedad import FotoPropiedad
 from .models.reserva import Reserva
+from .models.favorito import Favorito
 
 class PropiedadSerializer(serializers.ModelSerializer):
     valoracion_promedio = serializers.SerializerMethodField()
@@ -31,4 +32,9 @@ class FechaBloqueadaSerializer(serializers.ModelSerializer):
 class ReservaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Reserva
+        fields = '__all__'
+
+class FavoritoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Favorito
         fields = '__all__'

@@ -26,6 +26,8 @@ import json
 import paypalrestsdk
 from django.views.decorators.http import require_POST
 from django.db import transaction
+from .models.favorito import Favorito
+from .serializers import FavoritoSerializer
 
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -507,5 +509,47 @@ class ReservaViewSet(viewsets.ModelViewSet):
     
     def destroy(self, request, *args, **kwargs):
         return Response({'error': 'No puedes eliminar reservas'}, status=status.HTTP_403_FORBIDDEN)
+    
+class FavoritoViewSet(viewsets.ModelViewSet):
+    queryset = Favorito.objects.all()
+    serializer_class = FavoritoSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'destroy', "update", "partial_update"]:
+            return [IsAuthenticated()]
+        return [AllowAny()]
+    
+    
+
+    def create(self, request, *args, **kwargs):
+        propiedad_id = request.data.get('propiedad')
+        usuario_id = request.data.get('usuario')
+
+        if not propiedad_id or not usuario_id:
+            return Response({'error': 'Propiedad y usuario son requeridos'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad_id)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        usuario = Usuario.objects.filter(id=usuario_id).first()
+        if not usuario:
+            return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        
+        try:
+            Favorito.objects.create(propiedad=propiedad, usuario=usuario)
+        except IntegrityError:
+            return Response({'error': 'Ya has marcado esta propiedad como favorita'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'status': 'favorito creado'}, status=status.HTTP_201_CREATED)
+    
+    def destroy(self, request, *args, **kwargs):
+        favorito = self.get_object()
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+       
+        if favorito.usuario.id != usuario.id:
+            return Response({'error': 'No tienes permiso para eliminar este favorito'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
     
     
