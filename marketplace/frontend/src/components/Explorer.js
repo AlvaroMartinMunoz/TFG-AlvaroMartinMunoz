@@ -43,6 +43,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import WifiIcon from "@mui/icons-material/Wifi";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import refreshAccessToken from "./RefreshToken";
 
 const Explorer = () => {
   const theme = useTheme();
@@ -56,20 +57,26 @@ const Explorer = () => {
   const [propiedadesFiltradas, setPropiedadesFiltradas] = useState([]);
   const [url, setUrl] = useState({});
   const [imageLoading, setImageLoading] = useState({});
-  const [mediaValoraciones, setMediaValoraciones] = useState({});
-  const [favoritos, setFavoritos] = useState({});
+  const [mediaValoraciones, setMediaValoraciones] = useState([]);
+  const [favoritos, setFavoritos] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Filtros avanzados
   const [precioRango, setPrecioRango] = useState([0, 1000]);
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [habitaciones, setHabitaciones] = useState(0);
-  const [camas, setCamas] = useState(1);
+  const [camas, setCamas] = useState(0);
   const [ordenPrecio, setOrdenPrecio] = useState("asc");
   const [filtersOpen, setFiltersOpen] = useState(false);
 
+  const isAuthenticated = () => {
+    return !!localStorage.getItem("accessToken");
+  };
+
+
   useEffect(() => {
     fetchAllProperties();
+    fetchFavoritos();
   }, []);
 
   useEffect(() => {
@@ -97,18 +104,73 @@ const Explorer = () => {
     });
   }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio]);
 
-  useEffect(() => {
-    const storedFavoritos = JSON.parse(localStorage.getItem("favoritos"));
-    if (storedFavoritos) {
-      setFavoritos(storedFavoritos);
-    }
-  }, []);
 
-  const toggleFavorito = (propiedadId) => {
-    const nuevosFavoritos = { ...favoritos, [propiedadId]: !favoritos[propiedadId] };
-    setFavoritos(nuevosFavoritos);
-    localStorage.setItem("favoritos", JSON.stringify(nuevosFavoritos));
+
+
+
+  const fetchFavoritos = async () => {
+    try {
+      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/");
+      if (response.ok) {
+        const data = await response.json();
+        setFavoritos(data);
+      } else {
+        throw new Error("Error al obtener los favoritos");
+      }
+    } catch (error) {
+      console.error("Error al obtener los favoritos:", error);
+    }
   };
+
+  const toggleFavorito = async (propiedadId, retried = false) => {
+    try {
+      const propiedadIdNum = parseInt(propiedadId);
+      const favorito = favoritos.find((favorito) => favorito.propiedad === propiedadId && favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo"))?.usuarioId);
+      const isFavorito = !!favorito;
+
+      const favoritoId = favoritos.find((favorito) => favorito.propiedad === propiedadId)?.id;
+
+      if (isFavorito) {
+        const data = await fetch(`http://localhost:8000/api/propiedades/favoritos/${favoritoId}/`, {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+        if (data.status === 401 && !retried) {
+          const token = await refreshAccessToken();
+          if (token) {
+            toggleFavorito(propiedadId, true);
+          }
+          else {
+            throw new Error("Error al refrescar el token");
+          }
+        }
+      } else if (!isFavorito) {
+        const data = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+          body: JSON.stringify({ propiedad: propiedadIdNum, usuario: JSON.parse(localStorage.getItem("additionalInfo"))?.usuarioId }),
+        });
+        if (data.status === 401 && !retried) {
+          const token = await refreshAccessToken();
+          if (token) {
+            toggleFavorito(propiedadId, true);
+          } else {
+            throw new Error("Error al refrescar el token");
+          }
+        }
+      }
+      fetchFavoritos();
+    } catch (error) {
+      console.error("Error al añadir a favoritos:", error);
+    }
+  };
+
 
   const fetchMediaValoraciones = async (propiedadId) => {
     try {
@@ -124,13 +186,6 @@ const Explorer = () => {
     }
   };
 
-  const handleIncrement = () => {
-    if (numPersonas < 15) setNumPersonas(numPersonas + 1);
-  };
-
-  const handleDecrement = () => {
-    if (numPersonas > 1) setNumPersonas(numPersonas - 1);
-  };
 
   const fetchPropertyPhotos = async (propiedadId) => {
     setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
@@ -671,25 +726,28 @@ const Explorer = () => {
                         />
 
                         {/* Botón de favorito */}
-                        <IconButton
-                          onClick={() => toggleFavorito(propiedad.id)}
-                          sx={{
-                            position: "absolute",
-                            top: 10,
-                            right: 10,
-                            bgcolor: "rgba(255, 255, 255, 0.9)",
-                            "&:hover": {
-                              bgcolor: "rgba(255, 255, 255, 0.95)",
-                            },
-                          }}
-                          size="small"
-                        >
-                          {favoritos[propiedad.id] ? (
-                            <FavoriteIcon sx={{ color: "#e91e63" }} />
-                          ) : (
-                            <FavoriteBorderIcon sx={{ color: "#091630" }} />
-                          )}
-                        </IconButton>
+
+                        {isAuthenticated() ? (
+                          <IconButton
+                            onClick={() => toggleFavorito(propiedad.id)}
+                            sx={{
+                              position: "absolute",
+                              top: 10,
+                              right: 10,
+                              bgcolor: "rgba(255, 255, 255, 0.9)",
+                              "&:hover": {
+                                bgcolor: "rgba(255, 255, 255, 0.95)",
+                              },
+                            }}
+                            size="small"
+                          >
+                            {favoritos.filter(favorito => favorito.propiedad === propiedad.id && favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId).length > 0 ? (
+                              <FavoriteIcon sx={{ color: "#e91e63" }} />
+                            ) : (
+                              <FavoriteBorderIcon sx={{ color: "#091630" }} />
+                            )}
+                          </IconButton>
+                        ) : null}
 
                         {/* Badge de precio */}
                         <Chip

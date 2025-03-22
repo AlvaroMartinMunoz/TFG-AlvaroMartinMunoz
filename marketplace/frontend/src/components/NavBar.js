@@ -21,7 +21,7 @@ import { Badge } from "@mui/material";
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
-  const [favoritesCount, setFavoritesCount] = useState(0);
+  const [favoritosNavbar, setFavoritosNavbar] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -42,35 +42,25 @@ const NavBar = () => {
       }
     }
 
-    loadFavoritesCount();
+    fetchFavoritosNavbar();
   }, []);
 
-  useEffect(() => {
-    const handleStorageChange = (e) => {
-      if (e.key === "favorites") {
-        loadFavoritesCount();
-      }
-    };
-
-    console.log(favoritesCount);
-
-    window.addEventListener("storage", handleStorageChange);
-    const intervalId = setInterval(loadFavoritesCount, 5000);
-
-    return () => {
-      window.removeEventListener("storage", handleStorageChange);
-      clearInterval(intervalId);
-    };
-  }, []);
-
-
-  const loadFavoritesCount = async () => {
+  const fetchFavoritosNavbar = async () => {
     try {
-      const favorites = JSON.parse(localStorage.getItem("favoritos"));
-      setFavoritesCount(favorites ? favorites.length : 0);
+      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/");
+      if (response.ok) {
+        const data = await response.json();
+
+        const dataFiltered = data.filter((favorito) => favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
+        const dataFilteredLength = dataFiltered.length;
+        console.log("Favoritos Navbar:", dataFilteredLength);
+        setFavoritosNavbar(dataFiltered.length);
+
+      } else {
+        throw new Error("Error al obtener los favoritos");
+      }
     } catch (error) {
-      console.error("Error al cargar los favoritos", error);
-      setFavoritesCount(0);
+      console.error("Error al obtener los favoritos:", error);
     }
   };
 
@@ -127,6 +117,7 @@ const NavBar = () => {
   const handleLogOut = () => {
     localStorage.removeItem("accessToken");
     localStorage.removeItem("refreshToken");
+    localStorage.removeItem("additionalInfo");
     handleClose();
     window.location.reload();
   };
@@ -288,7 +279,7 @@ const NavBar = () => {
                   },
                 }}
               >
-                <Badge badgeContent={favoritesCount} color="error">
+                <Badge badgeContent={favoritosNavbar ? favoritosNavbar : 0} color="error">
                   <FavoriteIcon />
                 </Badge>
               </IconButton>
