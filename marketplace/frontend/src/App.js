@@ -24,6 +24,7 @@ import MyReservationRequests from "./components/MyReservationRequests";
 import Events from "./components/Events";
 import EventDetails from "./components/EventDetails";
 import Weather from "./components/Weather";
+import Myfavorites from "./components/MyFavorites";
 
 const theme = createTheme({
   palette: {
@@ -56,6 +57,7 @@ function App() {
                 <Route path="/eventos" element={<Events />} />
                 <Route path="/detalles-evento/:eventoId" element={<EventDetails />} />
                 <Route path="/pronostico-clima" element={<Weather />} />
+                <Route path="/favoritos" element={<PrivateRoute component={Myfavorites} />} />
               </Routes>
             </Container>
             <Footer />

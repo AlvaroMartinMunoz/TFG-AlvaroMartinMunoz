@@ -55,8 +55,6 @@ const NavBar = () => {
         const data = await response.json();
 
         const dataFiltered = data.filter((favorito) => favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
-        const dataFilteredLength = dataFiltered.length;
-        console.log("Favoritos Navbar:", dataFilteredLength);
         setFavoritosNavbar(dataFiltered.length);
 
       } else {
