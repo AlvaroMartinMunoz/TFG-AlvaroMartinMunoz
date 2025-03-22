@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import {
   AppBar,
   Toolbar,
@@ -15,10 +15,13 @@ import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link } from "react-router-dom";
+import FavoriteIcon from "@mui/icons-material/Favorite";
+import { Badge } from "@mui/material";
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
+  const [favoritesCount, setFavoritesCount] = useState(0);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -38,7 +41,40 @@ const NavBar = () => {
         handleLogOut();
       }
     }
+
+    loadFavoritesCount();
   }, []);
+
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === "favorites") {
+        loadFavoritesCount();
+      }
+    };
+
+    console.log(favoritesCount);
+
+    window.addEventListener("storage", handleStorageChange);
+    const intervalId = setInterval(loadFavoritesCount, 5000);
+
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(intervalId);
+    };
+  }, []);
+
+
+  const loadFavoritesCount = async () => {
+    try {
+      const favorites = JSON.parse(localStorage.getItem("favoritos"));
+      setFavoritesCount(favorites ? favorites.length : 0);
+    } catch (error) {
+      console.error("Error al cargar los favoritos", error);
+      setFavoritesCount(0);
+    }
+  };
+
+
 
   const isAuthenticated = () => {
     return !!localStorage.getItem("accessToken");
@@ -237,6 +273,27 @@ const NavBar = () => {
                 Bienvenido, {username}
               </Typography>
             )}
+
+            {isAuthenticated() && (
+              <IconButton
+                component={Link}
+                to="/favoritos"
+                color="primary"
+                aria-label="Favoritos"
+                sx={{
+                  transition: "transform 0.2s",
+                  "&:hover": {
+                    transform: "scale(1.1)",
+                    color: "error.main",
+                  },
+                }}
+              >
+                <Badge badgeContent={favoritesCount} color="error">
+                  <FavoriteIcon />
+                </Badge>
+              </IconButton>
+            )}
+
 
             <Avatar
               sx={{

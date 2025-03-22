@@ -219,7 +219,7 @@ const MyReservationRequests = () => {
             flexDirection: "column",
             bgcolor: theme.palette.background.default,
             width: "100%",
-            minHeight: "100vh",
+            minHeight: "80vh",
             px: isMobile ? 1 : 3,
             py: 3
         }}>

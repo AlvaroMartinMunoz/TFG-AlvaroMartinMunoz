@@ -97,6 +97,19 @@ const Explorer = () => {
     });
   }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio]);
 
+  useEffect(() => {
+    const storedFavoritos = JSON.parse(localStorage.getItem("favoritos"));
+    if (storedFavoritos) {
+      setFavoritos(storedFavoritos);
+    }
+  }, []);
+
+  const toggleFavorito = (propiedadId) => {
+    const nuevosFavoritos = { ...favoritos, [propiedadId]: !favoritos[propiedadId] };
+    setFavoritos(nuevosFavoritos);
+    localStorage.setItem("favoritos", JSON.stringify(nuevosFavoritos));
+  };
+
   const fetchMediaValoraciones = async (propiedadId) => {
     try {
       const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
@@ -162,12 +175,7 @@ const Explorer = () => {
     }
   };
 
-  const toggleFavorito = (propiedadId) => {
-    setFavoritos((prev) => ({
-      ...prev,
-      [propiedadId]: !prev[propiedadId]
-    }));
-  };
+
 
   const getTipoIcon = (tipo) => {
     switch (tipo) {
@@ -201,7 +209,7 @@ const Explorer = () => {
       >
         <Container maxWidth="lg" sx={{ py: 4 }}>
           {/* Barra de búsqueda */}
-          <Paper
+          {/* <Paper
             elevation={3}
             sx={{
               p: 3,
@@ -310,7 +318,7 @@ const Explorer = () => {
                 Buscar
               </Button>
             </Stack>
-          </Paper>
+          </Paper> */}
 
           {/* Contenedor principal */}
           <Box
@@ -469,6 +477,8 @@ const Explorer = () => {
                               sx={{
                                 bgcolor: "grey.100",
                                 "&:hover": { bgcolor: "grey.200" },
+                                width: 20,
+                                height: 20
                               }}
                             >
                               <RemoveIcon />
@@ -476,6 +486,7 @@ const Explorer = () => {
                             <Typography
                               sx={{
                                 width: 30,
+
                                 textAlign: "center",
                                 fontWeight: "bold"
                               }}
@@ -488,8 +499,10 @@ const Explorer = () => {
                               }
                               disabled={counter.value === 15}
                               sx={{
-                                bgcolor: "grey.100",
-                                "&:hover": { bgcolor: "grey.200" }
+                                // bgcolor: "grey.100",
+                                "&:hover": { bgcolor: "grey.200" },
+                                width: 20,
+                                height: 20
                               }}
                             >
                               <AddIcon />
@@ -819,30 +832,6 @@ const Explorer = () => {
                 )}
               </Box>
 
-              {/* Paginación o "Cargar más" */}
-              {propiedadesFiltradas.length > 0 && !isLoading && (
-                <Box sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  mt: 4,
-                  mb: 2
-                }}>
-                  <Button
-                    variant="contained"
-                    sx={{
-                      bgcolor: "#091630",
-                      borderRadius: "30px",
-                      px: 4,
-                      py: 1,
-                      "&:hover": {
-                        bgcolor: "#152a5a",
-                      }
-                    }}
-                  >
-                    Cargar más propiedades
-                  </Button>
-                </Box>
-              )}
 
               {/* Mensaje cuando no hay resultados */}
               {propiedadesFiltradas.length === 0 && !isLoading && (
