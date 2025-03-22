@@ -53,8 +53,6 @@ const CreateProperty = () => {
         parking: false,
         mascotas: false,
         permitido_fumar: false,
-        latitud: "",
-        longitud: "",
         politica_de_cancelacion: "",
         fotos: [],
         portada: null
@@ -180,8 +178,6 @@ const CreateProperty = () => {
     const validateForm = async () => {
         const errors = {};
         const codigoPostalRegex = /^\d{5}$/;
-        const latitudValida = (lat) => lat >= -90 && lat <= 90;
-        const longitudValida = (lng) => lng >= -180 && lng <= 180;
         const empiezaConLetraRegex = /^[a-zA-Z]/;
 
         try {
@@ -249,14 +245,6 @@ const CreateProperty = () => {
 
         if (!formValues.tamano || formValues.tamano < 10 || formValues.tamano > 1000) {
             errors.tamano = "El tamaño es obligatorio, debe ser mayor que 10 y menor que 1000";
-        }
-
-        if (formValues.latitud && !latitudValida(formValues.latitud)) {
-            errors.latitud = "La latitud debe estar entre -90 y 90 grados";
-        }
-
-        if (formValues.longitud && !longitudValida(formValues.longitud)) {
-            errors.longitud = "La longitud debe estar entre -180 y 180 grados";
         }
 
         if (!formValues.politica_de_cancelacion) {
@@ -397,32 +385,7 @@ const CreateProperty = () => {
                                 />
                             </Box>
 
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mt: 2 }}>
-                                <TextField
-                                    label="Latitud"
-                                    name="latitud"
-                                    type="number"
-                                    variant="outlined"
-                                    value={formValues.latitud}
-                                    onChange={handleChange}
-                                    required
-                                    error={!!errors.latitud}
-                                    helperText={errors.latitud}
-                                    sx={{ width: "200px" }}
-                                />
-                                <TextField
-                                    label="Longitud"
-                                    name="longitud"
-                                    type="number"
-                                    variant="outlined"
-                                    value={formValues.longitud}
-                                    onChange={handleChange}
-                                    required
-                                    error={!!errors.longitud}
-                                    helperText={errors.longitud}
-                                    sx={{ width: "200px" }}
-                                />
-                            </Box>
+
                         </Box>
 
                         <Box sx={{ mb: 5 }}>

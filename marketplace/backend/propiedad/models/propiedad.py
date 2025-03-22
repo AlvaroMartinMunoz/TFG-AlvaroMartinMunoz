@@ -50,10 +50,6 @@ class Propiedad(models.Model):
     mascotas = models.BooleanField(default=False)
     permitido_fumar = models.BooleanField(default=False)
 
-    # UBICACIÓN GEOGRÁFICA
-    latitud = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, validators=[MinValueValidator(-90), MaxValueValidator(90)], help_text='Introduzca la latitud de su propiedad.')
-    longitud = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True, validators=[MinValueValidator(-180), MaxValueValidator(180)], help_text='Introduzca la longitud de su propiedad.')
-
     # POLITICAS DE CANCELACIÓN
     politica_de_cancelacion = models.CharField(max_length=20, choices=POLITICAS_DE_CANCELACION, blank=False, null=False, help_text='Seleccione la política de cancelación.')
 
@@ -72,7 +68,7 @@ class Propiedad(models.Model):
         return self.nombre
     
     class Meta:
-        unique_together = ['latitud', 'longitud', 'direccion', 'ciudad', 'pais', 'codigo_postal', 'nombre']
+        unique_together = ['direccion', 'ciudad', 'pais', 'codigo_postal', 'nombre']
 
 class FechaBloqueada(models.Model):
     propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='fechas_bloqueadas')
