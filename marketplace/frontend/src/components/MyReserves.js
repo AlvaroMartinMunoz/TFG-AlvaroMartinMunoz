@@ -12,17 +12,15 @@ import {
     FormControl,
     InputLabel,
     Chip,
-    Divider,
     Stack,
     Alert
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { AccordionDetails } from "@mui/material";
-import { useLocation } from "react-router-dom";
-import { alpha } from "@mui/material/styles";
+import { Navigate, useLocation } from "react-router-dom";
 
 const MyReserves = () => {
     const [misReservas, setMisReservas] = useState([]);
@@ -94,6 +92,84 @@ const MyReserves = () => {
         };
         checkPayment();
     }, [location.search]);
+
+    useEffect(() => {
+        const checkPaymentPaypal = async () => {
+            const params = new URLSearchParams(location.search);
+            const paymentId = params.get("paymentId");
+            const payerId = params.get("PayerID");
+
+            // 1. Verificación temprana de parámetros
+            if (!paymentId || !payerId) return;
+
+            // 2. Bloqueo inmediato para evitar múltiples ejecuciones
+            if (localStorage.getItem("processingPayment") === paymentId) {
+                console.log("⚠️ Pago ya siendo procesado");
+                return;
+            }
+
+            // 3. Marcar como procesamiento en curso
+            localStorage.setItem("processingPayment", paymentId);
+
+            try {
+                const reservationData = JSON.parse(localStorage.getItem("reservationData"));
+                if (!reservationData) {
+                    alert("No se encontraron datos de reserva");
+                    return;
+                }
+
+                // 4. Limpiar parámetros de la URL antes de la petición
+                window.history.replaceState({}, document.title, window.location.pathname);
+
+                const response = await fetch("http://localhost:8000/api/propiedades/confirmar-pago-paypal/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                    },
+                    body: JSON.stringify({
+                        paymentId,
+                        payerId,
+                        reservationData
+                    })
+                });
+
+                // 5. Limpiar datos independientemente del resultado
+                localStorage.removeItem("reservationData");
+                localStorage.removeItem("processingPayment");
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || "Error en el pago");
+                }
+
+                const data = await response.json();
+                alert("✅ Pago confirmado exitosamente");
+                localStorage.setItem("paymentConfirmed", paymentId);
+
+                // 6. Redirección segura
+                setTimeout(() => {
+                    window.location.href = "/mis-reservas";
+                }, 1500);
+
+            } catch (error) {
+                console.error("🔥 Error:", error);
+                alert(`Error al procesar el pago: ${error.message}`);
+                localStorage.removeItem("processingPayment");
+            }
+        };
+
+        // 7. Control de ejecución con bandera
+        let isMounted = true;
+        if (isMounted) {
+            checkPaymentPaypal();
+        }
+
+        return () => {
+            isMounted = false; // Cleanup para evitar actualizaciones en componente desmontado
+        };
+    }, [location.search]);
+
 
     useEffect(() => {
         fetchReservas();

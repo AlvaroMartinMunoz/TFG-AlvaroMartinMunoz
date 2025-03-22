@@ -530,6 +530,7 @@ const PropertyDetails = () => {
             comentarios_usuario: comentarios_usuario,
             amount: Math.round(precioTotal * 100),
             currency: 'eur',
+
         };
 
         if (metodoPago === "Tarjeta de crédito") {
@@ -579,57 +580,126 @@ const PropertyDetails = () => {
                 alert('Ocurrió un error al procesar el pago');
                 setLoading(false);
             }
-        } else {
-            await createReservation(reservationData);
+        } else if (metodoPago === "PayPal") {
+            try {
+                const response = await fetch("http://localhost:8000/api/propiedades/create-checkout-paypal/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                    body: JSON.stringify({
+                        reservationData,
+                    }),
+                });
+
+                const data = await response.json();
+
+                if (data.approval_url) {
+                    localStorage.setItem('reservationData', JSON.stringify(reservationData));
+                    window.location.href = data.approval_url;
+                } else {
+                    alert('Ocurrió un error al procesar el pago');
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('Ocurrió un error al procesar el pago');
+                setLoading(false);
+            }
         }
+
     };
     return (
-        <Box sx={{ minHeight: '80vh', display: 'flex', flexDirection: 'column', bgcolor: '#f4f7fc' }}>
-            <Container maxWidth="md" sx={{ flexGrow: 1, py: 4 }}>
+        <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8f9fc' }}>
+            <Container maxWidth="lg" sx={{ flexGrow: 1, py: 5 }}>
                 <Box
                     sx={{
                         display: 'flex',
                         flexDirection: { xs: 'column', md: 'row' },
                         gap: 4,
-                        mb: 4,
+                        mb: 5,
                     }}
                 >
                     {fotos.length > 0 && (
-                        <Box sx={{ flex: 1 }}>
-                            <Carousel
-                                autoPlay
-                                interval={8000}
-                                navButtonsAlwaysVisible
-                                indicators={false}
-                                sx={{ borderRadius: 2, overflow: 'hidden' }}
+                        <Box sx={{
+                            flex: 1.2,
+                            display: 'flex',
+                            alignItems: 'center' // This centers the image vertically
+                        }}>
+                            <Paper
+                                elevation={2}
+                                sx={{
+                                    borderRadius: 3,
+                                    overflow: 'hidden',
+                                    transition: 'transform 0.3s',
+                                    width: '100%', // Ensure the paper takes full width
+                                    '&:hover': {
+                                        transform: 'scale(1.01)',
+                                    },
+                                }}
                             >
-                                {fotos.map((foto, index) => (
-                                    <Box
-                                        key={index}
-                                        sx={{
+                                <Carousel
+                                    autoPlay
+                                    interval={8000}
+                                    navButtonsAlwaysVisible
+                                    indicators={true}
+                                    animation="slide"
+                                    navButtonsProps={{
+                                        style: {
+                                            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                            color: '#000',
+                                            borderRadius: '50%',
+                                            margin: '0 10px',
+                                        }
+                                    }}
+                                    indicatorContainerProps={{
+                                        style: {
+                                            marginTop: '-24px',
                                             position: 'relative',
-                                            width: '100%',
-                                            height: 0,
-                                            paddingTop: '56.25%',
-                                        }}
-                                        onClick={() => handleClickOpen(index)}
-                                    >
+                                            zIndex: 1
+                                        }
+                                    }}
+                                    indicatorIconButtonProps={{
+                                        style: {
+                                            color: 'rgba(255, 255, 255, 0.7)'
+                                        }
+                                    }}
+                                    activeIndicatorIconButtonProps={{
+                                        style: {
+                                            color: '#fff'
+                                        }
+                                    }}
+                                >
+                                    {fotos.map((foto, index) => (
                                         <Box
-                                            component="img"
-                                            src={foto.foto}
-                                            alt={foto.descripcion}
+                                            key={index}
                                             sx={{
-                                                position: 'absolute',
-                                                top: 0,
-                                                left: 0,
+                                                position: 'relative',
                                                 width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
+                                                height: 0,
+                                                paddingTop: '66.25%',
+                                                cursor: 'pointer',
                                             }}
-                                        />
-                                    </Box>
-                                ))}
-                            </Carousel>
+                                            onClick={() => handleClickOpen(index)}
+                                        >
+                                            <Box
+                                                component="img"
+                                                src={foto.foto}
+                                                alt={foto.descripcion || 'Imagen de propiedad'}
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: 0,
+                                                    left: 0,
+                                                    width: '100%',
+                                                    height: '100%',
+                                                    objectFit: 'cover',
+                                                }}
+                                            />
+                                        </Box>
+                                    ))}
+                                </Carousel>
+                            </Paper>
                         </Box>
                     )}
                     <Box
@@ -637,278 +707,705 @@ const PropertyDetails = () => {
                             flex: 1,
                             display: 'flex',
                             flexDirection: 'column',
-                            justifyContent: 'center',
-                            textAlign: 'center',
+                            justifyContent: 'center', // Centers the content vertically
                         }}
                     >
-                        <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 1 }}>
-                            {propiedad?.nombre}
-                        </Typography>
-                        <Typography variant="h5" color="black" sx={{ fontWeight: 500, mb: 1 }}>
-                            {propiedad?.precio_por_noche} € por noche
-                        </Typography>
-                        <Typography variant="body1" color="text.secondary">
-                            {propiedad?.direccion}, {propiedad?.ciudad}, {propiedad?.pais}
-                        </Typography>
-                        {loadingMedia ? (
-                            <Typography variant='h5' color='text.secondary'></Typography>
-                        ) : errorMedia ? (
-                            <Typography variant='h5' color='text.secondary'>{errorMedia}</Typography>
-                        ) : (
-                            <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', mt: 2 }}>
-                                <Rating name="read-only" value={mediaValoraciones?.media} readOnly precision={0.25} />
-                                <Typography variant='body1' color='text.secondary'>{mediaValoraciones?.reseñas ? `${mediaValoraciones.reseñas} valoraciones` : '0 valoraciones'}</Typography>
+                        <Paper
+                            elevation={2}
+                            sx={{
+                                p: 4,
+                                borderRadius: 3,
+                                height: '100%',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                justifyContent: 'center',
+                            }}
+                        >
+                            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                                {propiedad?.nombre || 'Cargando...'}
+                            </Typography>
+                            <Typography variant="h5" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
+                                {propiedad?.precio_por_noche ? `${propiedad.precio_por_noche} € por noche` : 'Precio no disponible'}
+                            </Typography>
+                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
+                            </Typography>
+                            {loadingMedia ? (
+                                <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
+                                    <Typography variant='body1' color='text.secondary'>Cargando valoraciones...</Typography>
+                                </Box>
+                            ) : errorMedia ? (
+                                <Typography variant='body1' color='text.secondary' sx={{ my: 2 }}>{errorMedia}</Typography>
+                            ) : (
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                                    <Rating
+                                        name="read-only"
+                                        value={mediaValoraciones?.media || 0}
+                                        readOnly
+                                        precision={0.25}
+                                        size="large"
+                                    />
+                                    <Typography variant='body1' color='text.secondary'>
+                                        {mediaValoraciones?.reseñas ? `${mediaValoraciones.media.toFixed(2)} (${mediaValoraciones.reseñas} valoraciones)` : '0 valoraciones'}
+                                    </Typography>
+                                </Box>
+                            )}
 
-                            </Box>
-                        )
-                        }
-
-                        {esAnfitrion && isAuthenticated() ? (
-                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => setOpenManageDates(true)} > Gestionar Fechas Disponibles</Button>
-                        ) : isAuthenticated() ? (
-                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={handleOpenReserveDatePicker} > Reservar</Button>
-                        ) : (
-                            <Button variant='contained' color='primary' sx={{ mt: 2 }} onClick={() => window.location.href = "/inicio-de-sesion"}>Inicie sesion para poder reservar</Button>
-                        )}
-
+                            {esAnfitrion && isAuthenticated() ? (
+                                <Button
+                                    variant='contained'
+                                    color='primary'
+                                    size="large"
+                                    startIcon={<AddIcon />}
+                                    sx={{
+                                        mt: 2,
+                                        py: 1.5,
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        boxShadow: 3,
+                                    }}
+                                    onClick={() => setOpenManageDates(true)}
+                                >
+                                    Gestionar Fechas Disponibles
+                                </Button>
+                            ) : isAuthenticated() ? (
+                                <Button
+                                    variant='contained'
+                                    color='primary'
+                                    size="large"
+                                    sx={{
+                                        mt: 2,
+                                        py: 1.5,
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        boxShadow: 3,
+                                    }}
+                                    onClick={handleOpenReserveDatePicker}
+                                >
+                                    Reservar Ahora
+                                </Button>
+                            ) : (
+                                <Button
+                                    variant='contained'
+                                    color='primary'
+                                    size="large"
+                                    sx={{
+                                        mt: 2,
+                                        py: 1.5,
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                        boxShadow: 3,
+                                    }}
+                                    onClick={() => window.location.href = "/inicio-de-sesion"}
+                                >
+                                    Inicie sesión para reservar
+                                </Button>
+                            )}
+                        </Paper>
                     </Box>
                 </Box>
 
-                <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid #e0e0e0' }}>
-                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+
+
+                <Paper
+                    elevation={2}
+                    sx={{
+                        p: 4,
+                        borderRadius: 3,
+                        mb: 4,
+                        transition: 'transform 0.2s',
+                        '&:hover': {
+                            transform: 'translateY(-5px)',
+                        },
+                    }}
+                >
+                    <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
                         Descripción
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                        {propiedad?.descripcion}
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, lineHeight: 1.8 }}>
+                        {propiedad?.descripcion || 'Descripción no disponible'}
                     </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
+
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
+                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
+                                Información General
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                                 <strong>Código Postal:</strong> {propiedad?.codigo_postal}
                             </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Tipo de Propiedad:</strong> {propiedad?.tipo_de_propiedad}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Tipo:</strong> {propiedad?.tipo_de_propiedad}
                             </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Máx. Huéspedes:</strong> {propiedad?.maximo_huespedes}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Habitaciones:</strong> {propiedad?.numero_de_habitaciones}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Baños:</strong> {propiedad?.numero_de_banos}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Camas:</strong> {propiedad?.numero_de_camas}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
                                 <strong>Tamaño:</strong> {propiedad?.tamano} m²
                             </Typography>
                         </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Wifi:</strong> {propiedad?.wifi ? 'Sí' : 'No'}
+
+                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
+                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
+                                Capacidad
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Máx. Huéspedes:</strong> {propiedad?.maximo_huespedes}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Habitaciones:</strong> {propiedad?.numero_de_habitaciones}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Camas:</strong> {propiedad?.numero_de_camas}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Baños:</strong> {propiedad?.numero_de_banos}
                             </Typography>
                         </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Aire Acond.:</strong> {propiedad?.aire_acondicionado ? 'Sí' : 'No'}
+
+                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
+                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
+                                Comodidades
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Wifi:</strong> {propiedad?.wifi ? '✓' : '✗'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Aire Acond.:</strong> {propiedad?.aire_acondicionado ? '✓' : '✗'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Calefacción:</strong> {propiedad?.calefaccion ? '✓' : '✗'}
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Parking:</strong> {propiedad?.parking ? '✓' : '✗'}
                             </Typography>
                         </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Calefacción:</strong> {propiedad?.calefaccion ? 'Sí' : 'No'}
+
+                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
+                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
+                                Normas
                             </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Parking:</strong> {propiedad?.parking ? 'Sí' : 'No'}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Mascotas:</strong> {propiedad?.mascotas ? 'Permitidas' : 'No permitidas'}
                             </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Mascotas:</strong> {propiedad?.mascotas ? 'Sí' : 'No'}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 calc(50% - 16px)' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Fumar:</strong> {propiedad?.permitido_fumar ? 'Sí' : 'No'}
-                            </Typography>
-                        </Box>
-                        <Box sx={{ flex: '1 1 100%' }}>
-                            <Typography variant="body2" color="text.secondary">
-                                <strong>Política de Cancelación:</strong> {propiedad?.politica_de_cancelacion}
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
+                                <strong>Fumar:</strong> {propiedad?.permitido_fumar ? 'Permitido' : 'No permitido'}
                             </Typography>
                         </Box>
                     </Box>
+
+                    <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
+                        Política de Cancelación
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {propiedad?.politica_de_cancelacion || 'No especificada'}
+                    </Typography>
                 </Paper>
+
                 {(isAuthenticated() && esAnfitrion) ? null : (
-                    <Paper elevation={0} sx={{ p: 3, borderRadius: 2, border: '1px solid #e0e0e0', mt: 4 }}>
-                        <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
-                            Valoración
+                    <Paper
+                        elevation={2}
+                        sx={{
+                            p: 4,
+                            borderRadius: 3,
+                            mb: 4,
+                            transition: 'transform 0.2s',
+                            '&:hover': {
+                                transform: 'translateY(-5px)',
+                            },
+                        }}
+                    >
+                        <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+                            Tu Valoración
                         </Typography>
                         {alertMessage && (
-                            <Alert severity='error' sx={{ mb: 2 }}>
+                            <Alert severity='error' sx={{ mb: 3, borderRadius: 2 }}>
                                 {alertMessage}
                             </Alert>
-
                         )}
                         {hasRated ? (
                             isEditing ? (
-                                <Box>
-                                    <Rating name="rating" value={rating} onChange={handleRatingChange} precision={0.5} />
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                        <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
+                                        <Rating
+                                            name="rating"
+                                            value={rating}
+                                            onChange={handleRatingChange}
+                                            precision={0.5}
+                                            size="large"
+                                        />
+                                    </Box>
                                     <TextField
+                                        label="Tu comentario"
                                         value={comentario_valoracion}
                                         onChange={(e) => setComentarioValoracion(e.target.value)}
                                         multiline
-                                        sx={{ mt: 1, width: '100%' }}
+                                        rows={4}
+                                        fullWidth
+                                        variant="outlined"
+                                        sx={{ mt: 1, mb: 2 }}
                                     />
-                                    <Button variant="contained" color="primary" onClick={() => handleUpdateRating(propiedad.id)} sx={{ mt: 2 }}>
-                                        Actualizar Valoración
-                                    </Button>
-                                    <Button variant="outlined" color="secondary" onClick={() => setIsEditing(false)} sx={{ mt: 2, ml: 2 }}>
-                                        Cancelar
-                                    </Button>
+                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={() => handleUpdateRating(propiedad.id)}
+                                            sx={{
+                                                py: 1,
+                                                px: 3,
+                                                fontWeight: 600,
+                                                borderRadius: 2,
+                                            }}
+                                        >
+                                            Actualizar Valoración
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            color="secondary"
+                                            onClick={() => setIsEditing(false)}
+                                            sx={{
+                                                py: 1,
+                                                px: 3,
+                                                fontWeight: 600,
+                                                borderRadius: 2,
+                                            }}
+                                        >
+                                            Cancelar
+                                        </Button>
+                                    </Box>
                                 </Box>
                             ) : (
-                                <Box>
-                                    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                        <Rating name="read-only" value={userRating.valoracion} readOnly precision={0.5} />
-                                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                        <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
+                                        <Rating
+                                            name="read-only"
+                                            value={userRating.valoracion}
+                                            readOnly
+                                            precision={0.5}
+                                            size="large"
+                                        />
+                                    </Box>
+                                    <Paper
+                                        elevation={0}
+                                        sx={{
+                                            p: 3,
+                                            mb: 3,
+                                            borderRadius: 2,
+                                            bgcolor: 'rgba(0, 0, 0, 0.02)',
+                                            border: '1px solid rgba(0, 0, 0, 0.08)'
+                                        }}
+                                    >
+                                        <Typography variant="body1" color="text.secondary">
                                             {userRating.comentario}
                                         </Typography>
-                                    </Typography>
-                                    <Button variant="contained" color="primary" onClick={handleEditRating}>
+                                    </Paper>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        onClick={handleEditRating}
+                                        sx={{
+                                            alignSelf: 'flex-start',
+                                            py: 1,
+                                            px: 3,
+                                            fontWeight: 600,
+                                            borderRadius: 2,
+                                        }}
+                                    >
                                         Editar Valoración
                                     </Button>
                                 </Box>
                             )
                         ) : (
-                            <>
-                                <Rating name="rating" value={rating} onChange={handleRatingChange} precision={0.5} />
+                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                    <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
+                                    <Rating
+                                        name="rating"
+                                        value={rating}
+                                        onChange={handleRatingChange}
+                                        precision={0.5}
+                                        size="large"
+                                    />
+                                </Box>
                                 <TextField
+                                    label="Tu comentario sobre la propiedad"
                                     value={comentario_valoracion}
                                     onChange={(e) => setComentarioValoracion(e.target.value)}
                                     multiline
-                                    sx={{ mt: 1, width: '100%' }}
+                                    rows={4}
+                                    fullWidth
+                                    variant="outlined"
+                                    placeholder="Comparte tu experiencia con otros huéspedes"
+                                    sx={{ mb: 2 }}
                                 />
-                                <Button variant="contained" color="primary" onClick={() => handleSubmitRating(propiedad.id)} sx={{ mt: 2 }}>
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => handleSubmitRating(propiedad.id)}
+                                    sx={{
+                                        alignSelf: 'flex-start',
+                                        py: 1,
+                                        px: 3,
+                                        fontWeight: 600,
+                                        borderRadius: 2,
+                                    }}
+                                >
                                     Enviar Valoración
                                 </Button>
-                            </>
+                            </Box>
                         )}
                     </Paper>
                 )}
-                <Modal open={open} onClose={handleClose} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
-                        <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8 }}>
+
+                {/* Modals */}
+                <Modal
+                    open={open}
+                    onClose={handleClose}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'relative',
+                            width: '85vw',
+                            height: '85vh',
+                            bgcolor: "background.paper",
+                            p: 0,
+                            borderRadius: 3,
+                            overflow: 'hidden',
+                            boxShadow: 24
+                        }}
+                    >
+                        <IconButton
+                            onClick={handleClose}
+                            sx={{
+                                position: 'absolute',
+                                top: 16,
+                                right: 16,
+                                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                zIndex: 2,
+                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                            }}
+                        >
                             <CloseIcon />
                         </IconButton>
-                        <IconButton onClick={handlePrev} sx={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)' }}>
+                        <IconButton
+                            onClick={handlePrev}
+                            sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                left: 16,
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                zIndex: 2,
+                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                            }}
+                        >
                             <ArrowBackIosNewIcon />
                         </IconButton>
-                        <IconButton onClick={handleNext} sx={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)' }}>
+                        <IconButton
+                            onClick={handleNext}
+                            sx={{
+                                position: 'absolute',
+                                top: '50%',
+                                right: 16,
+                                transform: 'translateY(-50%)',
+                                bgcolor: 'rgba(255, 255, 255, 0.7)',
+                                zIndex: 2,
+                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
+                            }}
+                        >
                             <ArrowForwardIosIcon />
                         </IconButton>
                         {fotos[selectedFotoIndex] && (
                             <Box
                                 component="img"
                                 src={fotos[selectedFotoIndex].foto}
-                                alt={fotos[selectedFotoIndex].descripcion}
-                                sx={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                                alt={fotos[selectedFotoIndex].descripcion || 'Imagen de propiedad'}
+                                sx={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'contain',
+                                    bgcolor: '#000'
+                                }}
                             />
                         )}
                     </Box>
-
                 </Modal>
-                <Modal open={openManageDates} onClose={() => setOpenManageDates(false)} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Box sx={{ position: 'relative', width: '40vw', height: '40vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
-                        <IconButton onClick={() => setOpenManageDates(false)} sx={{ position: 'absolute', top: 8, right: 8 }}>
+
+                <Modal
+                    open={openManageDates}
+                    onClose={() => setOpenManageDates(false)}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Paper
+                        sx={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: '500px',
+                            p: 4,
+                            borderRadius: 3,
+                            boxShadow: 24
+                        }}
+                    >
+                        <IconButton
+                            onClick={() => setOpenManageDates(false)}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8
+                            }}
+                        >
                             <CloseIcon />
                         </IconButton>
-                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                        <Typography variant="h5" sx={{ mb: 4, fontWeight: 600, textAlign: 'center' }}>
                             Gestionar Fechas Disponibles
                         </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 6 }}>
-                            <Button variant="contained" color="primary" onClick={() => handleOpenDatePicker()}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                size="large"
+                                onClick={() => handleOpenDatePicker()}
+                                sx={{
+                                    py: 1.5,
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                }}
+                            >
                                 Bloquear Fecha
                             </Button>
-                            <Button variant="contained" color="error" onClick={handleOpenUnblockDatePicker}>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                size="large"
+                                onClick={handleOpenUnblockDatePicker}
+                                sx={{
+                                    py: 1.5,
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                }}
+                            >
                                 Desbloquear Fecha
                             </Button>
                         </Box>
-                    </Box>
+                    </Paper>
                 </Modal>
-                <Modal open={openDatePicker} onClose={handleCloseDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2, alignItems: 'center' }}>
-                        <IconButton onClick={handleCloseDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
-                            <CloseIcon />
-                        </IconButton>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, justifyContent: 'center', alignItems: 'center' }}>
-                            <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                                Seleccionar fecha para Bloquear
-                            </Typography>
-                            <DayPickerSingleDateController
-                                date={null}
-                                onDateChange={handleBlockDateChange}
-                                focused={true}
-                                onFocusChange={handleFocusChange}
-                                isDayHighlighted={(date) => selectedBlockDates.includes(date.format('YYYY-MM-DD'))}
-                                isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
-                                hideKeyboardShortcutsPanel
-                            />
-                            <Button variant="contained" color="primary" onClick={handleConfirmBlockDate}>
-                                Confirmar
-                            </Button>
-                        </Box>
-                    </Box>
-                </Modal>
-                <Modal open={openUnblockDatePicker} onClose={handleCloseUnblockDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '80vw', height: '80vh', bgcolor: "background.paper", p: 4, borderRadius: 2 }}>
-                        <IconButton onClick={handleCloseUnblockDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
-                            <CloseIcon />
-                        </IconButton>
-                        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-                            Seleccionar fecha para Desbloquear
-                        </Typography>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, justifyContent: "center", alignItems: "center" }}>
-                            <DayPickerSingleDateController
-                                date={null}
-                                onDateChange={handleUnblockDateChange}
-                                focused={true}
-                                onFocusChange={handleFocusChange}
-                                isDayHighlighted={(date) => selectedUnblockDates.includes(date.format('YYYY-MM-DD'))}
-                                isOutsideRange={(date) => date.isBefore(moment()) || !blockedDates.some((blockedDate) => moment(blockedDate.fecha).isSame(date, 'day'))}
-                                hideKeyboardShortcutsPanel
-                            />
-                            <Button variant="contained" color="primary" onClick={handleConfirmUnblockDate}>
-                                Confirmar
-                            </Button>
-                        </Box>
 
-                    </Box>
-                </Modal>
-                <Modal open={openReserveDatePicker} onClose={handleCloseReserveDatePicker} sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 8 }}>
-                    <Box sx={{ position: 'relative', width: '50vw', maxWidth: '600px', bgcolor: "background.paper", p: 4, borderRadius: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: 24 }}>
-                        <IconButton onClick={handleCloseReserveDatePicker} sx={{ position: 'absolute', top: 8, right: 8 }}>
+                <Modal
+                    open={openDatePicker}
+                    onClose={handleCloseDatePicker}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}
+                >
+                    <Paper
+                        sx={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: '600px',
+                            p: 4,
+                            borderRadius: 3,
+                            boxShadow: 24
+                        }}
+                    >
+                        <IconButton
+                            onClick={handleCloseDatePicker}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8
+                            }}
+                        >
                             <CloseIcon />
                         </IconButton>
-                        <Typography variant="h5" sx={{ mb: 4, fontWeight: 600 }}>
-                            Seleccionar fecha para Reservar
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
+                                Seleccionar fechas para bloquear
+                            </Typography>
+                            <Box sx={{ mb: 3 }}>
+                                <DayPickerSingleDateController
+                                    date={null}
+                                    onDateChange={handleBlockDateChange}
+                                    focused={true}
+                                    onFocusChange={handleFocusChange}
+                                    isDayHighlighted={(date) => selectedBlockDates.includes(date.format('YYYY-MM-DD'))}
+                                    isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
+                                    hideKeyboardShortcutsPanel
+                                    numberOfMonths={1}
+                                />
+                            </Box>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={handleConfirmBlockDate}
+                                sx={{
+                                    py: 1.5,
+                                    px: 4,
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                }}
+                            >
+                                Confirmar
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Modal>
+
+                <Modal
+                    open={openUnblockDatePicker}
+                    onClose={handleCloseUnblockDatePicker}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100vw',
+                    }}
+                >
+                    <Paper
+                        sx={{
+                            position: 'relative',
+                            width: '100%',
+                            maxWidth: '600px',
+                            p: 4,
+                            borderRadius: 3,
+                            boxShadow: 24
+                        }}
+                    >
+                        <IconButton
+                            onClick={handleCloseUnblockDatePicker}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
+                                Seleccionar fechas para desbloquear
+                            </Typography>
+                            <Box sx={{ mb: 3 }}>
+                                <DayPickerSingleDateController
+                                    date={null}
+                                    onDateChange={handleUnblockDateChange}
+                                    focused={true}
+                                    onFocusChange={handleFocusChange}
+                                    isDayHighlighted={(date) => selectedUnblockDates.includes(date.format('YYYY-MM-DD'))}
+                                    isOutsideRange={(date) => date.isBefore(moment()) || !blockedDates.some((blockedDate) => moment(blockedDate.fecha).isSame(date, 'day'))}
+                                    hideKeyboardShortcutsPanel
+                                    numberOfMonths={1}
+                                />
+                            </Box>
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={handleConfirmUnblockDate}
+                                sx={{
+                                    py: 1.5,
+                                    px: 4,
+                                    fontWeight: 600,
+                                    borderRadius: 2,
+                                }}
+                            >
+                                Confirmar
+                            </Button>
+                        </Box>
+                    </Paper>
+                </Modal>
+                <Modal
+                    open={openReserveDatePicker}
+                    onClose={handleCloseReserveDatePicker}
+                    sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100vw',
+                        bgcolor: "white"
+                    }}
+                >
+                    <Paper
+                        elevation={3}
+                        sx={{
+                            position: 'relative',
+                            width: '80vw',
+                            maxWidth: '850px',
+                            bgcolor: "background.paper",
+                            maxHeight: '90vh',
+                            p: 4,
+                            pt: 5,
+                            pb: 5,
+                            borderRadius: 2,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            boxShadow: 24,
+                            overflow: 'auto'
+
+                        }}
+                    >
+                        <Box sx={{
+                            position: 'absolute',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            height: '6px',
+                            bgcolor: 'white',
+                            width: '100%',
+                        }} />
+
+                        <IconButton
+                            onClick={handleCloseReserveDatePicker}
+                            sx={{
+                                position: 'absolute',
+                                top: 8,
+                                right: 8,
+                                color: 'text.secondary',
+                                '&:hover': {
+                                    bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <CloseIcon />
+                        </IconButton>
+
+                        <Typography
+                            variant="h5"
+                            sx={{
+                                mb: 4,
+                                fontWeight: 600,
+                                textAlign: 'center',
+                                color: 'text.primary'
+                            }}
+                        >
+                            Reservar Alojamiento
                         </Typography>
-                        <Box sx={{ zIndex: 1300 }}>
+
+                        <Box sx={{
+                            zIndex: 1300,
+                            width: '100%',
+                            mb: 3
+                        }}>
+                            <Typography
+                                variant="subtitle1"
+                                sx={{
+                                    mb: 1,
+                                    fontWeight: 500,
+                                    color: 'text.secondary'
+                                }}
+                            >
+                                Seleccione fechas de estancia:
+                            </Typography>
                             <DateRangePicker
                                 startDate={reserveStartDate}
                                 startDateId="start_date_id"
@@ -921,67 +1418,199 @@ const PropertyDetails = () => {
                                 isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
                                 hideKeyboardShortcutsPanel
                                 required
+                                customArrowIcon={<span style={{ padding: '0 8px' }}>→</span>}
+                                displayFormat="DD/MM/YYYY"
+                                small
                             />
                         </Box>
-                        <Box sx={{ display: "flex", alignItems: "center", mt: 2 }}>
-                            <Typography variant="body1" component="span">Número de huéspedes:</Typography>
-                            <IconButton onClick={handleDecrement} sx={{ mx: 1 }}>
-                                <RemoveIcon />
-                            </IconButton>
-                            <Typography variant="body1" component="span">{numPersonas}</Typography>
-                            <IconButton onClick={handleIncrement} sx={{ mx: 1 }}>
-                                <AddIcon />
-                            </IconButton>
+
+                        <Box sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            width: '100%',
+                            mb: 3,
+                            p: 2,
+                            bgcolor: 'rgba(0, 0, 0, 0.02)',
+                            borderRadius: 1
+                        }}>
+                            <Typography variant="body1">Número de huéspedes:</Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <IconButton
+                                    onClick={handleDecrement}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                        color: 'text.secondary',
+                                        '&:hover': {
+                                            bgcolor: 'primary.light',
+                                            color: 'primary.contrastText'
+                                        }
+                                    }}
+                                >
+                                    <RemoveIcon fontSize="small" />
+                                </IconButton>
+                                <Typography variant="body1" sx={{ mx: 2, fontWeight: 500 }}>{numPersonas}</Typography>
+                                <IconButton
+                                    onClick={handleIncrement}
+                                    size="small"
+                                    sx={{
+                                        bgcolor: 'rgba(0, 0, 0, 0.04)',
+                                        color: 'text.secondary',
+                                        '&:hover': {
+                                            bgcolor: 'primary.light',
+                                            color: 'primary.contrastText'
+                                        }
+                                    }}
+                                >
+                                    <AddIcon fontSize="small" />
+                                </IconButton>
+                            </Box>
                         </Box>
-                        <FormControl sx={{ mt: 2, width: '100%' }}>
+
+                        <FormControl sx={{ mt: 1, mb: 3, width: '100%' }}>
                             <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
                             <Select
                                 id="metodo-pago"
-                                aria-labelledby="metodo-pago-label"
+                                labelId="metodo-pago-label"
                                 value={metodoPago}
                                 onChange={(e) => setMetodoPago(e.target.value)}
                                 label="Método de Pago"
+                                sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0, 0, 0, 0.23)' } }}
                             >
                                 <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
-                                <MenuItem value="PayPal">Paypal</MenuItem>
-                                <MenuItem value="Transferencia bancaria">Transferencia Bancaria</MenuItem>
+                                <MenuItem value="PayPal">PayPal</MenuItem>
                             </Select>
                         </FormControl>
-                        <Typography variant="body2" component="span" sx={{ mt: 2 }}>Comentario sobre la reserva:</Typography>
-                        <TextField
-                            value={comentarios_usuario}
-                            onChange={(e) => setComentariosUsuario(e.target.value)}
-                            multiline
-                            sx={{ mt: 1, width: '100%' }}
-                        />
+
+                        <Box sx={{ width: '100%', mb: 3 }}>
+                            <Typography
+                                variant="subtitle1"
+                                sx={{
+                                    mb: 1,
+                                    fontWeight: 500,
+                                    color: 'text.secondary'
+                                }}
+                            >
+                                Comentarios sobre la reserva:
+                            </Typography>
+                            <TextField
+                                value={comentarios_usuario}
+                                onChange={(e) => setComentariosUsuario(e.target.value)}
+                                multiline
+                                rows={3}
+                                placeholder="Información adicional para el anfitrión..."
+                                sx={{
+                                    width: '100%',
+                                    '& .MuiOutlinedInput-root': {
+                                        '& fieldset': {
+                                            borderColor: 'rgba(0, 0, 0, 0.23)',
+                                        },
+                                        '&:hover fieldset': {
+                                            borderColor: 'primary.main',
+                                        },
+                                    }
+                                }}
+                            />
+                        </Box>
+
                         {reserveStartDate && reserveEndDate && (
-                            <>
-                                <Typography variant="body2" component="span" sx={{ mt: 2 }}>
-                                    Precio sin Comisión: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days')).toFixed(2)} €
+                            <Paper
+                                elevation={0}
+                                sx={{
+                                    width: '100%',
+                                    mb: 3,
+                                    p: 2,
+                                    bgcolor: 'rgba(0, 0, 0, 0.02)',
+                                    borderRadius: 1,
+                                    border: '1px solid rgba(0, 0, 0, 0.08)'
+                                }}
+                            >
+                                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
+                                    Detalles del precio
                                 </Typography>
-                                <Typography variant="body2" component="span" sx={{ mt: 1 }}>
-                                    Comisión: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 0.10).toFixed(2)} €
-                                </Typography>
-                                <Typography variant="body2" component="span" sx={{ mt: 1 }}>
-                                    Precio Total: {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 1.10).toFixed(2)} €
-                                </Typography>
-                            </>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {propiedad?.precio_por_noche} € x {moment(reserveEndDate).diff(moment(reserveStartDate), 'days')} noches
+                                    </Typography>
+                                    <Typography variant="body2" fontWeight={500}>
+                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days')).toFixed(2)} €
+                                    </Typography>
+                                </Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                    <Typography variant="body2" color="text.secondary">
+                                        Comisión de servicio (10%)
+                                    </Typography>
+                                    <Typography variant="body2" fontWeight={500}>
+                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 0.10).toFixed(2)} €
+                                    </Typography>
+                                </Box>
+                                <Box sx={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    mt: 2,
+                                    pt: 2,
+                                    borderTop: '1px solid rgba(0, 0, 0, 0.1)'
+                                }}>
+                                    <Typography variant="subtitle2" fontWeight={700}>
+                                        Precio Total
+                                    </Typography>
+                                    <Typography variant="subtitle2" fontWeight={700}>
+                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 1.10).toFixed(2)} €
+                                    </Typography>
+                                </Box>
+                            </Paper>
                         )}
 
-                        <Box sx={{ display: 'flex', flexDirection: 'row', gap: 2, mt: 2 }}>
-                            <Button variant="contained" color="error" onClick={handleCloseReserveDatePicker} disabled={loading}>
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: 2,
+                            width: '100%',
+                            justifyContent: 'space-between'
+                        }}>
+                            <Button
+                                variant="outlined"
+                                color="inherit"
+                                onClick={handleCloseReserveDatePicker}
+                                disabled={loading}
+                                sx={{
+                                    flex: 1,
+                                    py: 1.2,
+                                    color: 'text.secondary',
+                                    borderColor: 'rgba(0, 0, 0, 0.23)',
+                                    '&:hover': {
+                                        borderColor: 'rgba(0, 0, 0, 0.5)',
+                                        bgcolor: 'rgba(0, 0, 0, 0.02)'
+                                    }
+                                }}
+                            >
                                 Cancelar
                             </Button>
-                            <Button variant="contained" color="primary" onClick={handleConfirmReserve} disabled={loading}>
-                                Confirmar
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={handleConfirmReserve}
+                                disabled={loading}
+                                sx={{
+                                    flex: 2,
+                                    py: 1.2,
+                                    fontWeight: 600,
+                                    boxShadow: 2,
+                                    '&:hover': {
+                                        boxShadow: 4
+                                    }
+                                }}
+                            >
+                                {loading ? 'Procesando...' : 'Confirmar reserva'}
                             </Button>
                         </Box>
-                    </Box>
+                    </Paper>
                 </Modal>
             </Container>
-        </Box >
+        </Box>
     );
 };
 
-
 export default PropertyDetails;
+
