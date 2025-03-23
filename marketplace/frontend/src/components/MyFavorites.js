@@ -105,6 +105,7 @@ const Myfavorites = () => {
                 }
             }
             fetchMyFavorites();
+            window.location.reload();
         } catch (error) {
             console.error("Error al añadir a favoritos:", error);
         }
@@ -218,9 +219,9 @@ const Myfavorites = () => {
                         boxShadow: "0 4px 20px rgba(0,0,0,0.04)"
                     }}>
                         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", mb: 1 }}>
-                            <HomeIcon sx={{ fontSize: 32, color: "#1976d2", mr: 1 }} />
+                            <FavoriteIcon sx={{ fontSize: 32, color: "#1976d2", mr: 1 }} />
                             <Typography variant="h4" fontWeight="600">
-                                Mis Propiedades
+                                Mis Propiedades Favoritas
                             </Typography>
                         </Box>
                         <Divider sx={{ my: 2 }} />

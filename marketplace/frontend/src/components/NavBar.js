@@ -41,11 +41,14 @@ const NavBar = () => {
         handleLogOut();
       }
     }
-    const intervalId = setInterval(() => {
-      fetchFavoritosNavbar();
+
+    if (isAuthenticated()) {
+      const intervalId = setInterval(() => {
+        fetchFavoritosNavbar();
+      }
+        , 2000);
+      return () => clearInterval(intervalId);
     }
-      , 2000);
-    return () => clearInterval(intervalId);
   }, []);
 
   const fetchFavoritosNavbar = async () => {
