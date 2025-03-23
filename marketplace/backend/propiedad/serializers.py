@@ -38,3 +38,6 @@ class FavoritoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Favorito
         fields = '__all__'
+
+
+    

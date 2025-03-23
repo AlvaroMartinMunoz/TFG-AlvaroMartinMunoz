@@ -29,6 +29,9 @@ from django.db import transaction
 from .models.favorito import Favorito
 from .serializers import FavoritoSerializer
 
+
+
+
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
 
@@ -551,5 +554,4 @@ class FavoritoViewSet(viewsets.ModelViewSet):
         if favorito.usuario.id != usuario.id:
             return Response({'error': 'No tienes permiso para eliminar este favorito'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
-    
     

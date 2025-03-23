@@ -9,6 +9,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from django.core.mail import send_mail
+from django.conf import settings
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
+from django.utils.encoding import force_bytes, force_str
+from django.core.exceptions import ValidationError
+from django.contrib.auth.password_validation import validate_password
+    
+
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
@@ -57,3 +67,48 @@ class UsuarioPerfilAPIView(APIView):
             raise NotFound(detail="Usuario no encontrado")
         serializer = UsuarioSerializer(usuario)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+class PasswordResetView(viewsets.ViewSet):
+   permission_classes = [AllowAny]
+
+   def post(self,request):
+        email = request.data.get('email')
+        if not email:
+              return Response({'error': 'Email es requerido'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+        token = default_token_generator.make_token(user)
+        uid = urlsafe_base64_encode(force_bytes(user.pk))
+        reset_link = f'http://localhost:3000/reset-password/{uid}/{token}'
+        mail_subject = 'Restablecimiento de contraseña'
+        message = f'Haz clic en el siguiente enlace para restablecer tu contraseña: {reset_link}'
+        send_mail(mail_subject, message, settings.EMAIL_HOST_USER, [email])
+        return Response({'status': 'Correo enviado'}, status=status.HTTP_200_OK)
+
+class PasswordResetConfirmView(viewsets.ViewSet):
+    permission_classes = [AllowAny]
+
+    def post(self,request,uidb64,token):
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'error': 'Enlace inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({'error': 'Token inválido o expirado'}, status=status.HTTP_400_BAD_REQUEST)
+
+        new_password = request.data.get('new_password')
+        if not new_password:
+            return Response({'error': 'Nueva contraseña es requerida'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            validate_password(new_password, user = user)
+        except ValidationError as e:
+            return Response({'error': e.messages}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save()
+        return Response({'status': 'Contraseña restablecida'}, status=status.HTTP_200_OK)

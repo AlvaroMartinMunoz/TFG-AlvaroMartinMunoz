@@ -3,6 +3,7 @@ from .models.usuario import Usuario
 from .models.valoracionUsuario import ValoracionUsuario
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.contrib.auth.forms import PasswordResetForm
 
 
 
@@ -51,3 +52,12 @@ class ValoracionUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = ValoracionUsuario
         fields = '__all__'
+
+class PasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        self.reset_password = PasswordResetForm(data=self.initial_data)
+        if not self.reset_password.is_valid():
+            raise serializers.ValidationError(self.reset_password.errors)
+        return value

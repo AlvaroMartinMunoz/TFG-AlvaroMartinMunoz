@@ -29,6 +29,8 @@ ALLOWED_HOSTS = []
 
 BACKGROUND_TASKS_RETRY_TIME = 86400
 
+LANGUAGE_CODE = 'es'
+
 
 # Application definition
 
@@ -103,6 +105,15 @@ PAYPAL_CLIENT_SECRET = 'EOmgOKBtgiG3g1xP1cq3Cuf282OPCGLO5j01bwhM6W1ycs3yk3XZzper
 PAYPAL_MODE = 'sandbox' 
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+
+#EMAIL
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'bestrentproperties00@gmail.com'
+EMAIL_HOST_PASSWORD = 'pxvhdeqqjhegynfm'
 
 
 # Database
