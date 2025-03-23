@@ -16,13 +16,13 @@ import {
 } from '@mui/material';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import ShareIcon from '@mui/icons-material/Share';
 
 const Events = () => {
     const [eventos, setEventos] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+
 
     useEffect(() => {
         fetchEventos();
@@ -49,6 +49,23 @@ const Events = () => {
     const formatDate = (dateString) => {
         return dateString;
     };
+
+    const handleShare = (evento) => {
+        if (navigator.share) {
+            navigator.share({
+                title: evento.nombre,
+                text: evento.descripcion,
+                url: window.location.origin + '/detalles-evento/' + evento.id
+            }).then(() => {
+                console.log('Contenido compartido con éxito');
+            }).catch((error) => {
+                console.error('Error al compartir:', error);
+            });
+        } else {
+            console.log('Web Share API no está soportado en este navegador');
+        }
+    }
+
 
     return (
         <Box
@@ -193,6 +210,7 @@ const Events = () => {
                                                 gap: 1
                                             }}
                                         >
+
                                             <IconButton
                                                 size="small"
                                                 sx={{
@@ -201,17 +219,7 @@ const Events = () => {
                                                         bgcolor: 'rgba(255, 255, 255, 0.95)'
                                                     }
                                                 }}
-                                            >
-                                                <BookmarkBorderIcon fontSize="small" />
-                                            </IconButton>
-                                            <IconButton
-                                                size="small"
-                                                sx={{
-                                                    bgcolor: 'rgba(255, 255, 255, 0.85)',
-                                                    '&:hover': {
-                                                        bgcolor: 'rgba(255, 255, 255, 0.95)'
-                                                    }
-                                                }}
+                                                onClick={() => handleShare(evento)}
                                             >
                                                 <ShareIcon fontSize="small" />
                                             </IconButton>
