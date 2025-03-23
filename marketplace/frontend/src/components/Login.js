@@ -8,6 +8,7 @@ import {
   IconButton,
   InputAdornment,
   Paper,
+  Link,
   CircularProgress,
 } from "@mui/material";
 import { useEffect, useState } from "react";
@@ -37,6 +38,10 @@ const Login = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
+  };
+
+  const handleForgotPassword = () => {
+    navigate("/password-reset");
   };
 
   const toggleShowPassword = () => {
@@ -171,6 +176,14 @@ const Login = () => {
                 ),
               }}
             />
+            <Box textAlign="center" sx={{ mb: 2 }}>
+              <Typography onClick={handleForgotPassword} sx={{
+                cursor: "pointer", color: "primary.main", textAlign: "center", "&:hover": { textDecoration: "underline" },
+              }}>
+                ¿Olvidaste tu contraseña?
+              </Typography>
+
+            </Box>
 
             <Button
               type="submit"

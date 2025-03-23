@@ -25,6 +25,8 @@ import Events from "./components/Events";
 import EventDetails from "./components/EventDetails";
 import Weather from "./components/Weather";
 import Myfavorites from "./components/MyFavorites";
+import PasswordReset from "./components/PasswordReset";
+import ConfirmPasswordReset from "./components/ConfirmPasswordReset";
 
 const theme = createTheme({
   palette: {
@@ -58,6 +60,8 @@ function App() {
                 <Route path="/detalles-evento/:eventoId" element={<EventDetails />} />
                 <Route path="/pronostico-clima" element={<Weather />} />
                 <Route path="/favoritos" element={<PrivateRoute component={Myfavorites} />} />
+                <Route path="password-reset" element={<PasswordReset />} />
+                <Route path="/reset-password/:uid/:token" element={<ConfirmPasswordReset />} />
               </Routes>
             </Container>
             <Footer />
