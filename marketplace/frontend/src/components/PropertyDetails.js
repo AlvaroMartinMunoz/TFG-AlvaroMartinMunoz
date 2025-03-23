@@ -521,6 +521,7 @@ const PropertyDetails = () => {
 
     const handleConfirmReserve = async (retried = false) => {
         if (!reserveStartDate || !reserveEndDate) {
+            alert('Por favor, seleccione las fechas de reserva');
             return;
         }
 

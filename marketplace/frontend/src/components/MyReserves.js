@@ -163,7 +163,7 @@ const MyReserves = () => {
         }
 
         return () => {
-            isMounted = false; S
+            isMounted = false;
         };
     }, [location.search]);
 
