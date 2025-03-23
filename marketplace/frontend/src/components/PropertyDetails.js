@@ -14,6 +14,8 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { Alert } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 
 
 
@@ -51,9 +53,8 @@ const PropertyDetails = () => {
     const [errorMedia, setErrorMedia] = useState(null);
     const [loading, setLoading] = useState(false);
     const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn');
-
-
-
+    const [isFavorite, setIsFavorite] = useState(false);
+    const [favoritoId, setFavoritoId] = useState(null);
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -61,6 +62,7 @@ const PropertyDetails = () => {
             fetchBlockedDates();
             fetchReservas();
             refreshAccessToken();
+            checkIfFavorite();
         }
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
@@ -78,13 +80,80 @@ const PropertyDetails = () => {
         return true;
     };
 
+    const checkIfFavorite = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos/`);
+            if (response.ok) {
+                const data = await response.json();
+                const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
+                const usuarioID = storedInfo ? storedInfo.usuarioId : null;
+                const propiedadID = parseInt(propiedadId);
+                const isFav = data.some((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID);
+                setIsFavorite(isFav);
+                console.log(isFav)
+                setFavoritoId(data.find((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID)?.id);
+                console.log(data.find((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID)?.id);
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleToggleFavorite = async (retried = false) => {
+        try {
+            const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
+            const usuarioID = storedInfo ? storedInfo.usuarioId : null;
+            const propiedadID = parseInt(propiedadId);
+            const isFavorito = isFavorite;
+            if (isFavorito) {
+                const data = await fetch(`http://localhost:8000/api/propiedades/favoritos/${favoritoId}/`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                });
+                if (data.status === 401 && !retried) {
+                    const token = await refreshAccessToken();
+                    if (token) {
+                        handleToggleFavorite(propiedadId, true);
+                    }
+                    else {
+                        throw new Error("Error al refrescar el token");
+                    }
+                }
+            } else if (!isFavorito) {
+                const data = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                    body: JSON.stringify({ propiedad: propiedadID, usuario: usuarioID }),
+                });
+                if (data.status === 401 && !retried) {
+                    const token = await refreshAccessToken();
+                    if (token) {
+                        handleToggleFavorite(propiedadId, true);
+                    } else {
+                        throw new Error("Error al refrescar el token");
+                    }
+                }
+            }
+            checkIfFavorite();
+            // window.location.reload();
+        } catch (error) {
+            console.error("Error al añadir a favoritos:", error);
+        }
+    };
+
+
     const fetchMediaValoraciones = async () => {
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
             if (response.ok) {
                 const data = await response.json();
                 setMediaValoraciones(data);
-                console.log(data);
             } else {
                 setErrorMedia("No se pudo obtener la media de valoraciones");
             }
@@ -389,7 +458,6 @@ const PropertyDetails = () => {
                 }
             }
 
-            console.log(propiedad);
         } catch (error) {
             console.error(error);
         }
@@ -625,7 +693,7 @@ const PropertyDetails = () => {
                         <Box sx={{
                             flex: 1.2,
                             display: 'flex',
-                            alignItems: 'center' // This centers the image vertically
+                            alignItems: 'center'
                         }}>
                             <Paper
                                 elevation={2}
@@ -633,7 +701,7 @@ const PropertyDetails = () => {
                                     borderRadius: 3,
                                     overflow: 'hidden',
                                     transition: 'transform 0.3s',
-                                    width: '100%', // Ensure the paper takes full width
+                                    width: '100%',
                                     '&:hover': {
                                         transform: 'scale(1.01)',
                                     },
@@ -707,7 +775,7 @@ const PropertyDetails = () => {
                             flex: 1,
                             display: 'flex',
                             flexDirection: 'column',
-                            justifyContent: 'center', // Centers the content vertically
+                            justifyContent: 'center',
                         }}
                     >
                         <Paper
@@ -719,11 +787,29 @@ const PropertyDetails = () => {
                                 display: 'flex',
                                 flexDirection: 'column',
                                 justifyContent: 'center',
+                                position: 'relative',
                             }}
                         >
+                            <IconButton
+                                onClick={handleToggleFavorite}
+                                color="primary"
+                                sx={{
+                                    position: 'absolute',
+                                    top: 16,
+                                    right: 16,
+                                    zIndex: 2,
+                                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
+                                    '&:hover': {
+                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                                    },
+                                }}
+                            >
+                                {isFavorite ? <FavoriteIcon sx={{ color: "#e91e63" }} /> : <FavoriteBorderIcon />}
+                            </IconButton>
                             <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
                                 {propiedad?.nombre || 'Cargando...'}
                             </Typography>
+
                             <Typography variant="h5" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
                                 {propiedad?.precio_por_noche ? `${propiedad.precio_por_noche} € por noche` : 'Precio no disponible'}
                             </Typography>
@@ -802,6 +888,7 @@ const PropertyDetails = () => {
                                 </Button>
                             )}
                         </Paper>
+
                     </Box>
                 </Box>
 
