@@ -99,16 +99,13 @@ const MyReserves = () => {
             const paymentId = params.get("paymentId");
             const payerId = params.get("PayerID");
 
-            // 1. Verificación temprana de parámetros
             if (!paymentId || !payerId) return;
 
-            // 2. Bloqueo inmediato para evitar múltiples ejecuciones
             if (localStorage.getItem("processingPayment") === paymentId) {
                 console.log("⚠️ Pago ya siendo procesado");
                 return;
             }
 
-            // 3. Marcar como procesamiento en curso
             localStorage.setItem("processingPayment", paymentId);
 
             try {
@@ -118,7 +115,6 @@ const MyReserves = () => {
                     return;
                 }
 
-                // 4. Limpiar parámetros de la URL antes de la petición
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 const response = await fetch("http://localhost:8000/api/propiedades/confirmar-pago-paypal/", {
@@ -134,7 +130,6 @@ const MyReserves = () => {
                     })
                 });
 
-                // 5. Limpiar datos independientemente del resultado
                 localStorage.removeItem("reservationData");
                 localStorage.removeItem("processingPayment");
 
@@ -144,10 +139,13 @@ const MyReserves = () => {
                 }
 
                 const data = await response.json();
-                alert("✅ Pago confirmado exitosamente");
+                setNotification({
+                    type: 'success',
+                    message: '¡Reserva confirmada exitosamente!'
+                });
+                setTimeout(() => setNotification(null), 5000);
                 localStorage.setItem("paymentConfirmed", paymentId);
 
-                // 6. Redirección segura
                 setTimeout(() => {
                     window.location.href = "/mis-reservas";
                 }, 1500);
@@ -159,14 +157,13 @@ const MyReserves = () => {
             }
         };
 
-        // 7. Control de ejecución con bandera
         let isMounted = true;
         if (isMounted) {
             checkPaymentPaypal();
         }
 
         return () => {
-            isMounted = false; // Cleanup para evitar actualizaciones en componente desmontado
+            isMounted = false; S
         };
     }, [location.search]);
 

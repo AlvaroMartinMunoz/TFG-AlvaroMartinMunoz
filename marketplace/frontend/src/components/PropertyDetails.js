@@ -508,7 +508,7 @@ const PropertyDetails = () => {
         ...reservas.filter((reserva) => reserva.estado !== "Cancelada")
             .flatMap((reserva) => {
                 const startDate = moment(reserva.fecha_llegada);
-                const endDate = moment(reserva.fecha_salida);
+                const endDate = moment(reserva.fecha_salida).subtract(1, 'day');
                 const dates = [];
                 while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
                     dates.push(startDate.format('YYYY-MM-DD'));
@@ -517,34 +517,6 @@ const PropertyDetails = () => {
                 return dates;
             })
     ];
-
-    const createReservation = async (reservationData, retried = false) => {
-        try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-                body: JSON.stringify(reservationData),
-            });
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    createReservation(reservationData, true);
-                } else {
-                    handleLogout();
-                }
-            } else if (response.ok) {
-                alert('Reserva realizada correctamente');
-                window.location.reload();
-            } else {
-                console.error(response);
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
 
 
     const handleConfirmReserve = async (retried = false) => {
