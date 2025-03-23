@@ -645,7 +645,12 @@ const MyReserves = () => {
                                                 >
                                                     Cancelar Reserva
                                                 </Button>
+
                                             )}
+                                            <Button variant="outlined" color="primary" href={`/informacion-reserva/${reserva.id}`} fullWidth sx={{ borderRadius: 2, textTransform: 'none', py: 1, mt: 1 }}>
+                                                Ver Detalles
+                                            </Button>
+
                                         </Box>
                                     </Box>
                                 </Paper>

@@ -27,6 +27,7 @@ import Weather from "./components/Weather";
 import Myfavorites from "./components/MyFavorites";
 import PasswordReset from "./components/PasswordReset";
 import ConfirmPasswordReset from "./components/ConfirmPasswordReset";
+import ReservationDetail from "./components/ReservationDetail";
 
 const theme = createTheme({
   palette: {
@@ -62,6 +63,7 @@ function App() {
                 <Route path="/favoritos" element={<PrivateRoute component={Myfavorites} />} />
                 <Route path="password-reset" element={<PasswordReset />} />
                 <Route path="/reset-password/:uid/:token" element={<ConfirmPasswordReset />} />
+                <Route path="/informacion-reserva/:reservaId" element={<ReservationDetail />} />
               </Routes>
             </Container>
             <Footer />
