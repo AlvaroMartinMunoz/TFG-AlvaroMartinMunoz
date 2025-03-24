@@ -1,4 +1,4 @@
-import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, CircularProgress, Stack, alpha } from "@mui/material";
+import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, CircularProgress, Stack, alpha, Button, Alert } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
@@ -10,39 +10,72 @@ const ReservationDetail = () => {
     const [anfitrion, setAnfitrion] = useState(null);
     const [loading, setLoading] = useState(true);
     const [propertyPhoto, setPropertyPhoto] = useState(null);
+    const [notification, setNotification] = useState(null);
+    const [cliente, setCliente] = useState(null);
 
-    // Derived states to avoid separate state variables
+
+    const clienteId = reservation?.usuario;
     const anfitrionId = reservation?.anfitrion;
     const propiedadId = reservation?.propiedad;
     const usuarioId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
 
-    // Fetch reservation data
     useEffect(() => {
         if (reservaId) {
             fetchReservation();
         }
     }, [reservaId]);
 
-    // Fetch host data when anfitrionId changes
     useEffect(() => {
         if (anfitrionId) {
             fetchAnfitrion();
         }
     }, [anfitrionId]);
 
-    // Fetch property data when propiedadId changes
+
+
     useEffect(() => {
         if (propiedadId) {
             fetchPropiedad();
         }
     }, [propiedadId]);
 
-    // Update loading state when all data is loaded
+    useEffect(() => {
+        if (clienteId) {
+            fetchCliente();
+        }
+    }, [clienteId]);
+
     useEffect(() => {
         if (reservation && propiedad && anfitrion) {
             setLoading(false);
         }
     }, [reservation, propiedad, anfitrion]);
+
+    const fetchCliente = async (retried = false) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/usuarios/${clienteId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setCliente(data);
+                console.log("Cliente", data);
+            } else if (response.status === 401 && !retried) {
+                const token = await refreshAccessToken();
+                if (token) {
+                    fetchCliente(true);
+                } else {
+                    console.log("No se pudo refrescar el token");
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching client:", error);
+        }
+    };
 
     const fetchReservation = async (retried = false) => {
         try {
@@ -126,6 +159,65 @@ const ReservationDetail = () => {
         }
     };
 
+    const cancelarReserva = async (reservaId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${reservaId}/`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                },
+                body: JSON.stringify({ estado: "Cancelada", fecha_aceptacion_rechazo: new Date() })
+            });
+            if (response.ok) {
+                setNotification({
+                    type: 'success',
+                    message: 'Reserva cancelada con éxito'
+                });
+                setTimeout(() => setNotification(null), 5000);
+                fetchReservation();
+            } else {
+                setNotification({
+                    type: 'error',
+                    message: 'Error al cancelar la reserva'
+                });
+                setTimeout(() => setNotification(null), 5000);
+            }
+        } catch (error) {
+            console.error("Error al cancelar la reserva", error);
+            setNotification({
+                type: 'error',
+                message: 'Error al cancelar la reserva'
+            });
+            setTimeout(() => setNotification(null), 5000);
+        }
+    };
+
+    const handleAccept = async (solicitudId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${solicitudId}/`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                },
+                body: JSON.stringify({ estado: "Aceptada", fecha_aceptacion_rechazo: new Date() })
+            });
+            if (response.ok) {
+                setNotification({
+                    type: 'success',
+                    message: 'Reserva aceptada con éxito'
+                });
+                setTimeout(() => setNotification(null), 5000);
+                fetchReservation();
+            } else {
+                console.log("Error al aceptar la solicitud de reserva con id", solicitudId);
+            }
+        } catch (error) {
+            console.error("Error al aceptar la solicitud de reserva con id", solicitudId, error);
+        }
+    }
+
     const fetchPropertyPhoto = async (retried = false) => {
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades", {
@@ -154,7 +246,6 @@ const ReservationDetail = () => {
         }
     };
 
-    // Helper function to format reservation status
     const getStatusColor = (status) => {
         switch (status) {
             case 'confirmada':
@@ -168,7 +259,6 @@ const ReservationDetail = () => {
         }
     };
 
-    // Format date for better display
     const formatDate = (dateString) => {
         if (!dateString) return '';
         const date = new Date(dateString);
@@ -207,6 +297,7 @@ const ReservationDetail = () => {
                 maxWidth: { xs: '100%', sm: '95%', md: '90%', lg: '1200px' },
                 mx: 'auto'
             }}>
+
                 <Typography
                     variant="h4"
                     gutterBottom
@@ -321,12 +412,25 @@ const ReservationDetail = () => {
 
                             <Stack spacing={3} sx={{ width: '100%' }}>
                                 <Box>
-                                    <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
-                                        Anfitrión
-                                    </Typography>
-                                    <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
-                                        {anfitrion?.usuario?.username}
-                                    </Typography>
+                                    {reservation.usuario === usuarioId ? (
+                                        <>
+                                            <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                Anfitrión
+                                            </Typography>
+                                            <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                {anfitrion?.usuario?.username}
+                                            </Typography>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                Usuario
+                                            </Typography>
+                                            <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                {cliente?.usuario?.username}
+                                            </Typography>
+                                        </>
+                                    )}
                                 </Box>
 
                                 <Box sx={{
@@ -436,10 +540,32 @@ const ReservationDetail = () => {
                                         </Typography>
                                     </Paper>
                                 </Box>
+                                {reservation?.estado === 'Pendiente' && usuarioId === reservation?.usuario && (
+                                    <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={() => cancelarReserva(reservaId)}>Cancelar Reserva</Button>
+                                )}
+                                {reservation?.estado === 'Pendiente' && usuarioId === reservation?.anfitrion && (
+                                    <>
+                                        <Button variant="contained" color="success" sx={{ mt: 2 }} onClick={() => handleAccept(reservaId)}>Aceptar reserva</Button>
+                                        <Button variant="contained" color="error" sx={{ mt: 2 }} onClick={() => cancelarReserva(reservaId)}>Rechazar Reserva</Button>
+                                    </>
+                                )}
                             </Stack>
                         </Box>
                     </Box>
                 </Card>
+                {notification && (
+                    <Alert
+                        severity={notification.type}
+                        sx={{
+                            mb: 3,
+                            borderRadius: 2,
+                            boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                        }}
+                        onClose={() => setNotification(null)}
+                    >
+                        {notification.message}
+                    </Alert>
+                )}
             </Container>
         </Box>
     );

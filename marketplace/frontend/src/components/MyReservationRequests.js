@@ -387,12 +387,19 @@ const MyReservationRequests = () => {
                                                             </Stack>
                                                         </CardContent>
 
-                                                        {solicitud.estado === "Pendiente" && (
+                                                        {solicitud.estado === "Pendiente" ? (
                                                             <CardActions sx={{
                                                                 justifyContent: isMobile ? "center" : "flex-end",
                                                                 px: 2,
                                                                 pb: 2
                                                             }}>
+                                                                <Button
+                                                                    variant="contained"
+                                                                    color="primary"
+                                                                    href={`/informacion-reserva/${solicitud.id}`}
+                                                                    startIcon={<SortIcon />}
+                                                                    size="small"
+                                                                >Ver Detalles</Button>
                                                                 <Button
                                                                     variant="contained"
                                                                     color="error"
@@ -412,6 +419,20 @@ const MyReservationRequests = () => {
                                                                 >
                                                                     Aceptar
                                                                 </Button>
+                                                            </CardActions>
+                                                        ) : (
+                                                            <CardActions sx={{
+                                                                justifyContent: isMobile ? "center" : "flex-end",
+                                                                px: 2,
+                                                                pb: 2
+                                                            }}>
+                                                                <Button
+                                                                    variant="contained"
+                                                                    color="primary"
+                                                                    href={`/informacion-reserva/${solicitud.id}`}
+                                                                    startIcon={<SortIcon />}
+                                                                    size="small"
+                                                                >Ver Detalles</Button>
                                                             </CardActions>
                                                         )}
                                                     </Box>
