@@ -1137,7 +1137,6 @@ const PropertyDetails = () => {
                     </Paper>
                 )}
 
-                {/* Modals */}
                 <Modal
                     open={open}
                     onClose={handleClose}

@@ -13,7 +13,6 @@ const ReservationDetail = () => {
     const [notification, setNotification] = useState(null);
     const [cliente, setCliente] = useState(null);
 
-
     const clienteId = reservation?.usuario;
     const anfitrionId = reservation?.anfitrion;
     const propiedadId = reservation?.propiedad;
@@ -30,8 +29,6 @@ const ReservationDetail = () => {
             fetchAnfitrion();
         }
     }, [anfitrionId]);
-
-
 
     useEffect(() => {
         if (propiedadId) {
@@ -248,11 +245,11 @@ const ReservationDetail = () => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'confirmada':
+            case 'Confirmada':
                 return 'success';
-            case 'pendiente':
+            case 'Pendiente':
                 return 'warning';
-            case 'cancelada':
+            case 'Cancelada':
                 return 'error';
             default:
                 return 'default';
@@ -275,110 +272,136 @@ const ReservationDetail = () => {
                 display: 'flex',
                 justifyContent: 'center',
                 alignItems: 'center',
-                minHeight: '90vh',
-                backgroundColor: '#f8f9fa'
+                minHeight: '100vh',
+                backgroundColor: '#f4f6f9'
             }}>
-                <CircularProgress sx={{ color: '#3f51b5' }} />
-                <Typography sx={{ ml: 2, color: '#555', fontWeight: 500 }}>
-                    Cargando detalles de la reserva...
-                </Typography>
+                <Box sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    padding: 4,
+                    borderRadius: 2,
+                    backgroundColor: 'white',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                }}>
+                    <CircularProgress
+                        size={60}
+                        sx={{
+                            color: '#3f51b5',
+                            marginBottom: 2
+                        }}
+                    />
+                    <Typography
+                        variant="h6"
+                        sx={{
+                            color: '#2c3e50',
+                            fontWeight: 500
+                        }}
+                    >
+                        Cargando detalles de la reserva...
+                    </Typography>
+                </Box>
             </Box>
         );
     }
 
     return (
         <Box sx={{
-            minHeight: '90vh',
-            backgroundColor: '#f8f9fa',
-            py: 5,
-            px: 2
+            minHeight: '100vh',
+            backgroundColor: '#f4f6f9',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            py: { xs: 2, md: 5 },
+            px: { xs: 1, md: 2 }
         }}>
             <Container maxWidth="lg" sx={{
-                maxWidth: { xs: '100%', sm: '95%', md: '90%', lg: '1200px' },
-                mx: 'auto'
+                width: '100%',
+                maxWidth: { xs: '100%', sm: '95%', md: '1200px' }
             }}>
-
                 <Typography
                     variant="h4"
-                    gutterBottom
                     sx={{
-                        fontWeight: 700,
                         textAlign: 'center',
                         mb: 4,
                         color: '#1a365d',
-                        letterSpacing: '0.5px',
-                        textShadow: '1px 1px 2px rgba(0,0,0,0.05)',
+                        fontWeight: 700,
+                        letterSpacing: '0.5px'
                     }}
                 >
                     Detalles de la Reserva
                 </Typography>
 
                 <Card
-                    elevation={3}
+                    elevation={4}
                     sx={{
-                        borderRadius: '16px',
+                        borderRadius: 3,
                         overflow: 'hidden',
-                        backgroundColor: '#fff',
-                        boxShadow: '0px 6px 16px rgba(0, 0, 0, 0.08)',
+                        display: 'flex',
+                        flexDirection: { xs: 'column', md: 'row' },
+                        backgroundColor: 'white',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
                         transition: 'all 0.3s ease',
                         '&:hover': {
-                            boxShadow: '0px 8px 24px rgba(0, 0, 0, 0.12)',
-                            transform: 'translateY(-4px)'
-                        },
+                            boxShadow: '0 12px 32px rgba(0,0,0,0.12)'
+                        }
                     }}
                 >
                     <Box sx={{
-                        display: 'flex',
-                        flexDirection: { xs: 'column', md: 'row' },
+                        width: { xs: '100%', md: '40%' },
+                        position: 'relative',
+                        backgroundColor: '#f0f2f5',
+                        minHeight: { xs: '300px', md: '500px' }
                     }}>
-                        {/* Left Section - Property Image */}
-                        <Box sx={{
-                            flex: { xs: '1 1 100%', md: '0 0 40%' },
-                            position: 'relative',
-                            bgcolor: '#f0f2f5',
-                            minHeight: { xs: '300px', md: 'auto' },
-                            maxHeight: { md: '500px' },
-                            overflow: 'hidden'
-                        }}>
-                            {propertyPhoto && propertyPhoto.length > 0 ? (
-                                <CardMedia
-                                    component="img"
-                                    image={propertyPhoto[0]?.foto}
-                                    alt={propiedad?.nombre || "Imagen de la propiedad"}
-                                    sx={{
-                                        height: '100%',
-                                        width: '100%',
-                                        objectFit: 'cover',
-                                        transition: 'transform 0.5s ease',
-                                        '&:hover': {
-                                            transform: 'scale(1.05)'
-                                        }
-                                    }}
-                                />
-                            ) : (
-                                <Box sx={{
-                                    display: 'flex',
+                        {propertyPhoto && propertyPhoto.length > 0 ? (
+                            <CardMedia
+                                component="img"
+                                image={propertyPhoto[0]?.foto}
+                                alt={propiedad?.nombre || "Imagen de la propiedad"}
+                                sx={{
+                                    width: '100%',
                                     height: '100%',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    backgroundColor: alpha('#718096', 0.1),
-                                    p: 4
-                                }}>
-                                    <Typography variant="body1" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                                        No hay foto disponible
-                                    </Typography>
-                                </Box>
-                            )}
-                        </Box>
+                                    objectFit: 'cover',
+                                    transition: 'transform 0.5s ease',
+                                    '&:hover': {
+                                        transform: 'scale(1.05)'
+                                    }
+                                }}
+                            />
+                        ) : (
+                            <Box sx={{
+                                display: 'flex',
+                                height: '100%',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: alpha('#718096', 0.1)
+                            }}>
+                                <Typography
+                                    variant="body1"
+                                    color="text.secondary"
+                                    sx={{ fontStyle: 'italic' }}
+                                >
+                                    No hay foto disponible
+                                </Typography>
+                            </Box>
+                        )}
+                    </Box>
 
-                        {/* Right Section - Reservation Details */}
-                        <Box sx={{
-                            flex: { xs: '1 1 100%', md: '1 1 60%' },
-                            p: { xs: 3, sm: 4 },
-                            display: 'flex',
-                            flexDirection: 'column'
-                        }}>
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                    <Box sx={{
+                        width: { xs: '100%', md: '60%' },
+                        p: { xs: 3, sm: 4 },
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between'
+                    }}>
+                        <Box>
+                            <Box sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                mb: 2
+                            }}>
                                 <Typography
                                     variant="h5"
                                     sx={{
@@ -397,20 +420,17 @@ const ReservationDetail = () => {
                                     sx={{
                                         fontWeight: 600,
                                         textTransform: 'capitalize',
-                                        borderRadius: '8px',
-                                        height: '28px',
-                                        px: 1
+                                        borderRadius: 2
                                     }}
                                 />
                             </Box>
 
                             <Divider sx={{
-                                my: 2.5,
-                                borderColor: alpha('#718096', 0.2),
-                                width: '100%'
+                                my: 2,
+                                borderColor: alpha('#718096', 0.2)
                             }} />
 
-                            <Stack spacing={3} sx={{ width: '100%' }}>
+                            <Stack spacing={3}>
                                 <Box>
                                     {reservation.usuario === usuarioId ? (
                                         <>
@@ -435,10 +455,10 @@ const ReservationDetail = () => {
 
                                 <Box sx={{
                                     display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 3
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: { xs: 2, sm: 3 }
                                 }}>
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Fecha de llegada
                                         </Typography>
@@ -447,7 +467,7 @@ const ReservationDetail = () => {
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Fecha de salida
                                         </Typography>
@@ -459,10 +479,10 @@ const ReservationDetail = () => {
 
                                 <Box sx={{
                                     display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 3
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: { xs: 2, sm: 3 }
                                 }}>
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Número de personas
                                         </Typography>
@@ -471,7 +491,7 @@ const ReservationDetail = () => {
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Precio por noche
                                         </Typography>
@@ -483,10 +503,10 @@ const ReservationDetail = () => {
 
                                 <Box sx={{
                                     display: 'flex',
-                                    flexWrap: 'wrap',
-                                    gap: 3
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: { xs: 2, sm: 3 }
                                 }}>
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Método de Pago
                                         </Typography>
@@ -495,7 +515,7 @@ const ReservationDetail = () => {
                                         </Typography>
                                     </Box>
 
-                                    <Box sx={{ flex: { xs: '1 1 100%', sm: '1 1 45%' } }}>
+                                    <Box sx={{ flex: 1 }}>
                                         <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
                                             Precio total
                                         </Typography>
@@ -510,12 +530,12 @@ const ReservationDetail = () => {
                                 </Box>
 
                                 <Divider sx={{
-                                    my: 1,
-                                    borderColor: alpha('#718096', 0.2),
-                                    width: '100%'
+                                    my: 2,
+                                    borderColor: alpha('#718096', 0.2)
                                 }} />
 
-                                <Box sx={{ width: '100%' }}>
+                                {/* User Comments Section */}
+                                <Box>
                                     <Typography variant="subtitle2" sx={{ color: '#718096', mb: 1, fontWeight: 600 }}>
                                         Comentarios del usuario
                                     </Typography>
@@ -540,24 +560,79 @@ const ReservationDetail = () => {
                                         </Typography>
                                     </Paper>
                                 </Box>
+
                                 {reservation?.estado === 'Pendiente' && usuarioId === reservation?.usuario && (
-                                    <Button variant="contained" color="primary" sx={{ mt: 2 }} onClick={() => cancelarReserva(reservaId)}>Cancelar Reserva</Button>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        sx={{
+                                            mt: 2,
+                                            py: 1.5,
+                                            borderRadius: 2,
+                                            transition: 'all 0.3s ease',
+                                            '&:hover': {
+                                                transform: 'translateY(-2px)',
+                                                boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                                            }
+                                        }}
+                                        onClick={() => cancelarReserva(reservaId)}
+                                    >
+                                        Cancelar Reserva
+                                    </Button>
                                 )}
+
                                 {reservation?.estado === 'Pendiente' && usuarioId === reservation?.anfitrion && (
-                                    <>
-                                        <Button variant="contained" color="success" sx={{ mt: 2 }} onClick={() => handleAccept(reservaId)}>Aceptar reserva</Button>
-                                        <Button variant="contained" color="error" sx={{ mt: 2 }} onClick={() => cancelarReserva(reservaId)}>Rechazar Reserva</Button>
-                                    </>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        gap: 2,
+                                        mt: 2
+                                    }}>
+                                        <Button
+                                            variant="contained"
+                                            color="success"
+                                            sx={{
+                                                flex: 1,
+                                                py: 1.5,
+                                                borderRadius: 2,
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                                                }
+                                            }}
+                                            onClick={() => handleAccept(reservaId)}
+                                        >
+                                            Aceptar reserva
+                                        </Button>
+                                        <Button
+                                            variant="contained"
+                                            color="error"
+                                            sx={{
+                                                flex: 1,
+                                                py: 1.5,
+                                                borderRadius: 2,
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    transform: 'translateY(-2px)',
+                                                    boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                                                }
+                                            }}
+                                            onClick={() => cancelarReserva(reservaId)}
+                                        >
+                                            Rechazar Reserva
+                                        </Button>
+                                    </Box>
                                 )}
                             </Stack>
                         </Box>
                     </Box>
                 </Card>
+
                 {notification && (
                     <Alert
                         severity={notification.type}
                         sx={{
-                            mb: 3,
+                            mt: 3,
                             borderRadius: 2,
                             boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
                         }}
