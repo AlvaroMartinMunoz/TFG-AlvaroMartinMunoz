@@ -19,6 +19,7 @@ from datetime import datetime
 from django.db import IntegrityError
 from django.db.models import Avg
 import stripe
+from django.db.models import Q
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
@@ -170,7 +171,6 @@ def create_payment(request):
         else:
             return JsonResponse({"error": "No se encontró la URL de aprobación"}, status=400)
     else:
-        print("Error al crear el pago", payment.error)
         return JsonResponse({"error": payment.error}, status=400)
     
 @require_POST
@@ -184,9 +184,7 @@ def confirmar_pago_paypal(request):
         if not payer_id or not payment_id:
             return JsonResponse({'error': 'Se requieren paymentId y payerId'}, status=400)
 
-        # Bloqueo de fila para prevenir condiciones de carrera
         with transaction.atomic():
-            # Verificación con select_for_update para bloquear el registro
             reserva_existente = Reserva.objects.select_for_update().filter(payment_id=payment_id).first()
             
             if reserva_existente:
@@ -195,12 +193,10 @@ def confirmar_pago_paypal(request):
 
             payment = paypalrestsdk.Payment.find(payment_id)
             
-            # Verificación adicional del estado en PayPal
             if payment.state == 'approved':
                 print("⚠️ Pago ya aprobado en PayPal pero sin registro local")
                 return JsonResponse({'error': 'Inconsistencia detectada'}, status=409)
 
-            # Ejecutar pago y crear reserva en la misma transacción
             if payment.execute({"payer_id": payer_id}):
                 datos = data['reservationData']
                 
@@ -302,6 +298,9 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'valoración creada'}, status=status.HTTP_201_CREATED)
     
+    def partial_update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar valoraciones'}, status=status.HTTP_403_FORBIDDEN)
+    
     
     def update(self, request, *args, **kwargs):
         valoracion = self.get_object()
@@ -314,6 +313,18 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
         if valoracion.usuario.id != usuarioId:
             return Response({'error': 'No tienes permiso para editar esta valoración'}, status=status.HTTP_403_FORBIDDEN)
         return super().update(request, *args, **kwargs)
+    
+    def destroy(self, request, *args, **kwargs):
+        valoracion = self.get_object()
+        usuario = request.user.id
+        usuarioId = Usuario.objects.filter(usuario=usuario).first().id
+        propiedad = valoracion.propiedad
+
+        if propiedad.anfitrion.usuario_id == request.user.id:
+            return Response({'error': 'No puedes eliminar valoraciones de tu propia propiedad'}, status=status.HTTP_403_FORBIDDEN)
+        if valoracion.usuario.id != usuarioId:
+            return Response({'error': 'No tienes permiso para eliminar esta valoración'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
     
     @action(detail=True, methods=['get'])
     def media_valoraciones(self, request, pk=None):
@@ -344,14 +355,20 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
             propiedad = Propiedad.objects.get(id=propiedad_id)
         except Propiedad.DoesNotExist:
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
-        
+
         if propiedad.anfitrion.usuario_id != request.user.id:
-            return Response({'error': 'No tienes permiso para subir fotos a esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
+             return Response({'error': 'No tienes permiso para subir fotos a esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
         foto = request.data.get('foto')
         es_portada = request.data.get('es_portada', False)
         FotoPropiedad.objects.create(propiedad=propiedad, foto=foto, es_portada=es_portada)
         return Response({'status': 'foto subida'}, status=status.HTTP_201_CREATED)
+    
+    def update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar fotos'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def partial_update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar fotos'}, status=status.HTTP_403_FORBIDDEN)
     
     def destroy(self, request, *args, **kwargs):
         foto = self.get_object()
@@ -367,6 +384,9 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
             propiedad = Propiedad.objects.get(id=propiedad_id)
         except Propiedad.DoesNotExist:
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if propiedad.anfitrion.usuario_id != request.user.id:
+            return Response({'error': 'No tienes permiso para subir fotos a esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
         es_portada_list = request.data.getlist('es_portada')
         print(f"es_portada_list recibido: {es_portada_list}")
@@ -392,13 +412,11 @@ class FechaBloqueadaViewSet(viewsets.ModelViewSet):
         propiedad_id = request.data.get("propiedad")
         try:
             propiedad = Propiedad.objects.get(id=propiedad_id)
-            print(f"propiedad1: {propiedad}")
         except Propiedad.DoesNotExist:
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
         
         anfitrion = propiedad.anfitrion.usuario_id
-        print(anfitrion)
-        print(request.user.id)
+       
         if anfitrion != request.user.id:
             return Response({'error': 'No tienes permiso para bloquear fechas en esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
@@ -409,13 +427,13 @@ class FechaBloqueadaViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return Response({'error': 'No puedes actualizar fechas bloqueadas'}, status=status.HTTP_403_FORBIDDEN)
     
+    def partial_update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar fechas bloqueadas'}, status=status.HTTP_403_FORBIDDEN)
+    
     def destroy(self, request, *args, **kwargs):
         fecha = self.get_object()
-        print(fecha)
         propiedad = fecha.propiedad
-        print(propiedad)
-        print(propiedad.anfitrion.usuario_id)
-        print(request.user)
+       
         if propiedad.anfitrion.usuario_id != request.user.id:
             return Response({'error': 'No tienes permiso para desbloquear esta fecha'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
@@ -425,7 +443,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
     serializer_class = ReservaSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+        if self.action in ['create', 'update', 'partial_update', 'destroy', 'list', 'retrieve']:
             return [IsAuthenticated()]
         return [AllowAny()]
     
@@ -513,12 +531,38 @@ class ReservaViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         return Response({'error': 'No puedes eliminar reservas'}, status=status.HTTP_403_FORBIDDEN)
     
+    def partial_update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar reservas'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def retrieve(self, request, *args, **kwargs):
+        reserva = self.get_object()
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        usuarioId = usuario.id
+        if reserva.usuario.id != usuarioId and reserva.propiedad.anfitrion.id != usuarioId:
+            return Response({'error': 'No tienes permiso para ver esta reserva'}, status=status.HTTP_403_FORBIDDEN)
+        return super().retrieve(request, *args, **kwargs)
+    
+    def list(self, request, *args, **kwargs):
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        usuarioId = usuario.id
+        print(usuarioId)
+        queryset = self.queryset.filter(
+            Q(usuario_id=usuarioId) | Q(anfitrion_id=usuarioId)
+        )
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
 class FavoritoViewSet(viewsets.ModelViewSet):
     queryset = Favorito.objects.all()
     serializer_class = FavoritoSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'destroy', "update", "partial_update"]:
+        if self.action in ['create', 'destroy', "update", "partial_update", 'retrieve', 'list']:
             return [IsAuthenticated()]
         return [AllowAny()]
     
@@ -554,4 +598,29 @@ class FavoritoViewSet(viewsets.ModelViewSet):
         if favorito.usuario.id != usuario.id:
             return Response({'error': 'No tienes permiso para eliminar este favorito'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
+    
+    def update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar favoritos'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def partial_update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar favoritos'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def retrieve(self, request, *args, **kwargs):
+        favorito = self.get_object()
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        
+        if favorito.usuario.id != usuario.id:
+            return Response({'error': 'No tienes permiso para ver este favorito'}, status=status.HTTP_403_FORBIDDEN)
+        return super().retrieve(request, *args, **kwargs)
+    
+    def list (self, request, *args, **kwargs):
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        queryset = self.queryset.filter(usuario=usuario)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     
