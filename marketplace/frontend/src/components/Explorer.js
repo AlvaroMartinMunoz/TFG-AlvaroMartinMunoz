@@ -91,11 +91,16 @@ const Explorer = () => {
       );
     });
 
-    const sorted = filtered.sort((a, b) =>
-      ordenPrecio === "asc"
-        ? a.precio_por_noche - b.precio_por_noche
-        : b.precio_por_noche - a.precio_por_noche
-    );
+    const sorted = filtered.sort((a, b) => {
+      if (ordenPrecio === "asc") {
+        return a.precio_por_noche - b.precio_por_noche;
+      } else if (ordenPrecio === "desc") {
+        return b.precio_por_noche - a.precio_por_noche;
+      } else if (ordenPrecio === "valoracion") {
+        return (mediaValoraciones[b.id] || 0) - (mediaValoraciones[a.id] || 0);
+      }
+    });
+
 
     setPropiedadesFiltradas(sorted);
     sorted.forEach((propiedad) => {
@@ -586,6 +591,7 @@ const Explorer = () => {
                       >
                         <MenuItem value="asc">De menor a mayor precio</MenuItem>
                         <MenuItem value="desc">De mayor a menor precio</MenuItem>
+                        <MenuItem value="valoracion">Por valoración</MenuItem>
                       </Select>
                     </FormControl>
 
@@ -642,6 +648,7 @@ const Explorer = () => {
                   >
                     <MenuItem value="asc">Precio: Menor a mayor</MenuItem>
                     <MenuItem value="desc">Precio: Mayor a menor</MenuItem>
+                    <MenuItem value="valoracion">Por valoración</MenuItem>
                   </Select>
                 </FormControl>
               </Box>
