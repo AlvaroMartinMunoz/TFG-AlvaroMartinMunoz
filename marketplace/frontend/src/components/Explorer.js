@@ -110,7 +110,15 @@ const Explorer = () => {
 
   const fetchFavoritos = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/");
+      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/",
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        }
+      );
+
       if (response.ok) {
         const data = await response.json();
         setFavoritos(data);

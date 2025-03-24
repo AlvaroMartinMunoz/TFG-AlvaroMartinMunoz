@@ -82,7 +82,13 @@ const PropertyDetails = () => {
 
     const checkIfFavorite = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos/`);
+            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos/`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+
             if (response.ok) {
                 const data = await response.json();
                 const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
@@ -150,7 +156,12 @@ const PropertyDetails = () => {
 
     const fetchMediaValoraciones = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
             if (response.ok) {
                 const data = await response.json();
                 setMediaValoraciones(data);
@@ -368,7 +379,12 @@ const PropertyDetails = () => {
 
     const fetchBlockedDates = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/")
+            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
             if (response.status === 401 && !retried) {
                 const token = await refreshAccessToken();
                 if (token) {
@@ -478,7 +494,12 @@ const PropertyDetails = () => {
 
     const fetchReservas = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/");
+            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
             if (response.status === 401 && !retried) {
                 const token = await refreshAccessToken();
                 if (token) {

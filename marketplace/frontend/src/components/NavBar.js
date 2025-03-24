@@ -51,18 +51,30 @@ const NavBar = () => {
     }
   }, []);
 
-  const fetchFavoritosNavbar = async () => {
+  const fetchFavoritosNavbar = async (retried = false) => {
     try {
-      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/");
+      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+        },
+      });
+
       if (response.ok) {
         const data = await response.json();
 
         const dataFiltered = data.filter((favorito) => favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
         setFavoritosNavbar(dataFiltered.length);
 
-      } else {
-        throw new Error("Error al obtener los favoritos");
       }
+      if (response.status === 401 && !retried) {
+        console.log("Token expirado");
+        const token = await refreshAccessToken();
+        if (token) {
+          fetchFavoritosNavbar(true);
+        }
+      }
+
     } catch (error) {
       console.error("Error al obtener los favoritos:", error);
     }
