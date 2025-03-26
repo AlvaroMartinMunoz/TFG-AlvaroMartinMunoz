@@ -16,6 +16,7 @@ import { Alert } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import { set } from 'date-fns';
 
 
 
@@ -55,6 +56,7 @@ const PropertyDetails = () => {
     const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn');
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoritoId, setFavoritoId] = useState(null);
+    const [notification, setNotification] = useState(null);
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -102,6 +104,34 @@ const PropertyDetails = () => {
             }
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const handleDeleteRating = async (ratingId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${ratingId}/`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (response.ok) {
+
+                setNotification({
+                    message: "Valoración eliminada correctamente",
+                    severity: "success",
+                })
+                setTimeout(() => { window.location.reload() }, 2000);
+                fetchMediaValoraciones();
+            }
+
+        } catch (error) {
+            console.error(error);
+            setNotification({
+                message: "Error al eliminar la valoración",
+                severity: "error",
+            })
+
         }
     };
 
@@ -220,8 +250,12 @@ const PropertyDetails = () => {
                     handleLogout();
                 }
             } else if (response.ok) {
-                alert('Valoración actualizada correctamente');
-                window.location.reload();
+                setNotification({
+                    message: "Valoración actualizada correctamente",
+                    severity: "success",
+                })
+                setTimeout(() => { window.location.reload() }, 2000);
+
             }
 
         } catch (error) {
@@ -268,8 +302,12 @@ const PropertyDetails = () => {
                     handleLogout();
                 }
             } else if (response.ok) {
-                alert('Valoración enviada correctamente');
-                window.location.reload();
+                setNotification({
+                    message: "Valoración enviada correctamente",
+                    severity: "success",
+                })
+
+                setTimeout(() => { window.location.reload(); }, 2000);
             } else {
                 console.error(response);
             }
@@ -1079,21 +1117,28 @@ const PropertyDetails = () => {
                                             {userRating.comentario}
                                         </Typography>
                                     </Paper>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={handleEditRating}
-                                        sx={{
-                                            alignSelf: 'flex-start',
-                                            py: 1,
-                                            px: 3,
-                                            fontWeight: 600,
-                                            borderRadius: 2,
-                                        }}
-                                    >
-                                        Editar Valoración
-                                    </Button>
+                                    <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            onClick={handleEditRating}
+                                            sx={{
+                                                alignSelf: 'flex-start',
+                                                py: 1,
+                                                px: 3,
+                                                fontWeight: 600,
+                                                borderRadius: 2,
+                                            }}
+                                        >
+                                            Editar Valoración
+                                        </Button>
+                                        <Button variant="contained" color="error" onClick={() => handleDeleteRating(userRating.id)} sx={{ py: 1, px: 3, fontWeight: 600, borderRadius: 2 }}>
+                                            Eliminar Valoración
+                                        </Button>
+                                    </Box>
+
                                 </Box>
+
                             )
                         ) : (
                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -1133,6 +1178,19 @@ const PropertyDetails = () => {
                                     Enviar Valoración
                                 </Button>
                             </Box>
+                        )}
+                        {notification && (
+                            <Alert
+                                severity={notification.type}
+                                sx={{
+                                    mt: 3,
+                                    borderRadius: 2,
+                                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
+                                }}
+                                onClose={() => setNotification(null)}
+                            >
+                                {notification.message}
+                            </Alert>
                         )}
                     </Paper>
                 )}

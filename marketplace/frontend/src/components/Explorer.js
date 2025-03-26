@@ -388,7 +388,6 @@ const Explorer = () => {
             </Stack>
           </Paper> */}
 
-          {/* Contenedor principal */}
           <Box
             sx={{
               display: "flex",
@@ -397,7 +396,6 @@ const Explorer = () => {
 
             }}
           >
-            {/* Filtros */}
             <Box sx={{
               width: { xs: "100%", md: "25%" },
               transition: "all 0.3s ease",
@@ -618,13 +616,11 @@ const Explorer = () => {
               </Paper>
             </Box>
 
-            {/* Lista de propiedades */}
             <Box
               sx={{
                 width: { xs: "100%", md: "75%" },
               }}
             >
-              {/* Resumen de resultados */}
               <Box
                 sx={{
                   display: "flex",
@@ -653,7 +649,6 @@ const Explorer = () => {
                 </FormControl>
               </Box>
 
-              {/* Grid de propiedades */}
               <Box
                 sx={{
                   display: "grid",
@@ -667,7 +662,6 @@ const Explorer = () => {
                 }}
               >
                 {isLoading ? (
-                  // Skeletons durante la carga
                   Array.from(new Array(6)).map((_, index) => (
                     <Box
                       key={index}
@@ -704,7 +698,6 @@ const Explorer = () => {
                         flexDirection: "column",
                       }}
                     >
-                      {/* Imagen con badges */}
                       <Box sx={{ position: "relative" }}>
                         {imageLoading[propiedad.id] ? (
                           <Skeleton variant="rectangular" height={200} />
@@ -725,7 +718,6 @@ const Explorer = () => {
                           />
                         )}
 
-                        {/* Chip de tipo de propiedad */}
                         <Chip
                           icon={getTipoIcon(propiedad.tipo_de_propiedad)}
                           label={propiedad.tipo_de_propiedad}
@@ -740,7 +732,6 @@ const Explorer = () => {
                           size="small"
                         />
 
-                        {/* Botón de favorito */}
 
                         {isAuthenticated() ? (
                           <IconButton
@@ -764,7 +755,6 @@ const Explorer = () => {
                           </IconButton>
                         ) : null}
 
-                        {/* Badge de precio */}
                         <Chip
                           label={getPrecioLabel(propiedad.precio_por_noche)}
                           color={propiedad.precio_por_noche > 300 ? "error" : propiedad.precio_por_noche > 100 ? "warning" : "success"}
@@ -779,7 +769,6 @@ const Explorer = () => {
                         />
                       </Box>
 
-                      {/* Información de la propiedad */}
                       <Box sx={{ p: 2, flexGrow: 1, display: "flex", flexDirection: "column" }}>
                         <Typography variant="subtitle1" sx={{
                           fontWeight: "bold",
@@ -804,7 +793,6 @@ const Explorer = () => {
                           </a>
                         </Typography>
 
-                        {/* Chip de ubicación */}
                         <Box sx={{ mb: 1 }}>
                           <Chip
                             icon={<LocationOnIcon />}
@@ -818,7 +806,6 @@ const Explorer = () => {
                           />
                         </Box>
 
-                        {/* Características */}
                         <Box sx={{
                           display: "flex",
                           gap: 1,
@@ -855,7 +842,6 @@ const Explorer = () => {
                           )}
                         </Box>
 
-                        {/* Franja inferior */}
                         <Box sx={{
                           mt: "auto",
                           display: "flex",
@@ -906,7 +892,6 @@ const Explorer = () => {
               </Box>
 
 
-              {/* Mensaje cuando no hay resultados */}
               {propiedadesFiltradas.length === 0 && !isLoading && (
                 <Paper
                   elevation={1}

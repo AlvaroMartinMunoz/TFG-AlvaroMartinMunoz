@@ -299,8 +299,13 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
         return Response({'status': 'valoración creada'}, status=status.HTTP_201_CREATED)
     
     def partial_update(self, request, *args, **kwargs):
-        return Response({'error': 'No puedes actualizar valoraciones'}, status=status.HTTP_403_FORBIDDEN)
-    
+        valoracion = self.get_object()
+        user = request.user.id
+        usuarioId = Usuario.objects.filter(usuario=user).first().id
+        if valoracion.usuario.id != usuarioId:
+            return Response({'error': 'No tienes permiso para editar esta valoración'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+
     
     def update(self, request, *args, **kwargs):
         valoracion = self.get_object()
