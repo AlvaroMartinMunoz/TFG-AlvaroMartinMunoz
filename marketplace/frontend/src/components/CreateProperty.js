@@ -113,6 +113,7 @@ const CreateProperty = () => {
 
     const handleSubmit = async (e, retried = false) => {
         e.preventDefault();
+        setErrors({});
 
         if (await validateForm()) {
             try {

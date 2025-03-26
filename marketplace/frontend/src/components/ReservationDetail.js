@@ -1,4 +1,4 @@
-import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, CircularProgress, Stack, alpha, Button, Alert } from "@mui/material";
+import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, CircularProgress, Stack, alpha, Button, Alert, Rating } from "@mui/material";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
@@ -12,6 +12,9 @@ const ReservationDetail = () => {
     const [propertyPhoto, setPropertyPhoto] = useState(null);
     const [notification, setNotification] = useState(null);
     const [cliente, setCliente] = useState(null);
+    const [mediaValoraciones, setMediaValoraciones] = useState(null);
+    const [loadingMedia, setLoadingMedia] = useState(true);
+    const [errorMedia, setErrorMedia] = useState(null);
 
     const clienteId = reservation?.usuario;
     const anfitrionId = reservation?.anfitrion;
@@ -28,11 +31,13 @@ const ReservationDetail = () => {
         if (anfitrionId) {
             fetchAnfitrion();
         }
+
     }, [anfitrionId]);
 
     useEffect(() => {
         if (propiedadId) {
             fetchPropiedad();
+            fetchMediaValoraciones();
         }
     }, [propiedadId]);
 
@@ -214,6 +219,28 @@ const ReservationDetail = () => {
             console.error("Error al aceptar la solicitud de reserva con id", solicitudId, error);
         }
     }
+
+    const fetchMediaValoraciones = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`, {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setMediaValoraciones(data);
+            } else {
+                setErrorMedia("No se pudo obtener la media de valoraciones");
+            }
+        } catch (error) {
+            setErrorMedia("No se pudo obtener la media de valoraciones");
+            console.error(error);
+        } finally {
+            setLoadingMedia(false);
+        }
+    };
 
     const fetchPropertyPhoto = async (retried = false) => {
         try {
@@ -431,26 +458,40 @@ const ReservationDetail = () => {
                             }} />
 
                             <Stack spacing={3}>
-                                <Box>
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: { xs: 2, sm: 3 }
+                                }}>
                                     {reservation.usuario === usuarioId ? (
                                         <>
-                                            <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
-                                                Anfitrión
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
-                                                {anfitrion?.usuario?.username}
-                                            </Typography>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Anfitrión
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {anfitrion?.usuario?.username}
+                                                </Typography>
+                                            </Box>
                                         </>
                                     ) : (
                                         <>
-                                            <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
-                                                Usuario
-                                            </Typography>
-                                            <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
-                                                {cliente?.usuario?.username}
-                                            </Typography>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Usuario
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {cliente?.usuario?.username}
+                                                </Typography>
+                                            </Box>
                                         </>
                                     )}
+                                    <Box sx={{ flex: 1 }}>
+                                        <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                            Valoración: {loadingMedia ? <CircularProgress size={16} /> : null}
+                                        </Typography>
+                                        <Rating name="read-only" value={mediaValoraciones?.media || 0} readOnly />
+                                    </Box>
                                 </Box>
 
                                 <Box sx={{
@@ -626,7 +667,7 @@ const ReservationDetail = () => {
                             </Stack>
                         </Box>
                     </Box>
-                </Card>
+                </Card >
 
                 {notification && (
                     <Alert
@@ -641,8 +682,8 @@ const ReservationDetail = () => {
                         {notification.message}
                     </Alert>
                 )}
-            </Container>
-        </Box>
+            </Container >
+        </Box >
     );
 };
 
