@@ -53,6 +53,7 @@ const PropertyDetails = () => {
     const [loadingMedia, setLoadingMedia] = useState(true);
     const [errorMedia, setErrorMedia] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [loadingRating, setLoadingRating] = useState(false);
     const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn');
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoritoId, setFavoritoId] = useState(null);
@@ -230,6 +231,7 @@ const PropertyDetails = () => {
 
     const handleUpdateRating = async (propiedadId, retried = false) => {
         if (!validateFields()) return;
+
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${userRating.id}/`, {
                 method: "PATCH",
@@ -260,7 +262,8 @@ const PropertyDetails = () => {
 
         } catch (error) {
             console.error(error);
-        }
+
+        };
     };
 
     const isAuthenticated = () => {
@@ -279,6 +282,7 @@ const PropertyDetails = () => {
 
     const handleSubmitRating = async (propiedadId, retried = false) => {
         if (!validateFields()) return;
+        setLoadingRating(true);
         try {
             const response = await fetch("http://localhost:8000/api/propiedades/valoraciones-propiedades/", {
                 method: "POST",
@@ -313,6 +317,8 @@ const PropertyDetails = () => {
             }
         } catch (error) {
             console.error(error);
+        } finally {
+            setLoadingRating(false);
         }
     };
 
@@ -1165,6 +1171,7 @@ const PropertyDetails = () => {
                                 />
                                 <Button
                                     variant="contained"
+                                    disabled={loadingRating}
                                     color="primary"
                                     onClick={() => handleSubmitRating(propiedad.id)}
                                     sx={{
@@ -1749,6 +1756,7 @@ const PropertyDetails = () => {
         </Box>
     );
 };
+
 
 export default PropertyDetails;
 

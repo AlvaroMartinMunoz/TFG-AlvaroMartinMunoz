@@ -39,9 +39,10 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return [AllowAny()]
     
     def create(self, request, *args, **kwargs):
-        usuario = Usuario.objects.filter(usuario=request.user)
-        if usuario.exists():
-            return Response({'error': 'Ya existe un usuario asociado a este usuario'}, status=status.HTTP_400_BAD_REQUEST)
+        if 'usuario' in request.data:
+            usuario = Usuario.objects.filter(usuario=request.data['usuario'])
+            if usuario.exists():
+                return Response({'error': 'Ya existe un usuario asociado a este usuario'}, status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
     
     def partial_update(self, request, *args, **kwargs):

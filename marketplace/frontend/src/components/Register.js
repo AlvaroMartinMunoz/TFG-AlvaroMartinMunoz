@@ -414,7 +414,7 @@ const Register = () => {
                     }
                   }}
                 />
-                <TextField
+                {/* <TextField
                   fullWidth
                   label="Foto de perfil"
                   name="foto_de_perfil"
@@ -431,7 +431,7 @@ const Register = () => {
                       borderRadius: 1.5,
                     }
                   }}
-                />
+                /> */}
               </Box>
             </Box>
 

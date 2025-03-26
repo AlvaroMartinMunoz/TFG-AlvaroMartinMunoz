@@ -4,7 +4,7 @@ from django.core.validators import MinValueValidator, MaxValueValidator
 
 class ValoracionUsuario(models.Model):
     usuario_valorado = models.ForeignKey('usuario.Usuario', on_delete=models.CASCADE, related_name='valoracion_a_usuarios')  # El usuario que es valorado (anfitrión o huésped)
-    usuario_valorador = models.ForeignKey('usuario.Usuario', on_delete=models.CASCADE, related_name='usuario_valora')  # El usuario que da la valoración (huésped o anfitrión)
+    usuario_que_valora = models.ForeignKey('usuario.Usuario', on_delete=models.CASCADE, related_name='usuario_valora')  # El usuario que da la valoración (huésped o anfitrión)
     valoracion = models.PositiveIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
         help_text='Valoración del 1 al 5.'

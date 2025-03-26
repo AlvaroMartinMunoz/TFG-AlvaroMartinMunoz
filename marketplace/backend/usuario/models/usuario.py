@@ -26,12 +26,4 @@ class Usuario(models.Model):
 
     foto_de_perfil = models.ImageField(upload_to='fotos_de_perfil/', blank=True, null=True, default=None, help_text='Suba una foto de perfil.')
 
-    # Características
-    valoraciones_usuario = models.FloatField(default=0, help_text='Valoración promedio del usuario por sus interacciones.')
-    numero_de_resenas = models.PositiveIntegerField(default=0, help_text='Número de valoraciones recibidas por el usuario.')
 
-    # def valoracion_promedio_usuario(self):
-    #     valoraciones_recibidas = ValoracionUsuario.objects.filter(usuario_valorado=self.usuario.id)
-    #     if valoraciones_recibidas:
-    #         return sum([valoracion.valoracion for valoracion in valoraciones_recibidas]) / len(valoraciones_recibidas)
-    #     return None
