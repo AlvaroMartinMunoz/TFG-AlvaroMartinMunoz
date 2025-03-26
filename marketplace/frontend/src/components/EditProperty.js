@@ -34,6 +34,7 @@ const EditProperty = () => {
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
     const [loading, setLoading] = useState(true);
+    const [deletedPhotoIds, setDeletedPhotoIds] = useState([]);
     const [formValues, setFormValues] = useState({
         anfitrion: usuarioId,
         nombre: "",
@@ -76,9 +77,66 @@ const EditProperty = () => {
     }
 
     const handleRemovePhoto = (index) => {
-        const newPhotos = photoPreviews.filter((photo, i) => i !== index);
-        setPhotoPreviews(newPhotos);
-    }
+        const isExistingPhoto = typeof photoPreviews[index] === 'string';
+        const newPhotos = [...formValues.fotos];
+        const newPreviews = [...photoPreviews];
+        const newIds = [...formValues.id || []];
+
+        if (isExistingPhoto) {
+            const deletedId = newIds[index];
+            setDeletedPhotoIds(prev => [...prev, deletedId]);
+            newIds.splice(index, 1);
+        }
+
+        newPhotos.splice(index, 1);
+        newPreviews.splice(index, 1);
+
+        let newPortada = formValues.portada;
+        if (index < formValues.portada) {
+            newPortada -= 1;
+        } else if (index === formValues.portada) {
+            newPortada = null;
+        }
+
+        setFormValues(prev => ({
+            ...prev,
+            fotos: newPhotos,
+            id: newIds,
+            portada: newPortada,
+        }));
+        setPhotoPreviews(newPreviews);
+    };
+
+    const deleteRemovedPhotos = async (retried = false) => {
+        try {
+            for (const photoId of deletedPhotoIds) {
+                const response = await fetch(`http://localhost:8000/api/propiedades/fotos-propiedades/${photoId}/`, {
+                    method: 'DELETE',
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('accessToken')}`
+                    }
+                });
+
+                if (response.status === 401 && !retried) {
+                    const token = await refreshAccessToken();
+                    if (token) {
+                        await deleteRemovedPhotos(true);
+                        return;
+                    } else {
+                        handleLogOut();
+                        return;
+                    }
+                }
+
+                if (!response.ok) {
+                    console.error('Error al eliminar la foto', await response.text());
+                }
+            }
+            setDeletedPhotoIds([]); // Limpiar IDs después de eliminación
+        } catch (error) {
+            console.error('Error al eliminar las fotos', error);
+        }
+    };
 
     const handlePortadaChange = (index) => {
         setFormValues((prev) => ({ ...prev, portada: index }));
@@ -120,6 +178,22 @@ const EditProperty = () => {
         }
     }
 
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        if (files.length + formValues.fotos.length > 10) {
+            setErrors({ ...errors, fotos: "Máximo 10 fotos permitidas" });
+            return;
+        }
+
+        const newPreviews = files.map(file => URL.createObjectURL(file));
+        setPhotoPreviews([...photoPreviews, ...newPreviews]);
+
+        setFormValues(prev => ({
+            ...prev,
+            fotos: [...prev.fotos, ...files]
+        }));
+    };
+
     const fetchPropertyPhotos = async (id, retried = false) => {
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/fotos-propiedades`, {
@@ -142,7 +216,7 @@ const EditProperty = () => {
             if (response.ok) {
                 const data = await response.json();
                 const fotos = await data.filter(foto => foto.propiedad === parseInt(id));
-                setFormValues((prev) => ({ ...prev, fotos: fotos.map(foto => foto.foto) }));
+                setFormValues((prev) => ({ ...prev, fotos: fotos.map(foto => foto.foto), id: fotos.map(foto => foto.id) }));
                 const portada = fotos.find(foto => foto.es_portada === true);
                 setFormValues((prev) => ({ ...prev, portada: fotos.indexOf(portada) }));
                 setPhotoPreviews(fotos.map(foto => foto.foto));
@@ -240,35 +314,58 @@ const EditProperty = () => {
         return Object.keys(errors).length === 0;
     };
 
-    const updatePropertyPhotos = async (id, retried = false) => {
+    const updatePropertyPhotos = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/fotos-propiedades/`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                },
-                body: JSON.stringify({ propiedad: id, fotos: formValues.fotos, es_portada: formValues.portada })
-            });
-            if (response.status === 401 && retried === false) {
-                console.log("Token expirado");
-                const token = await refreshAccessToken();
-                if (token) {
-                    updatePropertyPhotos(id, true);
-                } else {
-                    console.log("Token inválido, cerrando sesión...");
-                    handleLogOut();
+            for (let index = 0; index < formValues.fotos.length; index++) {
+                const foto = formValues.fotos[index];
+                const photoId = formValues.id[index] || null;
+
+                const formData = new FormData();
+
+                if (foto instanceof File) {
+                    formData.append('foto', foto);
                 }
-            }
-            if (response.ok) {
-                console.log("Fotos actualizadas");
-            } else {
-                console.log("Error al actualizar las fotos de la propiedad");
+
+                formData.append('es_portada', formValues.portada === index ? 'True' : 'False');
+
+                if (photoId) {
+                    formData.append('id', photoId);
+                }
+                formData.append('propiedadId', id);
+
+
+                const method = photoId ? 'PATCH' : 'POST';
+                const url = photoId
+                    ? `http://localhost:8000/api/propiedades/fotos-propiedades/${photoId}/`
+                    : `http://localhost:8000/api/propiedades/fotos-propiedades/`;
+
+                const response = await fetch(url, {
+                    method: method,
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                    },
+                    body: formData
+                });
+
+                if (response.status === 401 && retried === false) {
+                    console.log("Token expirado");
+                    const token = await refreshAccessToken();
+                    if (token) {
+                        updatePropertyPhotos(true);
+                    } else {
+                        console.log("Token inválido, cerrando sesión...");
+                        handleLogOut();
+                    }
+                }
+                if (!response.ok) {
+                    console.log("Error al actualizar las fotos de la propiedad");
+                }
             }
         } catch (error) {
             console.error("Error al actualizar las fotos de la propiedad", error);
         }
-    }
+    };
+
 
     const handleSubmit = async (e, retried = false) => {
         e.preventDefault();
@@ -282,24 +379,25 @@ const EditProperty = () => {
                     },
                     body: JSON.stringify(formValues)
                 });
+
                 if (response.status === 401 && retried === false) {
-                    console.log("Token expirado");
                     const token = await refreshAccessToken();
                     if (token) {
                         handleSubmit(e, true);
                     } else {
-                        console.log("Token inválido, cerrando sesión...");
                         handleLogOut();
                     }
+                    return;
                 }
+
                 if (response.ok) {
-                    await updatePropertyPhotos(id);
+                    await updatePropertyPhotos();
+                    await deleteRemovedPhotos(); // Eliminar fotos marcadas
                     navigate("/mis-propiedades");
                 } else {
                     console.log("Error al editar la propiedad");
                 }
-            }
-            catch (error) {
+            } catch (error) {
                 console.error("Error al editar la propiedad", error);
             }
         }
@@ -610,7 +708,7 @@ const EditProperty = () => {
                                                 name="fotos"
                                                 type="file"
                                                 multiple
-                                                onChange={handleChange}
+                                                onChange={handleFileChange}
                                             />
                                             <label htmlFor="fotos">
                                                 <Button
@@ -629,9 +727,9 @@ const EditProperty = () => {
                                         <Alert severity="error" sx={{ mb: 2 }}>{errors.fotos}</Alert>
                                     )}
 
-                                    {errors.portada && (
+                                    {/* {errors.portada && (
                                         <Alert severity="error" sx={{ mb: 2 }}>{errors.portada}</Alert>
-                                    )}
+                                    )} */}
 
                                     {photoPreviews.length > 0 && (
                                         <Typography variant="subtitle1" color="text.secondary" gutterBottom sx={{ mt: 2, fontWeight: 500 }}>

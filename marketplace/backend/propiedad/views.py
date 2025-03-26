@@ -370,10 +370,28 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
         return Response({'status': 'foto subida'}, status=status.HTTP_201_CREATED)
     
     def update(self, request, *args, **kwargs):
-        return Response({'error': 'No puedes actualizar fotos'}, status=status.HTTP_403_FORBIDDEN)
+        propiedad_id = request.data.get('propiedadId')
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad_id)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+        
+        if propiedad.anfitrion.usuario_id != request.user.id:
+            return Response({'error': 'No tienes permiso para actualizar fotos de esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
     
     def partial_update(self, request, *args, **kwargs):
-        return Response({'error': 'No puedes actualizar fotos'}, status=status.HTTP_403_FORBIDDEN)
+        propiedad_id = request.data.get('propiedadId')
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad_id)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+       
+        if propiedad.anfitrion.usuario_id != request.user.id:
+            return Response({'error': 'No tienes permiso para actualizar fotos de esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
+        return super().partial_update(request, *args, **kwargs)
+    
     
     def destroy(self, request, *args, **kwargs):
         foto = self.get_object()
