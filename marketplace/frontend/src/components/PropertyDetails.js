@@ -1555,6 +1555,8 @@ const PropertyDetails = () => {
                                 startDate={reserveStartDate}
                                 startDateId="start_date_id"
                                 endDate={reserveEndDate}
+                                startDatePlaceholderText='Entrada'
+                                endDatePlaceholderText='Salida'
                                 endDateId="end_date_id"
                                 onDatesChange={handleReserveDateChange}
                                 focusedInput={focusedInput}
