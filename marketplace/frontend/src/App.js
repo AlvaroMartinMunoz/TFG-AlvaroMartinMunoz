@@ -28,6 +28,10 @@ import Myfavorites from "./components/MyFavorites";
 import PasswordReset from "./components/PasswordReset";
 import ConfirmPasswordReset from "./components/ConfirmPasswordReset";
 import ReservationDetail from "./components/ReservationDetail";
+import ContactUs from "./components/Footer/ContactUs";
+import TermsAndConditions from "./components/Footer/TermsAndConditions";
+import PrivacyPolicy from "./components/Footer/PrivacyPolicy";
+import AboutUs from "./components/Footer/AboutUs";
 
 const theme = createTheme({
   palette: {
@@ -64,6 +68,10 @@ function App() {
                 <Route path="password-reset" element={<PasswordReset />} />
                 <Route path="/reset-password/:uid/:token" element={<ConfirmPasswordReset />} />
                 <Route path="/informacion-reserva/:reservaId" element={<ReservationDetail />} />
+                <Route path="/contacta-con-nosotros" element={<ContactUs />} />
+                <Route path="/terminos-y-condiciones" element={<TermsAndConditions />} />
+                <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
+                <Route path="/sobre-nosotros" element={<AboutUs />} />
               </Routes>
             </Container>
             <Footer />

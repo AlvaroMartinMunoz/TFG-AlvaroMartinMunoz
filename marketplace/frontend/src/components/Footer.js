@@ -35,15 +35,11 @@ const Footer = () => {
               Ayuda
             </Typography>
             <Box>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
+              <Link href="/contacta-con-nosotros" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
                 Contacta con nosotros
               </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
-                Preguntas frecuentes
-              </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
-                Centro de soporte
-              </Link>
+
+
             </Box>
           </Grid>
           <Grid item xs={12} sm={4}>
@@ -51,15 +47,13 @@ const Footer = () => {
               Políticas
             </Typography>
             <Box>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
+              <Link href="/terminos-y-condiciones" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
                 Términos y condiciones
               </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
+              <Link href="/politica-de-privacidad" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
                 Política de privacidad
               </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
-                Política de cookies
-              </Link>
+
             </Box>
           </Grid>
           <Grid item xs={12} sm={4}>
@@ -67,15 +61,11 @@ const Footer = () => {
               Más Información
             </Typography>
             <Box>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
+              <Link href="/sobre-nosotros" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
                 Sobre nosotros
               </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
-                Nuestra misión
-              </Link>
-              <Link href="/" color="common.white" sx={{ display: "block", mb: 1, textDecoration: "none", opacity: 0.8, "&:hover": { opacity: 1 } }}>
-                Trabaja con nosotros
-              </Link>
+
+
             </Box>
           </Grid>
         </Grid>
