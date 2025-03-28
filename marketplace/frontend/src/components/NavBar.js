@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -10,18 +10,30 @@ import {
   Avatar,
   Container,
   Button,
+  Drawer,
+  List,
+  ListItem,
+  ListItemText,
+  useMediaQuery,
+  useTheme,
+  Badge,
 } from "@mui/material";
+import MenuIcon from "@mui/icons-material/Menu";
+import CloseIcon from "@mui/icons-material/Close";
 import logo from "../assets/logo.png";
 import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { Badge } from "@mui/material";
 
 const NavBar = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
   const [favoritosNavbar, setFavoritosNavbar] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const navigate = useNavigate();
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -29,7 +41,6 @@ const NavBar = () => {
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
-
         if (decodedToken && decodedToken.user_id) {
           fetchAllUsers(decodedToken.user_id);
         } else {
@@ -45,13 +56,14 @@ const NavBar = () => {
     if (isAuthenticated()) {
       const intervalId = setInterval(() => {
         fetchFavoritosNavbar();
-      }
-        , 2000);
+      }, 2000);
       return () => clearInterval(intervalId);
     }
   }, []);
 
+
   const fetchFavoritosNavbar = async (retried = false) => {
+    if (!isAuthenticated()) return;
     try {
       const response = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
         method: "GET",
@@ -62,10 +74,10 @@ const NavBar = () => {
 
       if (response.ok) {
         const data = await response.json();
-
-        const dataFiltered = data.filter((favorito) => favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
+        const dataFiltered = data.filter((favorito) =>
+          favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId
+        );
         setFavoritosNavbar(dataFiltered.length);
-
       }
       if (response.status === 401 && !retried) {
         console.log("Token expirado");
@@ -74,13 +86,10 @@ const NavBar = () => {
           fetchFavoritosNavbar(true);
         }
       }
-
     } catch (error) {
       console.error("Error al obtener los favoritos:", error);
     }
   };
-
-
 
   const isAuthenticated = () => {
     return !!localStorage.getItem("accessToken");
@@ -135,7 +144,7 @@ const NavBar = () => {
     localStorage.removeItem("refreshToken");
     localStorage.removeItem("additionalInfo");
     handleClose();
-    window.location.reload();
+    navigate("/");
   };
 
   const handleClick = (event) => {
@@ -144,6 +153,10 @@ const NavBar = () => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleMobileMenuToggle = () => {
+    setMobileOpen(!mobileOpen);
   };
 
   const refreshAccessToken = async () => {
@@ -198,173 +211,278 @@ const NavBar = () => {
       { title: "Registrarse", path: "/registro" },
     ];
 
-  return (
-    <AppBar
-      position="sticky"
-      elevation={1}
-      sx={{
-        backgroundColor: "white",
-        height: "70px",
-        justifyContent: "center",
-      }}
-    >
-      <Container maxWidth="xl">
-        <Toolbar disableGutters sx={{ justifyContent: "space-between" }}>
-          {/* Logo y enlaces de navegación agrupados a la izquierda */}
-          <Box sx={{ display: "flex", alignItems: "center" }}>
-            <Avatar
-              src={logo}
-              alt="logo"
-              sx={{
-                width: 40,
-                height: 40,
-                marginRight: 2,
+  const renderNavLinks = (isMobileMenu = false) => (
+    <>
+      {navLinks.map((link) => (
+        isMobileMenu ? (
+          <ListItem
+            key={link.title}
+            onClick={() => {
+              navigate(link.path);
+              handleMobileMenuToggle();
+            }}
+            sx={{ width: '100%' }}
+          >
+            <ListItemText primary={link.title} />
+          </ListItem>
+        ) : (
+          <Button
+            key={link.title}
+            component={Link}
+            to={link.path}
+            sx={{
+              color: "text.primary",
+              display: "block",
+              textTransform: "none",
+              fontSize: "0.95rem",
+              fontWeight: 500,
+              padding: "6px 10px",
+              "&:hover": {
                 backgroundColor: "transparent",
-              }}
-            />
-            <Typography
-              variant="h6"
-              component="a"
-              href="/"
-              sx={{
-                fontWeight: 600,
-                color: "black",
-                textDecoration: "none",
-                letterSpacing: ".1rem",
-                transition: "color 0.3s ease",
-                "&:hover": {
-                  color: "primary.main",
-                },
-                marginRight: 4,
-              }}
-            >
-              Marketplace
-            </Typography>
+                color: "primary.main",
+              },
+            }}
+          >
+            {link.title}
+          </Button>
+        )
+      ))}
+    </>
+  );
 
-            {/* Links de navegación (ahora a la izquierda) */}
-            <Box sx={{ display: "flex", gap: 3 }}>
-              {navLinks.map((link) => (
-                <Button
-                  key={link.title}
-                  component={Link}
-                  to={link.path}
-                  sx={{
-                    color: "text.primary",
-                    display: "block",
-                    textTransform: "none",
-                    fontSize: "0.95rem",
-                    fontWeight: 500,
-                    padding: "6px 10px",
-                    "&:hover": {
-                      backgroundColor: "transparent",
-                      color: "primary.main",
-                    },
-                  }}
-                >
-                  {link.title}
-                </Button>
-              ))}
-            </Box>
-          </Box>
+  const renderUserMenu = (isMobileMenu = false) => (
+    <>
+      {userMenuItems.map((item) => (
+        isMobileMenu ? (
+          <ListItem
+            key={item.title}
+            onClick={() => {
+              handleMobileMenuToggle();
+              if (item.action) {
+                item.action();
+              } else if (item.path) {
+                navigate(item.path);
+              }
+            }}
+            sx={{ width: '100%' }}
+          >
+            <ListItemText primary={item.title} />
+          </ListItem>
+        ) : (
+          <MenuItem
+            key={item.title}
+            onClick={() => {
+              handleClose();
+              if (item.action) {
+                item.action();
+              } else if (item.path) {
+                navigate(item.path);
+              }
+            }}
+            sx={{
+              "&:hover": { backgroundColor: "action.hover" },
+            }}
+          >
+            {item.title}
+          </MenuItem>
+        )
+      ))}
+    </>
+  );
 
-          {/* Sección de usuario a la derecha */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-            {isAuthenticated() && (
+  return (
+    <>
+      <AppBar
+        position="sticky"
+        elevation={1}
+        sx={{
+          backgroundColor: "white",
+          height: "70px",
+          justifyContent: "center",
+        }}
+      >
+        <Container maxWidth="xl">
+          <Toolbar disableGutters sx={{ justifyContent: "space-between", alignItems: "center" }}>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
+              <Avatar
+                src={logo}
+                alt="logo"
+                sx={{
+                  width: 40,
+                  height: 40,
+                  marginRight: 2,
+                  backgroundColor: "transparent",
+                }}
+              />
               <Typography
-                variant="body1"
+                variant="h6"
+                component="a"
+                href="/"
                 sx={{
-                  color: "text.primary",
-                  fontWeight: 500,
-                }}
-              >
-                Bienvenido, {username}
-              </Typography>
-            )}
-
-            {isAuthenticated() && (
-              <IconButton
-                component={Link}
-                to="/favoritos"
-                color="primary"
-                aria-label="Favoritos"
-                sx={{
-                  transition: "transform 0.2s",
+                  fontWeight: 600,
+                  color: "black",
+                  textDecoration: "none",
+                  letterSpacing: ".1rem",
+                  transition: "color 0.3s ease",
                   "&:hover": {
-                    transform: "scale(1.1)",
-                    color: "error.main",
+                    color: "primary.main",
                   },
+                  marginRight: 4,
+                  display: { xs: 'none', sm: 'block' }
                 }}
               >
-                <Badge badgeContent={favoritosNavbar ? favoritosNavbar : 0} color="error">
-                  <FavoriteIcon />
-                </Badge>
+                Marketplace
+              </Typography>
+            </Box>
+
+            {!isMobile ? (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
+                <Box sx={{ display: "flex", gap: 3 }}>
+                  {renderNavLinks()}
+                </Box>
+
+                <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                  {isAuthenticated() && (
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: "text.primary",
+                        fontWeight: 500,
+                      }}
+                    >
+                      Bienvenido, {username}
+                    </Typography>
+                  )}
+
+                  {isAuthenticated() && (
+                    <IconButton
+                      component={Link}
+                      to="/favoritos"
+                      color="primary"
+                      aria-label="Favoritos"
+                      sx={{
+                        transition: "transform 0.2s",
+                        "&:hover": {
+                          transform: "scale(1.1)",
+                          color: "error.main",
+                        },
+                      }}
+                    >
+                      <Badge badgeContent={favoritosNavbar || 0} color="error">
+                        <FavoriteIcon />
+                      </Badge>
+                    </IconButton>
+                  )}
+
+                  <Avatar
+                    sx={{
+                      width: 40,
+                      height: 40,
+                      border: "2px solid",
+                      borderColor: "divider",
+                      backgroundColor: "action.hover",
+                      cursor: "pointer",
+                      transition: "transform 0.2s, box-shadow 0.2s",
+                      "&:hover": {
+                        transform: "scale(1.05)",
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                        borderColor: "primary.light",
+                      },
+                    }}
+                    onClick={handleClick}
+                  >
+                    <PersonIcon color="action" />
+                  </Avatar>
+
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleClose}
+                    PaperProps={{
+                      elevation: 3,
+                      sx: {
+                        minWidth: 180,
+                        borderRadius: 2,
+                        mt: 1.5,
+                        "& .MuiMenuItem-root": {
+                          px: 2,
+                          py: 1.5,
+                          fontSize: "0.9rem",
+                        },
+                      },
+                    }}
+                    transformOrigin={{ horizontal: "right", vertical: "top" }}
+                    anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
+                  >
+                    {renderUserMenu()}
+                  </Menu>
+                </Box>
+              </Box>
+            ) : (
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                edge="start"
+                onClick={handleMobileMenuToggle}
+                sx={{ marginLeft: 'auto' }}
+              >
+                <MenuIcon sx={{ color: "black" }} />
               </IconButton>
             )}
+          </Toolbar>
+        </Container>
+      </AppBar>
 
+      <Drawer
+        anchor="right"
+        open={mobileOpen}
+        onClose={handleMobileMenuToggle}
+        sx={{
+          '& .MuiDrawer-paper': {
+            width: '250px',
+            boxSizing: 'border-box',
+            padding: 2,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 2,
+          }}
+        >
+          <Typography variant="h6">Menú</Typography>
+          <IconButton onClick={handleMobileMenuToggle}>
+            <CloseIcon sx={{ color: "black" }} />
+          </IconButton>
+        </Box>
 
-            <Avatar
-              sx={{
-                width: 40,
-                height: 40,
-                border: "2px solid",
-                borderColor: "divider",
-                backgroundColor: "action.hover",
-                cursor: "pointer",
-                transition: "transform 0.2s, box-shadow 0.2s",
-                "&:hover": {
-                  transform: "scale(1.05)",
-                  boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-                  borderColor: "primary.light",
-                },
-              }}
-              onClick={handleClick}
-            >
-              <PersonIcon color="action" />
-            </Avatar>
-
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={handleClose}
-              PaperProps={{
-                elevation: 3,
-                sx: {
-                  minWidth: 180,
-                  borderRadius: 2,
-                  mt: 1.5,
-                  "& .MuiMenuItem-root": {
-                    px: 2,
-                    py: 1.5,
-                    fontSize: "0.9rem",
-                  },
-                },
-              }}
-              transformOrigin={{ horizontal: "right", vertical: "top" }}
-              anchorOrigin={{ horizontal: "right", vertical: "bottom" }}
-            >
-              {userMenuItems.map((item) => (
-                <MenuItem
-                  key={item.title}
-                  onClick={() => {
-                    handleClose();
-                    if (item.action) {
-                      item.action();
-                    } else if (item.path) {
-                      window.location.href = item.path;
-                    }
-                  }}
-                  sx={{
-                    "&:hover": { backgroundColor: "action.hover" },
-                  }}
-                >
-                  {item.title}
-                </MenuItem>
-              ))}
-            </Menu>
+        {isAuthenticated() && (
+          <Box sx={{ marginBottom: 2, textAlign: 'center' }}>
+            <Typography variant="body1">
+              Bienvenido, {username}
+            </Typography>
+            {favoritosNavbar > 0 && (
+              <Button
+                component={Link}
+                to="/favoritos"
+                startIcon={<FavoriteIcon color="error" />}
+                sx={{ marginTop: 1 }}
+              >
+                Favoritos ({favoritosNavbar})
+              </Button>
+            )}
           </Box>
-        </Toolbar>
-      </Container>
-    </AppBar>
+        )}
+
+        <List>
+          {renderNavLinks(true)}
+          {renderUserMenu(true)}
+        </List>
+      </Drawer>
+    </>
   );
 };
 
