@@ -63,11 +63,14 @@ const Register = () => {
 
     const usernameRegex = /^[^\d\s][a-zA-Z0-9\s]*$/;
 
+    const biografiaRegex = /^[a-zA-Z0-9\s,.'!?áéíóúÁÉÍÓÚñÑ-]{10,500}$/;
+
+
     if (!usernameRegex.test(formData.direccion)) {
       errors.direccion = "La dirección no puede empezar con espacios ni con numeros";
     }
 
-    if (!usernameRegex.test(formData.biografia)) {
+    if (!biografiaRegex.test(formData.biografia)) {
       errors.biografia = "La biografía no puede empezar con espacios ni con numeros";
     }
 
