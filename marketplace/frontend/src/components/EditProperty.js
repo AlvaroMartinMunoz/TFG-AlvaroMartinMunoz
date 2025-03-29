@@ -255,8 +255,8 @@ const EditProperty = () => {
             errors.nombre = "El nombre es obligatorio, debe tener menos de 100 caracteres y debe comenzar con una letra";
         }
 
-        if (!formValues.descripcion || formValues.descripcion.length > 255 || !empiezaConLetraRegex.test(formValues.descripcion)) {
-            errors.descripcion = "La descripción es obligatoria, debe tener menos de 255 caracteres y debe comenzar con una letra";
+        if (!formValues.descripcion || !empiezaConLetraRegex.test(formValues.descripcion)) {
+            errors.descripcion = "La descripción es obligatoria y debe comenzar con una letra";
         }
 
         if (!formValues.direccion || formValues.direccion.length > 255 || !empiezaConLetraRegex.test(formValues.direccion)) {
