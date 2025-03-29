@@ -739,6 +739,7 @@ const PropertyDetails = () => {
                                     borderRadius: 3,
                                     overflow: 'hidden',
                                     transition: 'transform 0.3s',
+                                    height: '100%',
                                     width: '100%',
                                     '&:hover': {
                                         transform: 'scale(1.01)',
@@ -751,29 +752,34 @@ const PropertyDetails = () => {
                                     navButtonsAlwaysVisible
                                     indicators={true}
                                     animation="slide"
+                                    sx={{ height: '100%' }}
                                     navButtonsProps={{
                                         style: {
                                             backgroundColor: 'rgba(255, 255, 255, 0.7)',
                                             color: '#000',
                                             borderRadius: '50%',
                                             margin: '0 10px',
+
                                         }
                                     }}
                                     indicatorContainerProps={{
                                         style: {
                                             marginTop: '-24px',
                                             position: 'relative',
-                                            zIndex: 1
+                                            zIndex: 1,
+                                            height: "100%",
+                                            bottom: "15px"
                                         }
                                     }}
                                     indicatorIconButtonProps={{
                                         style: {
-                                            color: 'rgba(255, 255, 255, 0.7)'
+                                            color: 'rgba(255, 255, 255, 0.7)',
+
                                         }
                                     }}
                                     activeIndicatorIconButtonProps={{
                                         style: {
-                                            color: '#fff'
+                                            color: '#fff',
                                         }
                                     }}
                                 >
@@ -783,7 +789,7 @@ const PropertyDetails = () => {
                                             sx={{
                                                 position: 'relative',
                                                 width: '100%',
-                                                height: 0,
+                                                height: '100%',
                                                 paddingTop: '66.25%',
                                                 cursor: 'pointer',
                                             }}
@@ -1024,31 +1030,133 @@ const PropertyDetails = () => {
                     </Typography>
                 </Paper>
 
-                {(isAuthenticated() && esAnfitrion) ? null : (
-                    <Paper
-                        elevation={2}
-                        sx={{
-                            p: 4,
-                            borderRadius: 3,
-                            mb: 4,
-                            transition: 'transform 0.2s',
-                            '&:hover': {
-                                transform: 'translateY(-5px)',
-                            },
-                        }}
-                    >
-                        <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
-                            Tu Valoración
-                        </Typography>
-                        {alertMessage && (
-                            <Alert severity='error' sx={{ mb: 3, borderRadius: 2 }}>
-                                {alertMessage}
-                            </Alert>
-                        )}
-                        {hasRated ? (
-                            isEditing ? (
+                {
+                    (isAuthenticated() && esAnfitrion) ? null : (isAuthenticated() && (
+                        <Paper
+                            elevation={2}
+                            sx={{
+                                p: 4,
+                                borderRadius: 3,
+                                mb: 4,
+                                transition: 'transform 0.2s',
+                                '&:hover': {
+                                    transform: 'translateY(-5px)',
+                                },
+                            }}
+                        >
+                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+                                Tu Valoración
+                            </Typography>
+                            {alertMessage && (
+                                <Alert severity='error' sx={{ mb: 3, borderRadius: 2 }}>
+                                    {alertMessage}
+                                </Alert>
+                            )}
+                            {hasRated ? (
+                                isEditing ? (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                            <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
+                                            <Rating
+                                                name="rating"
+                                                value={rating}
+                                                onChange={handleRatingChange}
+                                                precision={0.5}
+                                                size="large"
+                                            />
+                                        </Box>
+                                        <TextField
+                                            label="Tu comentario"
+                                            value={comentario_valoracion}
+                                            onChange={(e) => setComentarioValoracion(e.target.value)}
+                                            multiline
+                                            rows={4}
+                                            fullWidth
+                                            variant="outlined"
+                                            sx={{ mt: 1, mb: 2 }}
+                                        />
+                                        <Box sx={{ display: 'flex', gap: 2 }}>
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => handleUpdateRating(propiedad.id)}
+                                                sx={{
+                                                    py: 1,
+                                                    px: 3,
+                                                    fontWeight: 600,
+                                                    borderRadius: 2,
+                                                }}
+                                            >
+                                                Actualizar Valoración
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                color="secondary"
+                                                onClick={() => setIsEditing(false)}
+                                                sx={{
+                                                    py: 1,
+                                                    px: 3,
+                                                    fontWeight: 600,
+                                                    borderRadius: 2,
+                                                }}
+                                            >
+                                                Cancelar
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                ) : (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                            <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
+                                            <Rating
+                                                name="read-only"
+                                                value={userRating.valoracion}
+                                                readOnly
+                                                precision={0.5}
+                                                size="large"
+                                            />
+                                        </Box>
+                                        <Paper
+                                            elevation={0}
+                                            sx={{
+                                                p: 3,
+                                                mb: 3,
+                                                borderRadius: 2,
+                                                bgcolor: 'rgba(0, 0, 0, 0.02)',
+                                                border: '1px solid rgba(0, 0, 0, 0.08)'
+                                            }}
+                                        >
+                                            <Typography variant="body1" color="text.secondary">
+                                                {userRating.comentario}
+                                            </Typography>
+                                        </Paper>
+                                        <Box sx={{ display: 'flex', gap: 2 }}>
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={handleEditRating}
+                                                sx={{
+                                                    alignSelf: 'flex-start',
+                                                    py: 1,
+                                                    px: 3,
+                                                    fontWeight: 600,
+                                                    borderRadius: 2,
+                                                }}
+                                            >
+                                                Editar Valoración
+                                            </Button>
+                                            <Button variant="contained" color="error" onClick={() => handleDeleteRating(userRating.id)} sx={{ py: 1, px: 3, fontWeight: 600, borderRadius: 2 }}>
+                                                Eliminar Valoración
+                                            </Button>
+
+                                        </Box>
+
+                                    </Box>
+
+                                )
+                            ) : (isAuthenticated() && !esAnfitrion && (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                                         <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
                                         <Rating
                                             name="rating"
@@ -1059,148 +1167,50 @@ const PropertyDetails = () => {
                                         />
                                     </Box>
                                     <TextField
-                                        label="Tu comentario"
+                                        label="Tu comentario sobre la propiedad"
                                         value={comentario_valoracion}
                                         onChange={(e) => setComentarioValoracion(e.target.value)}
                                         multiline
                                         rows={4}
                                         fullWidth
                                         variant="outlined"
-                                        sx={{ mt: 1, mb: 2 }}
+                                        placeholder="Comparte tu experiencia con otros huéspedes"
+                                        sx={{ mb: 2 }}
                                     />
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={() => handleUpdateRating(propiedad.id)}
-                                            sx={{
-                                                py: 1,
-                                                px: 3,
-                                                fontWeight: 600,
-                                                borderRadius: 2,
-                                            }}
-                                        >
-                                            Actualizar Valoración
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            color="secondary"
-                                            onClick={() => setIsEditing(false)}
-                                            sx={{
-                                                py: 1,
-                                                px: 3,
-                                                fontWeight: 600,
-                                                borderRadius: 2,
-                                            }}
-                                        >
-                                            Cancelar
-                                        </Button>
-                                    </Box>
-                                </Box>
-                            ) : (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                        <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
-                                        <Rating
-                                            name="read-only"
-                                            value={userRating.valoracion}
-                                            readOnly
-                                            precision={0.5}
-                                            size="large"
-                                        />
-                                    </Box>
-                                    <Paper
-                                        elevation={0}
+                                    <Button
+                                        variant="contained"
+                                        disabled={loadingRating}
+                                        color="primary"
+                                        onClick={() => handleSubmitRating(propiedad.id)}
                                         sx={{
-                                            p: 3,
-                                            mb: 3,
+                                            alignSelf: 'flex-start',
+                                            py: 1,
+                                            px: 3,
+                                            fontWeight: 600,
                                             borderRadius: 2,
-                                            bgcolor: 'rgba(0, 0, 0, 0.02)',
-                                            border: '1px solid rgba(0, 0, 0, 0.08)'
                                         }}
                                     >
-                                        <Typography variant="body1" color="text.secondary">
-                                            {userRating.comentario}
-                                        </Typography>
-                                    </Paper>
-                                    <Box sx={{ display: 'flex', gap: 2 }}>
-                                        <Button
-                                            variant="contained"
-                                            color="primary"
-                                            onClick={handleEditRating}
-                                            sx={{
-                                                alignSelf: 'flex-start',
-                                                py: 1,
-                                                px: 3,
-                                                fontWeight: 600,
-                                                borderRadius: 2,
-                                            }}
-                                        >
-                                            Editar Valoración
-                                        </Button>
-                                        <Button variant="contained" color="error" onClick={() => handleDeleteRating(userRating.id)} sx={{ py: 1, px: 3, fontWeight: 600, borderRadius: 2 }}>
-                                            Eliminar Valoración
-                                        </Button>
-                                    </Box>
-
+                                        Enviar Valoración
+                                    </Button>
                                 </Box>
-
-                            )
-                        ) : (
-                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                    <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
-                                    <Rating
-                                        name="rating"
-                                        value={rating}
-                                        onChange={handleRatingChange}
-                                        precision={0.5}
-                                        size="large"
-                                    />
-                                </Box>
-                                <TextField
-                                    label="Tu comentario sobre la propiedad"
-                                    value={comentario_valoracion}
-                                    onChange={(e) => setComentarioValoracion(e.target.value)}
-                                    multiline
-                                    rows={4}
-                                    fullWidth
-                                    variant="outlined"
-                                    placeholder="Comparte tu experiencia con otros huéspedes"
-                                    sx={{ mb: 2 }}
-                                />
-                                <Button
-                                    variant="contained"
-                                    disabled={loadingRating}
-                                    color="primary"
-                                    onClick={() => handleSubmitRating(propiedad.id)}
+                            ))}
+                            {notification && (
+                                <Alert
+                                    severity={notification.type}
                                     sx={{
-                                        alignSelf: 'flex-start',
-                                        py: 1,
-                                        px: 3,
-                                        fontWeight: 600,
+                                        mt: 3,
                                         borderRadius: 2,
+                                        boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
                                     }}
+                                    onClose={() => setNotification(null)}
                                 >
-                                    Enviar Valoración
-                                </Button>
-                            </Box>
-                        )}
-                        {notification && (
-                            <Alert
-                                severity={notification.type}
-                                sx={{
-                                    mt: 3,
-                                    borderRadius: 2,
-                                    boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-                                }}
-                                onClose={() => setNotification(null)}
-                            >
-                                {notification.message}
-                            </Alert>
-                        )}
-                    </Paper>
-                )}
+                                    {notification.message}
+                                </Alert>
+                            )}
+
+                        </Paper>
+                    ))
+                }
 
                 <Modal
                     open={open}
@@ -1754,8 +1764,8 @@ const PropertyDetails = () => {
                         </Box>
                     </Paper>
                 </Modal>
-            </Container>
-        </Box>
+            </Container >
+        </Box >
     );
 };
 
