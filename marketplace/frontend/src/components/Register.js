@@ -199,7 +199,7 @@ const Register = () => {
     <Box
       sx={{
         backgroundColor: "#f4f7fc",
-        minHeight: "100vh",
+        minHeight: "85vh",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -337,6 +337,11 @@ const Register = () => {
                     }
                   }}
                 />
+
+              </Box>
+
+              {/* Segunda columna */}
+              <Box sx={{ flex: "1 1 48%" }}>
                 <TextField
                   fullWidth
                   label="Teléfono"
@@ -355,10 +360,6 @@ const Register = () => {
                     }
                   }}
                 />
-              </Box>
-
-              {/* Segunda columna */}
-              <Box sx={{ flex: "1 1 48%" }}>
                 <TextField
                   fullWidth
                   label="Dirección"
