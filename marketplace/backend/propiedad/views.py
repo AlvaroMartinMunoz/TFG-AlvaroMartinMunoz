@@ -8,6 +8,7 @@ from .models.valoracionPropiedad import ValoracionPropiedad
 from .serializers import ValoracionPropiedadSerializer
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework import status
 from .models.propiedad import FechaBloqueada
 from .serializers import FechaBloqueadaSerializer
@@ -29,6 +30,9 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from .models.favorito import Favorito
 from .serializers import FavoritoSerializer
+from propiedad.recommendations import ContentRecommender, CollaborativeRecommender
+from propiedad.serializers import PropiedadRecommendationSerializer
+
 
 
 
@@ -645,5 +649,41 @@ class FavoritoViewSet(viewsets.ModelViewSet):
             return self.get_paginated_response(serializer.data)
         
         serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+    
+# SISTEMA DE RECOMENDACIONES
+
+class RecommendationAPI(APIView):
+    def get(self, request):
+        user = request.user
+
+        try:
+            usuario = Usuario.objects.get(usuario=user.id)
+        except:
+            return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
+
+        if not user.is_authenticated:
+            return Response({"error": "Usuario no autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        content_rec = ContentRecommender()
+        collab_rec = CollaborativeRecommender()
+        
+        collab_props = collab_rec.get_user_recommendations(user.id)
+        
+        scored_props = []
+        for prop in collab_props:
+            similar = content_rec.get_similar(prop.id)
+            user_favoritos_ids = usuario.favoritos.values_list('id', flat=True)
+            score = len(set(similar) & set(user_favoritos_ids))
+            scored_props.append({'propiedad': prop, 'score': score})
+        
+        sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
+        
+        serializer = PropiedadRecommendationSerializer(
+            [item['propiedad'] for item in sorted_results], 
+            many=True,
+            context={'scores': sorted_results}
+        )
+        
         return Response(serializer.data)
     

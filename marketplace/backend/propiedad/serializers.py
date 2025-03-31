@@ -39,5 +39,31 @@ class FavoritoSerializer(serializers.ModelSerializer):
         model = Favorito
         fields = '__all__'
 
+class PropiedadRecommendationSerializer(serializers.ModelSerializer):
+    score = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = Propiedad
+        fields = [
+            'id',
+            'nombre',
+            'descripcion',
+            'precio_por_noche',
+            'ciudad',
+            'pais',
+            'tipo_de_propiedad',
+            'wifi',
+            'parking',
+            'mascotas',
+            'score'  
+        ]
+    
+    def get_score(self, obj):
+        scores = self.context.get('scores', [])
+        for item in scores:
+            if item['propiedad'].id == obj.id:
+                return item['score']
+        return 0
+
 
     

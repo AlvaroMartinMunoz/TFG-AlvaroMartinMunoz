@@ -4,6 +4,8 @@ from .models.valoracionUsuario import ValoracionUsuario
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.forms import PasswordResetForm
+from django.utils.translation import gettext_lazy as _
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 
@@ -61,3 +63,9 @@ class PasswordResetSerializer(serializers.Serializer):
         if not self.reset_password.is_valid():
             raise serializers.ValidationError(self.reset_password.errors)
         return value
+    
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        data = super().validate(attrs)
+        data['usuarioId'] = self.user.id  
+        return data

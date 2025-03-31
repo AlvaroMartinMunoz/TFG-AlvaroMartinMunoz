@@ -16,6 +16,8 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils.encoding import force_bytes, force_str
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
     
 
 
@@ -123,3 +125,6 @@ class PasswordResetConfirmView(viewsets.ViewSet):
         user.set_password(new_password)
         user.save()
         return Response({'status': 'Contraseña restablecida'}, status=status.HTTP_200_OK)
+    
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer

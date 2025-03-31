@@ -10,6 +10,7 @@ from .views import confirmar_pago
 from .views import confirmar_pago_paypal
 from .views import create_payment
 from .views import FavoritoViewSet
+from .views import RecommendationAPI
 
 
 router = DefaultRouter()
@@ -27,5 +28,6 @@ urlpatterns = [
     path('confirmar-pago/<str:session_id>', confirmar_pago),
     path('create-checkout-paypal/', create_payment),
     path('confirmar-pago-paypal/', confirmar_pago_paypal),
+    path('recomendaciones/', RecommendationAPI.as_view()),
 
 ]

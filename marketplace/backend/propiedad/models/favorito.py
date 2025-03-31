@@ -4,8 +4,8 @@ from usuario.models.usuario import Usuario
 
 class Favorito(models.Model):
     
-    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE)
-    propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE)
+    usuario = models.ForeignKey(Usuario, on_delete=models.CASCADE, related_name='favoritos')
+    propiedad = models.ForeignKey(Propiedad, on_delete=models.CASCADE, related_name='favoritos')
 
     class Meta:
         unique_together = ['usuario', 'propiedad']
