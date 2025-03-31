@@ -17,6 +17,7 @@ import { loadStripe } from '@stripe/stripe-js';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { set } from 'date-fns';
+import PropertyValorations from './PropertyValorations';
 
 
 
@@ -1211,6 +1212,10 @@ const PropertyDetails = () => {
                         </Paper>
                     ))
                 }
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <PropertyValorations propiedadId={propiedadId} />
+                </Box>
 
                 <Modal
                     open={open}

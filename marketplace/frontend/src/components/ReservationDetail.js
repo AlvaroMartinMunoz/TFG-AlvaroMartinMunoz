@@ -437,7 +437,19 @@ const ReservationDetail = () => {
                                         lineHeight: 1.2
                                     }}
                                 >
-                                    {propiedad?.nombre}
+                                    <a
+                                        href={`/detalles/${propiedad.id}`}
+                                        style={{
+                                            textDecoration: "none",
+                                            color: "#091630",
+                                            transition: "color 0.2s ease",
+                                            "&:hover": {
+                                                color: "#2a4a8d"
+                                            }
+                                        }}
+                                    >
+                                        {propiedad.nombre}
+                                    </a>
                                 </Typography>
 
                                 <Chip
@@ -492,6 +504,55 @@ const ReservationDetail = () => {
                                         </Typography>
                                         <Rating name="read-only" value={mediaValoraciones?.media || 0} readOnly />
                                     </Box>
+                                </Box>
+
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: { xs: 2, sm: 3 }
+                                }}>
+                                    {reservation.usuario === usuarioId ? (
+                                        <>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Telefono
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {anfitrion?.telefono}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Correo electrónico
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {anfitrion?.usuario?.email}
+                                                </Typography>
+
+                                            </Box>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Telefono
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {cliente?.telefono}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ flex: 1 }}>
+                                                <Typography variant="subtitle2" sx={{ color: '#718096', mb: 0.5, fontWeight: 600 }}>
+                                                    Correo electrónico
+                                                </Typography>
+                                                <Typography variant="body1" sx={{ fontWeight: 500, color: '#2d3748' }}>
+                                                    {cliente?.usuario?.email}
+                                                </Typography>
+
+                                            </Box>
+                                        </>
+                                    )}
+
                                 </Box>
 
                                 <Box sx={{

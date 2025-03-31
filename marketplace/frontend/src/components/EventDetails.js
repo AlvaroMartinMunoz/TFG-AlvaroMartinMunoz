@@ -114,7 +114,7 @@ const EventDetails = () => {
     return (
         <Box
             sx={{
-                py: { xs: 4, md: 8 },
+                py: { xs: 2, md: 3 },
                 px: 2,
                 backgroundColor: '#f8fafc',
                 minHeight: '90vh'
@@ -125,7 +125,7 @@ const EventDetails = () => {
                     sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        mb: 4,
+                        mb: 2,
                         gap: 2
                     }}
                 >
