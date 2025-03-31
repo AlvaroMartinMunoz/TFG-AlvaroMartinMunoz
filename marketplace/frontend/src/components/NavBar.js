@@ -207,6 +207,7 @@ const NavBar = () => {
       { title: "Mis propiedades", path: "/mis-propiedades" },
       { title: "Mis reservas", path: "/mis-reservas" },
       { title: "Solicitudes de reserva", path: "/solicitudes-de-reserva" },
+      { title: "Recomendaciones para ti", path: "/recomendaciones" },
       { title: "Cerrar Sesión", action: handleLogOut },
     ]
     : [
