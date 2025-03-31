@@ -41,6 +41,7 @@ const NavBar = () => {
     if (token) {
       try {
         const decodedToken = jwtDecode(token);
+        console.log(jwtDecode)
         if (decodedToken && decodedToken.user_id) {
           fetchAllUsers(decodedToken.user_id);
         } else {
@@ -119,8 +120,10 @@ const NavBar = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const user = data.find((user) => user.usuario.id === userId);
-        const usuarioId = user.id;
+        console.log(userId);
+        console.log(data);
+        const user = data.find((user) => user?.usuario?.id === userId);
+        const usuarioId = user?.id;
 
         const additionalInfo = {
           usuarioId: usuarioId,

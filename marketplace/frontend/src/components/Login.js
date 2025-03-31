@@ -27,6 +27,7 @@ const Login = () => {
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
+
     if (token) {
       navigate("/");
       window.location.reload();
@@ -60,7 +61,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/", {
+      const response = await fetch("http://localhost:8000/api/token/full", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
@@ -73,8 +74,16 @@ const Login = () => {
       }
 
       const data = await response.json();
+      const usuarioId = data.usuarioId;
+      console.log(data.usuarioId);
       localStorage.setItem("accessToken", data.access);
       localStorage.setItem("refreshToken", data.refresh);
+      console.log("Tokens almacenados en localStorage:", data.access, data.refresh);
+      const additionalInfo = {
+        usuarioId: usuarioId,
+      };
+
+      localStorage.setItem("additionalInfo", JSON.stringify(additionalInfo));
       navigate("/");
       window.location.reload();
     } catch (error) {
