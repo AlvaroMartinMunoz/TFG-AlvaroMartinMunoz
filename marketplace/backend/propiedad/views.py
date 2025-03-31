@@ -32,10 +32,7 @@ from .models.favorito import Favorito
 from .serializers import FavoritoSerializer
 from propiedad.recommendations import ContentRecommender, CollaborativeRecommender
 from propiedad.serializers import PropiedadRecommendationSerializer
-
-
-
-
+import numpy as np
 
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -652,38 +649,62 @@ class FavoritoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
 # SISTEMA DE RECOMENDACIONES
-
 class RecommendationAPI(APIView):
     def get(self, request):
         user = request.user
+        if not user.is_authenticated:
+            return Response({"error": "Usuario no autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
             usuario = Usuario.objects.get(usuario=user.id)
-        except:
+        except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-
-        if not user.is_authenticated:
-            return Response({"error": "Usuario no autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
+        
+        
+        user_ratings = {
+            v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
+        }
         
         content_rec = ContentRecommender()
         collab_rec = CollaborativeRecommender()
         
         collab_props = collab_rec.get_user_recommendations(user.id)
-        
         scored_props = []
-        for prop in collab_props:
-            similar = content_rec.get_similar(prop.id)
-            user_favoritos_ids = usuario.favoritos.values_list('id', flat=True)
-            score = len(set(similar) & set(user_favoritos_ids))
-            scored_props.append({'propiedad': prop, 'score': score})
         
-        sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
+        user_favoritos_ids = set(usuario.favoritos.values_list('id', flat=True))
+        
+        max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
+
+        for prop in collab_props:
+
+            similares = content_rec.get_similar(prop.id, top=5)
+            
+           
+            rating_scores = [
+                similarity * (user_ratings[pid] / 5.0)
+                for pid, similarity, _ in similares if pid in user_ratings
+            ]
+            rating_score = np.mean(rating_scores) if rating_scores else 0
+            
+            fav_scores = [
+                similarity for pid, similarity, _ in similares if pid in user_favoritos_ids
+            ]
+            fav_score = np.mean(fav_scores) if fav_scores else 0
+            
+            popularity = getattr(prop, 'popularity', 0)
+            normalized_popularity = popularity / max_popularity if max_popularity > 0 else 0
+            
+            combined_score = 0.4 * rating_score + 0.3 * fav_score + 0.3 * normalized_popularity
+            
+            percentage_score = round(combined_score * 100, 2)
+            
+            scored_props.append({'propiedad': prop, 'score': percentage_score})
+        
+        sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:6]
         
         serializer = PropiedadRecommendationSerializer(
-            [item['propiedad'] for item in sorted_results], 
+            [item['propiedad'] for item in sorted_results],
             many=True,
-            context={'scores': sorted_results}
+            context={'scores': sorted_results} 
         )
-        
         return Response(serializer.data)
-    
