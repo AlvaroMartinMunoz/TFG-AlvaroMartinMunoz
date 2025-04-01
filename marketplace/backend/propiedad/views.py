@@ -33,6 +33,7 @@ from .serializers import FavoritoSerializer
 from propiedad.recommendations import ContentRecommender, CollaborativeRecommender
 from propiedad.serializers import PropiedadRecommendationSerializer
 import numpy as np
+from django.core.mail import send_mail
 
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -57,6 +58,8 @@ def create_checkout_session(request):
             estado = reservationdata['estado']
             metodo_pago = reservationdata['metodo_pago']
             comentarios_usuario = reservationdata['comentarios_usuario']
+            nombrePropiedad = reservationdata['nombrePropiedad']
+            correo = reservationdata['correo']
                         
 
             session = stripe.checkout.Session.create(
@@ -85,7 +88,10 @@ def create_checkout_session(request):
                     'precio_total': precio_total,
                     'estado': estado,
                     'metodo_pago': metodo_pago,
-                    'comentarios_usuario': comentarios_usuario
+                    'comentarios_usuario': comentarios_usuario,
+                    'nombrePropiedad': nombrePropiedad,
+                    'correo': correo,
+
                 }
             )
             return JsonResponse({
@@ -101,6 +107,7 @@ def confirmar_pago(request, session_id):
         
         if session.payment_status == 'paid':
             metadata = session.metadata
+            print("Metadata:", metadata)
             
             reserva = Reserva.objects.create(
                 propiedad_id=metadata['propiedad_id'],
@@ -114,8 +121,23 @@ def confirmar_pago(request, session_id):
                 estado=metadata['estado'],
                 metodo_pago=metadata['metodo_pago'],
                 comentarios_usuario=metadata['comentarios_usuario'],
-                fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1)
+                fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1), 
             )
+
+            subject = 'Confirmacion de reserva'
+            message = (
+                    f"Hola,\n\n"
+                    f"Su reserva ha sido confirmada exitosamente. A continuación, los detalles:\n"
+                    f"Propiedad: {metadata['nombrePropiedad']}\n"
+                    f"Fecha de llegada: {metadata['fecha_llegada']}\n"
+                    f"Fecha de salida: {metadata['fecha_salida']}\n"
+                    f"Número de personas: {metadata['numero_personas']}\n"
+                    f"Precio total: {float(metadata['precio_total']):.2f} EUR\n\n"
+                    f"Gracias por confiar en nosotros."
+                )
+            
+            recipient_list = [metadata['correo']]
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
             
             return JsonResponse({
                 'status': 'success',
@@ -139,6 +161,7 @@ paypalrestsdk.configure({
 def create_payment(request):
 
     data = json.loads(request.body)
+    print(data)
     reservationdata = data['reservationData']
     amount = reservationdata['precio_total']
     descripcion = "Pago para reserva de propiedad"
@@ -182,6 +205,7 @@ def confirmar_pago_paypal(request):
         payment_id = data['paymentId']
         payer_id = data['payerId']
 
+
         if not payer_id or not payment_id:
             return JsonResponse({'error': 'Se requieren paymentId y payerId'}, status=400)
 
@@ -200,6 +224,7 @@ def confirmar_pago_paypal(request):
 
             if payment.execute({"payer_id": payer_id}):
                 datos = data['reservationData']
+                print(datos)
                 
                 reserva = Reserva.objects.create(
                     propiedad_id=datos['propiedad'],
@@ -217,6 +242,22 @@ def confirmar_pago_paypal(request):
                     payment_id=payment_id
                 )
                 print("✅ Reserva creada ID:", reserva.id)
+
+                subject = 'Confirmacion de reserva'
+                message = (
+                    f"Hola,\n\n"
+                    f"Su reserva ha sido confirmada exitosamente. A continuación, los detalles:\n"
+                    f"Propiedad: {datos['nombrePropiedad']}\n"
+                    f"Fecha de llegada: {datos['fecha_llegada']}\n"
+                    f"Fecha de salida: {datos['fecha_salida']}\n"
+                    f"Número de personas: {datos['numero_personas']}\n"
+                    f"Precio total: {float(datos['precio_total']):.2f} EUR\n\n"
+                    f"Gracias por confiar en nosotros."
+                )
+
+                recipient_list = [datos['correo']]
+                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
+
                 return JsonResponse({'status': 'success', 'reserva_id': reserva.id})
             
             return JsonResponse({'error': payment.error}, status=400)
