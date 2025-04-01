@@ -59,6 +59,8 @@ const PropertyDetails = () => {
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoritoId, setFavoritoId] = useState(null);
     const [notification, setNotification] = useState(null);
+    const clienteId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
+    const [cliente, setCliente] = useState(null);
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -75,6 +77,12 @@ const PropertyDetails = () => {
 
     }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
 
+    useEffect(() => {
+        if (clienteId)
+            fetchCliente(clienteId);
+    }, [clienteId]);
+
+
     const validateFields = () => {
         if (rating === 0 || comentario_valoracion.trim() === "") {
             setAlertMessage("Por favor, complete todos los campos");
@@ -83,6 +91,22 @@ const PropertyDetails = () => {
         setAlertMessage("");
         return true;
     };
+
+    const fetchCliente = async (clienteId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/usuarios/${clienteId}/`);
+            if (response.ok) {
+                const data = await response.json();
+                setCliente(data);
+                console.log(data);
+            } else {
+                console.error("Error fetching cliente data:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching cliente data:", error);
+        }
+    };
+
 
     const checkIfFavorite = async () => {
         try {
@@ -623,6 +647,8 @@ const PropertyDetails = () => {
 
         const precioTotal = precioTotalSinComision + comision;
 
+
+
         const reservationData = {
             usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
             anfitrion: propiedad.anfitrion,
@@ -637,6 +663,8 @@ const PropertyDetails = () => {
             comentarios_usuario: comentarios_usuario,
             amount: Math.round(precioTotal * 100),
             currency: 'eur',
+            correo: cliente?.usuario?.email,
+            nombrePropiedad: propiedad.nombre,
 
         };
 

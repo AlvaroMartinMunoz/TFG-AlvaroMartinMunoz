@@ -15,12 +15,12 @@ import {
     Stack,
     Alert
 } from "@mui/material";
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import refreshAccessToken from "./RefreshToken";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { AccordionDetails } from "@mui/material";
-import { Navigate, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 
 const MyReserves = () => {
     const [misReservas, setMisReservas] = useState([]);
@@ -94,72 +94,89 @@ const MyReserves = () => {
     }, [location.search]);
 
     useEffect(() => {
-        const checkPaymentPaypal = async () => {
+        const procesarPagoPaypal = async () => {
+            // Obtener parámetros de la URL
             const params = new URLSearchParams(location.search);
             const paymentId = params.get("paymentId");
             const payerId = params.get("PayerID");
 
+            // Validar que existan los parámetros requeridos
             if (!paymentId || !payerId) return;
 
+            // Evitar procesamiento duplicado del mismo pago
             if (localStorage.getItem("processingPayment") === paymentId) {
-                console.log("⚠️ Pago ya siendo procesado");
+                console.warn("⚠️ Pago ya está siendo procesado");
                 return;
             }
 
             localStorage.setItem("processingPayment", paymentId);
 
             try {
-                const reservationData = JSON.parse(localStorage.getItem("reservationData"));
-                if (!reservationData) {
+                // Recuperar y validar los datos de reserva almacenados
+                const reservaAlmacenada = localStorage.getItem("reservationData");
+                if (!reservaAlmacenada) {
                     alert("No se encontraron datos de reserva");
                     return;
                 }
+                const reservationData = JSON.parse(reservaAlmacenada);
 
+                // Limpiar la URL de parámetros de consulta
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                const response = await fetch("http://localhost:8000/api/propiedades/confirmar-pago-paypal/", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                    },
-                    body: JSON.stringify({
-                        paymentId,
-                        payerId,
-                        reservationData
-                    })
-                });
+                // Realizar la solicitud a la API para confirmar el pago
+                const response = await fetch(
+                    "http://localhost:8000/api/propiedades/confirmar-pago-paypal/",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                        },
+                        body: JSON.stringify({
+                            paymentId,
+                            payerId,
+                            reservationData,
+                        }),
+                    }
+                );
 
+                // Limpiar datos temporales almacenados
                 localStorage.removeItem("reservationData");
                 localStorage.removeItem("processingPayment");
 
+                // Verificar respuesta del servidor
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.error || "Error en el pago");
                 }
 
+                // Procesar la respuesta exitosa
                 const data = await response.json();
+
+                // Notificar al usuario del éxito de la operación
                 setNotification({
-                    type: 'success',
-                    message: '¡Reserva confirmada exitosamente!'
+                    type: "success",
+                    message: "¡Reserva confirmada exitosamente!",
                 });
                 setTimeout(() => setNotification(null), 5000);
                 localStorage.setItem("paymentConfirmed", paymentId);
+                alert("¡Reserva confirmada exitosamente!");
 
+                // Redirigir al usuario a la sección de reservas
                 setTimeout(() => {
                     window.location.href = "/mis-reservas";
                 }, 1500);
-
             } catch (error) {
-                console.error("🔥 Error:", error);
+                console.error("🔥 Error al procesar el pago:", error);
                 alert(`Error al procesar el pago: ${error.message}`);
                 localStorage.removeItem("processingPayment");
             }
         };
 
+        // Controlar el ciclo de vida del efecto para evitar actualizaciones en componentes desmontados
         let isMounted = true;
         if (isMounted) {
-            checkPaymentPaypal();
+            procesarPagoPaypal();
         }
 
         return () => {
