@@ -36,7 +36,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy', ]:
+        if self.action in ['update', 'partial_update', 'destroy']:
             return [IsAuthenticated()]
         return [AllowAny()]
     
@@ -44,11 +44,35 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         if 'usuario' in request.data:
             usuario = Usuario.objects.filter(usuario=request.data['usuario'])
             if usuario.exists():
-                return Response({'error': 'Ya existe un usuario asociado a este usuario'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'error': 'Ya existe un usuario asociado a este usuario'}, 
+                              status=status.HTTP_400_BAD_REQUEST)
         return super().create(request, *args, **kwargs)
     
+    def perform_update(self, serializer):
+        user_data = {}
+        if 'username' in serializer.validated_data:
+            user_data['username'] = serializer.validated_data.pop('username')
+        if 'email' in serializer.validated_data:
+            user_data['email'] = serializer.validated_data.pop('email')
+        
+        if user_data:
+            user = serializer.instance.usuario
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+        
+        serializer.save()
+
     def partial_update(self, request, *args, **kwargs):
-        return Response({'error': 'No se puede actualizar un usuario'}, status=status.HTTP_400_BAD_REQUEST)
+        usuario = self.get_object()
+        usuarioId = usuario.usuario.id
+        userId = request.user.id 
+
+        if usuarioId != userId:
+            return Response({'error': 'No tienes permiso para editar este usuario'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
+        return super().partial_update(request, *args, **kwargs)
     
     def update(self, request, *args, **kwargs):
         usuario = self.get_object()
@@ -56,7 +80,9 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         userId = request.user.id 
 
         if usuarioId != userId:
-            return Response({'error': 'No tienes permiso para editar este usuario'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'No tienes permiso para editar este usuario'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        
         return super().update(request, *args, **kwargs)
     
     def destroy(self, request, *args, **kwargs):    
@@ -64,9 +90,9 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         usuarioId = usuario.usuario.id
         userId = request.user.id 
         if usuarioId != userId:
-            return Response({'error': 'No tienes permiso para eliminar este usuario'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'No tienes permiso para eliminar este usuario'}, 
+                          status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
-
 
 class ValoracionUsuarioViewSet(viewsets.ModelViewSet):
     queryset = ValoracionUsuario.objects.all()

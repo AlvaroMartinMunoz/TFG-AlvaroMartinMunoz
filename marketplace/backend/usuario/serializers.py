@@ -18,7 +18,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
     usuario = UserSerializer(read_only=True)
     username = serializers.CharField(write_only=True)
     email = serializers.EmailField(write_only=True)
-    password = serializers.CharField(write_only=True,min_length=8)
+    password = serializers.CharField(write_only=True, min_length=8, required=False)
     # valoracion_promedio_usuario = serializers.SerializerMethodField()
     class Meta:
         model = Usuario
