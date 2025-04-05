@@ -22,8 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
-import NavBar from "./NavBar";
-import Footer from "./Footer";
+
 
 const Profile = () => {
     const [formData, setFormData] = useState({
@@ -44,9 +43,10 @@ const Profile = () => {
         valoraciones_usuario: 0,
     });
 
-    const [errors, setErrors] = useState("");
+    const [errors, setErrors] = useState({});
     const [loading, setLoading] = useState(false);
     const [saveLoading, setSaveLoading] = useState(false);
+    const [message, setMessage] = useState("");
     const navigate = useNavigate();
     const [isEditing, setIsEditing] = useState(false);
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -91,25 +91,88 @@ const Profile = () => {
         }
     }, []);
 
+    const validateProfileData = async () => {
+        const newErrors = {};
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+        const emailDominio = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+        // Validación de email
+        if (!formData.usuario.email) {
+            newErrors.email = "El email es requerido";
+        } else if (!emailRegex.test(formData.usuario.email)) {
+            newErrors.email = "El email debe tener un formato válido";
+        } else if (!emailDominio.test(formData.usuario.email)) {
+            newErrors.email = "El email debe tener un dominio válido";
+        }
+
+        // Validación de teléfono
+        if (!formData.telefono) {
+            newErrors.telefono = "El teléfono es requerido";
+        }
+        if (!/^\d{9}$/.test(formData.telefono)) {
+            newErrors.telefono = "El teléfono debe tener 9 dígitos numéricos";
+        }
+
+        try {
+            const checkResponse = await fetch("http://localhost:8000/api/usuarios/");
+            const usuarios = await checkResponse.json();
+
+            const existeEmail = usuarios.some(u =>
+                u.usuario.email === formData.usuario.email &&
+                u.usuario.id !== formData.usuario.id
+            );
+            const existeTelefono = usuarios.some(
+                (u) => u.telefono === formData.telefono && u.id !== formData.id
+            );
+
+            if (existeEmail) {
+                newErrors.email = "El email ya está en uso";
+            }
+            if (existeTelefono) {
+                newErrors.telefono = "El teléfono ya está en uso";
+            }
+        } catch (error) {
+            console.error("Error al validar:", error);
+            setMessage("Error al validar el formulario");
+        }
+
+        setErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
+
     const updateProfile = async () => {
+        const isValid = await validateProfileData();
+
+        if (!isValid) {
+            setNotification({
+                open: true,
+                message: 'Por favor, corrija los errores en el formulario',
+                severity: 'error'
+            });
+            return;
+        }
+
         try {
             setSaveLoading(true);
+
+            const requestData = {
+                username: formData.usuario.username,  // Campo write_only
+                email: formData.usuario.email,        // Campo write_only
+                telefono: formData.telefono,
+                direccion: formData.direccion,
+                biografia: formData.biografia,
+                dni: formData.dni,
+                fecha_de_nacimiento: formData.fecha_de_nacimiento
+            };
+
             const response = await fetch(`http://localhost:8000/api/usuarios/${formData.id}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                 },
-                body: JSON.stringify({
-                    id: formData.id,
-                    username: formData.usuario.username,
-                    email: formData.usuario.email,
-                    dni: formData.dni,
-                    telefono: formData.telefono,
-                    direccion: formData.direccion,
-                    biografia: formData.biografia,
-                    fecha_de_nacimiento: formData.fecha_de_nacimiento,
-                }),
+                body: JSON.stringify(requestData),
             });
 
             if (!response.ok) {
@@ -271,7 +334,21 @@ const Profile = () => {
                                             name="email"
                                             variant="outlined"
                                             value={formData.usuario.email}
-                                            disabled
+                                            error={!!errors.email}
+                                            helperText={errors.email}
+                                            disabled={!isEditing}
+                                            onChange={(e) => {
+                                                setFormData({
+                                                    ...formData,
+                                                    usuario: {
+                                                        ...formData.usuario,
+                                                        email: e.target.value
+                                                    }
+                                                });
+                                                if (errors.email) {
+                                                    setErrors({ ...errors, email: '' });
+                                                }
+                                            }}
                                             sx={{ mb: 2 }}
                                             InputProps={{
                                                 sx: { bgcolor: 'background.paper' }
@@ -297,7 +374,15 @@ const Profile = () => {
                                             name="telefono"
                                             variant="outlined"
                                             value={formData.telefono}
-                                            disabled
+                                            error={!!errors.telefono}
+                                            helperText={errors.telefono}
+                                            disabled={!isEditing}
+                                            onChange={(e) => {
+                                                setFormData({ ...formData, telefono: e.target.value });
+                                                if (errors.telefono) {
+                                                    setErrors({ ...errors, telefono: '' });
+                                                }
+                                            }}
                                             InputProps={{
                                                 sx: { bgcolor: 'background.paper' }
                                             }}
@@ -313,7 +398,10 @@ const Profile = () => {
                                     </Typography>
                                     <IconButton
                                         color={isEditing ? "primary" : "default"}
-                                        onClick={() => setIsEditing(!isEditing)}
+                                        onClick={() => {
+                                            setIsEditing(!isEditing);
+                                            setErrors({});
+                                        }}
                                         disabled={saveLoading}
                                     >
                                         <EditIcon />
