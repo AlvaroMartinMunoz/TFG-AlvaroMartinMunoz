@@ -34,6 +34,8 @@ from propiedad.recommendations import ContentRecommender, CollaborativeRecommend
 from propiedad.serializers import PropiedadRecommendationSerializer
 import numpy as np
 from django.core.mail import send_mail
+from .models.precioEspecial import PrecioEspecial
+from .serializers import PrecioEspecialSerializer
 
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -701,7 +703,6 @@ class RecommendationAPI(APIView):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         
-        # Obtener ciudades relevantes del usuario
         user_ciudades = list(usuario.reservas.values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades += list(usuario.favoritos.values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades = list(set(user_ciudades))
@@ -721,7 +722,6 @@ class RecommendationAPI(APIView):
         max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
 
         for prop in collab_props:
-            # Calcular puntuación de ubicación
             ciudad_score = 5 if prop.ciudad in user_ciudades else 0
             
             similares = content_rec.get_similar(prop.id, top=5)
@@ -740,9 +740,8 @@ class RecommendationAPI(APIView):
             popularity = getattr(prop, 'popularity', 0)
             normalized_popularity = popularity / max_popularity if max_popularity > 0 else 0
             
-            # Puntuación combinada con máximo énfasis en ubicación
             combined_score = (
-                0.5 * ciudad_score +  # 50% peso a ubicación
+                0.5 * ciudad_score +  
                 0.2 * rating_score + 
                 0.2 * fav_score + 
                 0.1 * normalized_popularity
@@ -751,8 +750,7 @@ class RecommendationAPI(APIView):
             percentage_score = round(combined_score * 100, 2)
             scored_props.append({'propiedad': prop, 'score': percentage_score})
         
-        # Ordenar y seleccionar mejores resultados
-        sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:6]
+        sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
         
         serializer = PropiedadRecommendationSerializer(
             [item['propiedad'] for item in sorted_results],
@@ -760,3 +758,61 @@ class RecommendationAPI(APIView):
             context={'scores': sorted_results} 
         )
         return Response(serializer.data)
+    
+class PrecioEspecialViewSet(viewsets.ModelViewSet):
+    queryset = PrecioEspecial.objects.all()
+    serializer_class = PrecioEspecialSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAuthenticated()]
+        return [AllowAny()]
+
+    def create(self, request, *args, **kwargs):
+        propiedad_id = request.data.get('propiedad')
+        fecha_inicio_str = request.data.get('fecha_inicio')
+        fecha_fin_str = request.data.get('fecha_fin')
+        precio_especial = request.data.get('precio_especial')
+
+        if not propiedad_id or not fecha_inicio_str or not fecha_fin_str or not precio_especial:
+            return Response({'error': 'Todos los campos son obligatorios'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            fecha_inicio = datetime.strptime(fecha_inicio_str, '%Y-%m-%d').date()
+            fecha_fin = datetime.strptime(fecha_fin_str, '%Y-%m-%d').date()
+        except ValueError:
+            return Response({'error': 'Formato de fecha inválido (debe ser YYYY-MM-DD)'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            precio_especial = float(precio_especial)
+            if precio_especial <= 0:
+                return Response({'error': 'El precio especial debe ser mayor a 0'}, status=status.HTTP_400_BAD_REQUEST)
+        except ValueError:
+            return Response({'error': 'Precio especial inválido'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            propiedad = Propiedad.objects.get(id=propiedad_id)
+        except Propiedad.DoesNotExist:
+            return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+        if propiedad.anfitrion.usuario_id != request.user.id:
+            return Response({'error': 'No tienes permiso para establecer precios especiales en esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
+
+        if fecha_inicio >= fecha_fin:
+            return Response({'error': 'Fecha de inicio debe ser anterior a fecha de fin'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if fecha_inicio < datetime.now().date():
+            return Response({'error': 'Fecha de inicio debe ser posterior a la fecha actual'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            PrecioEspecial.objects.create(
+                propiedad=propiedad,
+                fecha_inicio=fecha_inicio,
+                fecha_fin=fecha_fin,
+                precio_especial=precio_especial
+            )
+        except IntegrityError:
+            return Response({'error': 'Ya existe un precio especial para estas fechas'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        return Response({'status': 'precio especial creado'}, status=status.HTTP_201_CREATED)
+    
