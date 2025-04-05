@@ -955,7 +955,10 @@ const PropertyDetails = () => {
                                         borderRadius: 2,
                                         boxShadow: 3,
                                     }}
-                                    onClick={() => window.location.href = "/inicio-de-sesion"}
+                                    onClick={() => {
+                                        const redirectUrl = `/inicio-de-sesion?redirect=/detalles/${propiedadId}`;
+                                        window.location.href = redirectUrl;
+                                    }}
                                 >
                                     Inicie sesión para reservar
                                 </Button>

@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -24,6 +24,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -48,6 +49,8 @@ const Login = () => {
   const toggleShowPassword = () => {
     setShowPassword(!showPassword);
   };
+
+
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -84,7 +87,13 @@ const Login = () => {
       };
 
       localStorage.setItem("additionalInfo", JSON.stringify(additionalInfo));
-      navigate("/");
+      const redirectUrl = new URLSearchParams(location?.search).get("redirect");
+
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else {
+        navigate("/");
+      }
       window.location.reload();
     } catch (error) {
       setError(error.message);
