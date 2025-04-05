@@ -63,6 +63,73 @@ const Explorer = () => {
   const [camas, setCamas] = useState(0);
   const [ordenPrecio, setOrdenPrecio] = useState("asc");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [ciudad, setCiudad] = useState("");
+
+  const ciudadesEspana = [
+    "Madrid",
+    "Barcelona",
+    "Valencia",
+    "Sevilla",
+    "Zaragoza",
+    "Málaga",
+    "Murcia",
+    "Palma",
+    "Bilbao",
+    "Alicante",
+    "Córdoba",
+    "Valladolid",
+    "Vigo",
+    "Gijón",
+    "Granada",
+    "Elche",
+    "Oviedo",
+    "Badalona",
+    "Cartagena",
+    "Terrassa",
+    "Jerez de la Frontera",
+    "Sabadell",
+    "Móstoles",
+    "Santa Cruz de Tenerife",
+    "Pamplona",
+    "Almería",
+    "Alcalá de Henares",
+    "San Sebastián",
+    "Donostia",
+    "Leganés",
+    "Santander",
+    "Burgos",
+    "Castellón de la Plana",
+    "Alcorcón",
+    "Albacete",
+    "Getafe",
+    "Salamanca",
+    "Logroño",
+    "Huelva",
+    "Badajoz",
+    "Tarragona",
+    "Lleida",
+    "Marbella",
+    "León",
+    "Cádiz",
+    "Jaén",
+    "Ourense",
+    "Lugo",
+    "Santiago de Compostela",
+    "Cáceres",
+    "Melilla",
+    "Ceuta",
+    "Ávila",
+    "Segovia",
+    "Guadalajara",
+    "Cuenca",
+    "Soria",
+    "Zamora",
+    "Palencia",
+    "Toledo",
+    "Ciudad Real",
+    "Huesca",
+  ];
+
 
   const isAuthenticated = () => {
     return !!localStorage.getItem("accessToken");
@@ -82,7 +149,9 @@ const Explorer = () => {
           propiedad.precio_por_noche <= precioRango[1]) &&
         (habitaciones === 0 ||
           propiedad.numero_de_habitaciones >= habitaciones) &&
-        (camas === 0 || propiedad.numero_de_camas >= camas)
+        (camas === 0 || propiedad.numero_de_camas >= camas) &&
+        (ciudad === "" || propiedad.ciudad.toLowerCase() === ciudad.toLowerCase()
+        )
       );
     });
 
@@ -102,7 +171,7 @@ const Explorer = () => {
       fetchPropertyPhotos(propiedad.id);
       fetchMediaValoraciones(propiedad.id);
     });
-  }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio]);
+  }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio, ciudad]);
 
 
 
@@ -271,117 +340,6 @@ const Explorer = () => {
         }}
       >
         <Container maxWidth="lg" sx={{ py: 4 }}>
-          {/* Barra de búsqueda */}
-          {/* <Paper
-            elevation={3}
-            sx={{
-              p: 3,
-              mb: 4,
-              width: { xs: "95%", md: "80%" },
-              ml: "auto",
-              mr: "auto",
-              borderRadius: "16px",
-              boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
-              transition: "all 0.3s ease",
-              "&:hover": {
-                boxShadow: "0 6px 24px rgba(0,0,0,0.12)",
-              }
-            }}
-          >
-            <Stack
-              direction={{ xs: "column", sm: "row" }}
-              spacing={2}
-              alignItems="center"
-              divider={isMobile ? null : <Divider orientation="vertical" flexItem />}
-            >
-              <Box sx={{ width: { xs: "100%", sm: "40%" }, mb: { xs: 2, sm: 0 } }}>
-                <Stack direction={{ xs: "column", sm: "row" }} spacing={1} width="100%">
-                  <DatePicker
-                    label="Llegada"
-                    value={fechaLlegada}
-                    onChange={setFechaLlegada}
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth variant="outlined" />
-                    )}
-                    disablePast
-                    sx={{ width: { xs: "100%", sm: "50%" } }}
-                  />
-                  <DatePicker
-                    label="Salida"
-                    value={fechaSalida}
-                    onChange={setFechaSalida}
-                    renderInput={(params) => (
-                      <TextField {...params} fullWidth variant="outlined" />
-                    )}
-                    disablePast
-                    minDate={fechaLlegada}
-                    sx={{ width: { xs: "100%", sm: "50%" } }}
-                  />
-                </Stack>
-              </Box>
-
-              <Box sx={{
-                display: "flex",
-                alignItems: "center",
-                border: "1px solid",
-                borderColor: "grey.300",
-                borderRadius: 2,
-                p: 1,
-                width: { xs: "100%", sm: "auto" },
-                justifyContent: "center"
-              }}>
-                <Typography sx={{ mr: 1 }}>Personas:</Typography>
-                <IconButton
-                  onClick={handleDecrement}
-                  sx={{
-                    color: "primary.main",
-                    bgcolor: "grey.100",
-                    "&:hover": { bgcolor: "grey.200" }
-                  }}
-                >
-                  <RemoveIcon />
-                </IconButton>
-                <Typography
-                  sx={{
-                    mx: 2,
-                    fontWeight: "bold",
-                    minWidth: "24px",
-                    textAlign: "center"
-                  }}
-                >
-                  {numPersonas}
-                </Typography>
-                <IconButton
-                  onClick={handleIncrement}
-                  sx={{
-                    color: "primary.main",
-                    bgcolor: "grey.100",
-                    "&:hover": { bgcolor: "grey.200" }
-                  }}
-                >
-                  <AddIcon />
-                </IconButton>
-              </Box>
-
-              <Button
-                variant="contained"
-                startIcon={<SearchIcon />}
-                sx={{
-                  bgcolor: "#091630",
-                  borderRadius: "30px",
-                  px: 3,
-                  py: 1.5,
-                  fontWeight: "bold",
-                  "&:hover": {
-                    bgcolor: "#152a5a",
-                  },
-                  width: { xs: "100%", sm: "auto" }
-                }}
-              >
-                Buscar
-              </Button>
-            </Stack>
-          </Paper> */}
 
           <Box
             sx={{
@@ -394,7 +352,7 @@ const Explorer = () => {
             <Box sx={{
               width: { xs: "100%", md: "25%" },
               transition: "all 0.3s ease",
-              maxHeight: { md: "calc(100vh - 150px)" },
+              maxHeight: { md: "calc(100vh - 180px)" },
               position: { md: "sticky" },
               top: { md: "20px" },
               mb: 2,
@@ -411,22 +369,39 @@ const Explorer = () => {
                 <Box
                   sx={{
                     bgcolor: "#091630",
-                    py: 2,
+                    py: 1.5,
                     px: 3,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "space-between"
                   }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: "bold", color: "white" }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold", color: "white" }}>
                     Filtros Avanzados
                   </Typography>
-                  <FilterListIcon sx={{ color: "white" }} />
+                  <FilterListIcon sx={{ color: "white", fontSize: "1.2rem" }} />
                 </Box>
-                <Box sx={{ p: 3 }}>
-                  <Stack spacing={3}>
+                <Box sx={{ p: 2 }}>
+                  <Stack spacing={2}>
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Ciudad</InputLabel>
+                      <Select
+                        value={ciudad}
+                        label="Ciudad"
+                        onChange={(e) => setCiudad(e.target.value)}
+                        sx={{ '& .MuiOutlinedInput-notchedOutline': { borderRadius: "12px" } }}
+                      >
+                        <MenuItem value="">Todas</MenuItem>
+                        {ciudadesEspana.map((ciudad, index) => (
+                          <MenuItem key={index} value={ciudad}>
+                            {ciudad}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+
                     <Box>
-                      <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: "bold", mb: 0.5 }}>
                         Rango de precio (€)
                       </Typography>
                       <Box sx={{ px: 1 }}>
@@ -436,15 +411,16 @@ const Explorer = () => {
                           valueLabelDisplay="auto"
                           min={0}
                           max={1000}
+                          size="small"
                           sx={{
                             color: "#091630",
                             '& .MuiSlider-thumb': {
-                              height: 24,
-                              width: 24,
+                              height: 16,
+                              width: 16,
                               backgroundColor: '#fff',
                               border: '2px solid #091630',
                               '&:hover, &.Mui-focusVisible': {
-                                boxShadow: `0px 0px 0px 8px rgba(9, 22, 48, 0.16)`
+                                boxShadow: `0px 0px 0px 6px rgba(9, 22, 48, 0.16)`
                               }
                             },
                             '& .MuiSlider-valueLabel': {
@@ -453,17 +429,17 @@ const Explorer = () => {
                           }}
                         />
                       </Box>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 1 }}>
-                        <Typography variant="body2" color="text.secondary">
+                      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+                        <Typography variant="caption" color="text.secondary">
                           {precioRango[0]}€
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary">
                           {precioRango[1]}€
                         </Typography>
                       </Box>
                     </Box>
 
-                    <FormControl fullWidth>
+                    <FormControl fullWidth size="small">
                       <InputLabel>Tipo de Propiedad</InputLabel>
                       <Select
                         value={tipoPropiedad}
@@ -474,50 +450,51 @@ const Explorer = () => {
                         <MenuItem value="">Todos</MenuItem>
                         <MenuItem value="Apartamento">
                           <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <HomeIcon sx={{ mr: 1, color: "#091630" }} />
+                            <HomeIcon sx={{ mr: 1, color: "#091630", fontSize: "0.9rem" }} />
                             Apartamento
                           </Box>
                         </MenuItem>
                         <MenuItem value="Casa">
                           <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <HomeIcon sx={{ mr: 1, color: "#091630" }} />
+                            <HomeIcon sx={{ mr: 1, color: "#091630", fontSize: "0.9rem" }} />
                             Casa
                           </Box>
                         </MenuItem>
                         <MenuItem value="Villa">
                           <Box sx={{ display: "flex", alignItems: "center" }}>
-                            <HomeIcon sx={{ mr: 1, color: "#091630" }} />
+                            <HomeIcon sx={{ mr: 1, color: "#091630", fontSize: "0.9rem" }} />
                             Villa
                           </Box>
                         </MenuItem>
                       </Select>
                     </FormControl>
 
-                    <Stack spacing={2}>
+                    <Box sx={{ display: "flex", gap: 1, }}>
                       {[
                         {
                           label: "Habitaciones",
                           value: habitaciones,
                           setter: setHabitaciones,
-                          icon: <BedIcon sx={{ color: "#091630" }} />
+                          icon: <BedIcon sx={{ color: "#091630", fontSize: "0.9rem" }} />
                         },
                         {
                           label: "Camas",
                           value: camas,
                           setter: setCamas,
-                          icon: <HotelIcon sx={{ color: "#091630" }} />
+                          icon: <HotelIcon sx={{ color: "#091630", fontSize: "0.9rem" }} />
                         },
                       ].map((counter, index) => (
                         <Box
                           key={index}
                           sx={{
                             display: "flex",
+                            flexDirection: "column",
                             alignItems: "center",
-                            gap: 1.5,
                             border: "1px solid",
                             borderColor: "grey.300",
                             borderRadius: "12px",
-                            p: 1.5,
+                            p: 1,
+                            flex: 1,
                             transition: "all 0.2s ease",
                             '&:hover': {
                               borderColor: "primary.main",
@@ -525,55 +502,54 @@ const Explorer = () => {
                             }
                           }}
                         >
-                          {counter.icon}
-                          <Typography sx={{ minWidth: 90, fontWeight: 500 }}>
-                            {counter.label}
-                          </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", ml: "auto" }}>
+                          <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
+                            {counter.icon}
+                            <Typography variant="caption" sx={{ ml: 0.5, fontWeight: 500 }}>
+                              {counter.label}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
                             <IconButton
-                              onClick={() =>
-                                counter.setter(Math.max(0, counter.value - 1))
-                              }
+                              onClick={() => counter.setter(Math.max(0, counter.value - 1))}
                               disabled={counter.value === 0}
+                              size="small"
                               sx={{
                                 bgcolor: "grey.100",
                                 "&:hover": { bgcolor: "grey.200" },
-                                width: 20,
-                                height: 20
+                                width: 16,
+                                height: 16
                               }}
                             >
-                              <RemoveIcon />
+                              <RemoveIcon fontSize="small" />
                             </IconButton>
                             <Typography
                               sx={{
-                                width: 30,
-
+                                width: 24,
                                 textAlign: "center",
-                                fontWeight: "bold"
+                                fontWeight: "bold",
+                                mx: 0.5
                               }}
                             >
                               {counter.value}
                             </Typography>
                             <IconButton
-                              onClick={() =>
-                                counter.setter(Math.min(15, counter.value + 1))
-                              }
+                              onClick={() => counter.setter(Math.min(15, counter.value + 1))}
                               disabled={counter.value === 15}
+                              size="small"
                               sx={{
-                                // bgcolor: "grey.100",
                                 "&:hover": { bgcolor: "grey.200" },
-                                width: 20,
-                                height: 20
+                                width: 16,
+                                height: 16
                               }}
                             >
-                              <AddIcon />
+                              <AddIcon fontSize="small" />
                             </IconButton>
                           </Box>
                         </Box>
                       ))}
-                    </Stack>
+                    </Box>
 
-                    <FormControl fullWidth>
+                    <FormControl fullWidth size="small">
                       <InputLabel>Ordenar por precio</InputLabel>
                       <Select
                         value={ordenPrecio}
@@ -588,15 +564,17 @@ const Explorer = () => {
                       </Select>
                     </FormControl>
 
-                    <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+                    <Box sx={{ display: "flex", justifyContent: "center" }}>
                       <Button
                         variant="outlined"
+                        size="small"
                         sx={{
                           borderRadius: "30px",
                           borderColor: "#091630",
                           color: "#091630",
-                          fontSize: "0.9rem",
-                          px: 3,
+                          fontSize: "0.8rem",
+                          px: 2,
+                          py: 0.5,
                           '&:hover': {
                             bgcolor: 'rgba(9, 22, 48, 0.04)',
                             borderColor: "#091630",
@@ -791,7 +769,7 @@ const Explorer = () => {
                         <Box sx={{ mb: 1 }}>
                           <Chip
                             icon={<LocationOnIcon />}
-                            label={propiedad.ubicacion || "España"}
+                            label={propiedad.ciudad || "España"}
                             size="small"
                             sx={{
                               bgcolor: "#f0f4f8",
