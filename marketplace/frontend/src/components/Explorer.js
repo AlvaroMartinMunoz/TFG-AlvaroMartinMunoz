@@ -61,9 +61,11 @@ const Explorer = () => {
   const [tipoPropiedad, setTipoPropiedad] = useState("");
   const [habitaciones, setHabitaciones] = useState(0);
   const [camas, setCamas] = useState(0);
-  const [ordenPrecio, setOrdenPrecio] = useState("asc");
+  const [ordenPrecio, setOrdenPrecio] = useState("recomendaciones");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [ciudad, setCiudad] = useState("");
+  const [recomendaciones, setRecomendaciones] = useState([]);
+  const [error, setError] = useState(null);
 
   const ciudadesEspana = [
     "Madrid",
@@ -135,46 +137,89 @@ const Explorer = () => {
     return !!localStorage.getItem("accessToken");
   };
 
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        const recResponse = await fetch("http://localhost:8000/api/propiedades/recomendaciones/", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+          },
+        });
+
+        if (recResponse.ok) {
+          const recomendacionesData = await recResponse.json();
+          setRecomendaciones(recomendacionesData);
+          setPropiedadesFiltradas(recomendacionesData);
+        }
+
+        const allResponse = await fetch("http://localhost:8000/api/propiedades/propiedades/");
+        if (allResponse.ok) {
+          const allProperties = await allResponse.json();
+          setPropiedades(allProperties);
+        }
+
+        fetchFavoritos();
+      } catch (error) {
+        console.error("Error al cargar datos iniciales:", error);
+      }
+    };
+
+    fetchInitialData();
+  }, []);
+
+  useEffect(() => {
+    const filterProperties = (props) => {
+      return props.filter((propiedad) => {
+        return (
+          (!tipoPropiedad || propiedad.tipo_de_propiedad === tipoPropiedad) &&
+          (precioRango[0] <= propiedad.precio_por_noche &&
+            propiedad.precio_por_noche <= precioRango[1]) &&
+          (habitaciones === 0 ||
+            propiedad.numero_de_habitaciones >= habitaciones) &&
+          (camas === 0 || propiedad.numero_de_camas >= camas) &&
+          (ciudad === "" || propiedad.ciudad.toLowerCase() === ciudad.toLowerCase())
+        );
+      });
+    };
+
+    const sortProperties = (props) => {
+      return props.sort((a, b) => {
+        if (ordenPrecio === "recomendaciones") {
+          return 0;
+        } else if (ordenPrecio === "asc") {
+          return a.precio_por_noche - b.precio_por_noche;
+        } else if (ordenPrecio === "desc") {
+          return b.precio_por_noche - a.precio_por_noche;
+        } else if (ordenPrecio === "valoracion") {
+          return (mediaValoraciones[b.id] || 0) - (mediaValoraciones[a.id] || 0);
+        }
+        return 0;
+      });
+    };
+
+    const filteredRecs = sortProperties(filterProperties(recomendaciones));
+
+    const filteredAll = sortProperties(filterProperties(propiedades.filter(
+      p => !recomendaciones.some(r => r.id === p.id)
+    )));
+
+    const combined = [...filteredRecs, ...filteredAll];
+
+    setPropiedadesFiltradas(combined);
+
+    combined.forEach((propiedad) => {
+      if (!url[propiedad.id]) fetchPropertyPhotos(propiedad.id);
+      if (!mediaValoraciones[propiedad.id]) fetchMediaValoraciones(propiedad.id);
+    });
+  }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, recomendaciones, ordenPrecio, ciudad]);
+
 
   useEffect(() => {
     fetchAllProperties();
     fetchFavoritos();
   }, []);
-
-  useEffect(() => {
-    const filtered = propiedades.filter((propiedad) => {
-      return (
-        (!tipoPropiedad || propiedad.tipo_de_propiedad === tipoPropiedad) &&
-        (precioRango[0] <= propiedad.precio_por_noche &&
-          propiedad.precio_por_noche <= precioRango[1]) &&
-        (habitaciones === 0 ||
-          propiedad.numero_de_habitaciones >= habitaciones) &&
-        (camas === 0 || propiedad.numero_de_camas >= camas) &&
-        (ciudad === "" || propiedad.ciudad.toLowerCase() === ciudad.toLowerCase()
-        )
-      );
-    });
-
-    const sorted = filtered.sort((a, b) => {
-      if (ordenPrecio === "asc") {
-        return a.precio_por_noche - b.precio_por_noche;
-      } else if (ordenPrecio === "desc") {
-        return b.precio_por_noche - a.precio_por_noche;
-      } else if (ordenPrecio === "valoracion") {
-        return (mediaValoraciones[b.id] || 0) - (mediaValoraciones[a.id] || 0);
-      }
-    });
-
-
-    setPropiedadesFiltradas(sorted);
-    sorted.forEach((propiedad) => {
-      fetchPropertyPhotos(propiedad.id);
-      fetchMediaValoraciones(propiedad.id);
-    });
-  }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, ordenPrecio, ciudad]);
-
-
-
 
 
   const fetchFavoritos = async () => {
@@ -558,6 +603,7 @@ const Explorer = () => {
                         IconComponent={SortIcon}
                         sx={{ '& .MuiOutlinedInput-notchedOutline': { borderRadius: "12px" } }}
                       >
+                        <MenuItem value="recomendaciones">Recomendaciones</MenuItem>
                         <MenuItem value="asc">De menor a mayor precio</MenuItem>
                         <MenuItem value="desc">De mayor a menor precio</MenuItem>
                         <MenuItem value="valoracion">Por valoración</MenuItem>
@@ -615,6 +661,7 @@ const Explorer = () => {
                     sx={{ borderRadius: "30px" }}
                     startAdornment={<SortIcon sx={{ mr: 1 }} />}
                   >
+                    <MenuItem value="recomendaciones">Recomendaciones</MenuItem>
                     <MenuItem value="asc">Precio: Menor a mayor</MenuItem>
                     <MenuItem value="desc">Precio: Mayor a menor</MenuItem>
                     <MenuItem value="valoracion">Por valoración</MenuItem>
