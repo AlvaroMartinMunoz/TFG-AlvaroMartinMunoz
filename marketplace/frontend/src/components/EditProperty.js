@@ -61,6 +61,72 @@ const EditProperty = () => {
         portada: null
     });
 
+    const ciudadesEspana = [
+        "Madrid",
+        "Barcelona",
+        "Valencia",
+        "Sevilla",
+        "Zaragoza",
+        "Málaga",
+        "Murcia",
+        "Palma",
+        "Bilbao",
+        "Alicante",
+        "Córdoba",
+        "Valladolid",
+        "Vigo",
+        "Gijón",
+        "Granada",
+        "Elche",
+        "Oviedo",
+        "Badalona",
+        "Cartagena",
+        "Terrassa",
+        "Jerez de la Frontera",
+        "Sabadell",
+        "Móstoles",
+        "Santa Cruz de Tenerife",
+        "Pamplona",
+        "Almería",
+        "Alcalá de Henares",
+        "San Sebastián",
+        "Donostia",
+        "Leganés",
+        "Santander",
+        "Burgos",
+        "Castellón de la Plana",
+        "Alcorcón",
+        "Albacete",
+        "Getafe",
+        "Salamanca",
+        "Logroño",
+        "Huelva",
+        "Badajoz",
+        "Tarragona",
+        "Lleida",
+        "Marbella",
+        "León",
+        "Cádiz",
+        "Jaén",
+        "Ourense",
+        "Lugo",
+        "Santiago de Compostela",
+        "Cáceres",
+        "Melilla",
+        "Ceuta",
+        "Ávila",
+        "Segovia",
+        "Guadalajara",
+        "Cuenca",
+        "Soria",
+        "Zamora",
+        "Palencia",
+        "Toledo",
+        "Ciudad Real",
+        "Huesca",
+    ];
+
+
     useEffect(() => {
         const fetchData = async () => {
             await fetchPropertyDetails(id);
@@ -474,18 +540,27 @@ const EditProperty = () => {
                                             size="small"
                                         />
                                         <Box sx={{ display: "flex", gap: 2 }}>
-                                            <TextField
-                                                label="Ciudad"
-                                                name="ciudad"
-                                                variant="outlined"
-                                                fullWidth
-                                                value={formValues.ciudad}
-                                                onChange={handleChange}
-                                                required
-                                                error={!!errors.ciudad}
-                                                helperText={errors.ciudad}
-                                                size="small"
-                                            />
+                                            <FormControl fullWidth size="small" variant="outlined" error={!!errors.ciudad}>
+                                                <InputLabel>Ciudad</InputLabel>
+                                                <Select
+                                                    name="ciudad"
+                                                    value={formValues.ciudad}
+                                                    onChange={handleChange}
+                                                    label="Ciudad"
+                                                    required
+                                                    renderValue={(selected) => selected || "Selecciona una ciudad"}
+                                                >
+                                                    <MenuItem value="" disabled>
+                                                        Selecciona una ciudad
+                                                    </MenuItem>
+                                                    {ciudadesEspana.map((ciudad) => (
+                                                        <MenuItem key={ciudad} value={ciudad}>
+                                                            {ciudad}
+                                                        </MenuItem>
+                                                    ))}
+                                                </Select>
+                                                <FormHelperText>{errors.ciudad}</FormHelperText>
+                                            </FormControl>
                                             <TextField
                                                 label="Código Postal"
                                                 name="codigo_postal"
@@ -504,11 +579,8 @@ const EditProperty = () => {
                                             name="pais"
                                             variant="outlined"
                                             fullWidth
-                                            value={formValues.pais}
-                                            onChange={handleChange}
-                                            required
-                                            error={!!errors.pais}
-                                            helperText={errors.pais}
+                                            value="España"
+                                            disabled
                                             size="small"
                                         />
                                     </Stack>
