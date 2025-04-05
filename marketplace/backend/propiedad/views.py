@@ -701,6 +701,10 @@ class RecommendationAPI(APIView):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         
+        # Obtener ciudades relevantes del usuario
+        user_ciudades = list(usuario.reservas.values_list('propiedad__ciudad', flat=True).distinct())
+        user_ciudades += list(usuario.favoritos.values_list('propiedad__ciudad', flat=True).distinct())
+        user_ciudades = list(set(user_ciudades))
         
         user_ratings = {
             v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
@@ -712,15 +716,16 @@ class RecommendationAPI(APIView):
         collab_props = collab_rec.get_user_recommendations(user.id)
         scored_props = []
         
-        user_favoritos_ids = set(usuario.favoritos.values_list('id', flat=True))
+        user_favoritos_ids = set(usuario.favoritos.values_list('propiedad__id', flat=True))
         
         max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
 
         for prop in collab_props:
-
+            # Calcular puntuación de ubicación
+            ciudad_score = 5 if prop.ciudad in user_ciudades else 0
+            
             similares = content_rec.get_similar(prop.id, top=5)
             
-           
             rating_scores = [
                 similarity * (user_ratings[pid] / 5.0)
                 for pid, similarity, _ in similares if pid in user_ratings
@@ -735,12 +740,18 @@ class RecommendationAPI(APIView):
             popularity = getattr(prop, 'popularity', 0)
             normalized_popularity = popularity / max_popularity if max_popularity > 0 else 0
             
-            combined_score = 0.4 * rating_score + 0.3 * fav_score + 0.3 * normalized_popularity
+            # Puntuación combinada con máximo énfasis en ubicación
+            combined_score = (
+                0.5 * ciudad_score +  # 50% peso a ubicación
+                0.2 * rating_score + 
+                0.2 * fav_score + 
+                0.1 * normalized_popularity
+            )
             
             percentage_score = round(combined_score * 100, 2)
-            
             scored_props.append({'propiedad': prop, 'score': percentage_score})
         
+        # Ordenar y seleccionar mejores resultados
         sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:6]
         
         serializer = PropiedadRecommendationSerializer(

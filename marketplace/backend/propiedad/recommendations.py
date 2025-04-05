@@ -10,6 +10,7 @@ from propiedad.models.favorito import Favorito
 
 class ContentRecommender:
     def __init__(self):
+        self.location_weight = 5  # Peso para la ubicación
         if os.path.exists('content_vectorizer.joblib'):
             self.vectorizer = joblib.load('content_vectorizer.joblib')
         else:
@@ -23,6 +24,17 @@ class ContentRecommender:
         )
         self.features = list(propiedades)
         self.vectors = self.vectorizer.fit_transform(self.features)
+        
+        # Aplicar peso extra a la ubicación
+        if hasattr(self.vectorizer, 'get_feature_names_out'):
+            feature_names = self.vectorizer.get_feature_names_out()
+        else:  # Para versiones antiguas de scikit-learn
+            feature_names = self.vectorizer.feature_names_
+        
+        ciudad_columns = [i for i, name in enumerate(feature_names) if name.startswith('ciudad=')]
+        if ciudad_columns:
+            self.vectors[:, ciudad_columns] *= self.location_weight
+        
         self.similarity_matrix = cosine_similarity(self.vectors)
         joblib.dump(self.vectorizer, 'content_vectorizer.joblib')
     
@@ -36,7 +48,7 @@ class ContentRecommender:
         return [
             (self.features[i]['id'], sim_scores[i], round(sim_scores[i] * 100, 2))
             for i in similar_indices
-    ]
+        ]
 
 class CollaborativeRecommender:
     def get_user_recommendations(self, user_id):
