@@ -58,6 +58,71 @@ const CreateProperty = () => {
         portada: null
     });
 
+    const ciudadesEspana = [
+        "Madrid",
+        "Barcelona",
+        "Valencia",
+        "Sevilla",
+        "Zaragoza",
+        "Málaga",
+        "Murcia",
+        "Palma",
+        "Bilbao",
+        "Alicante",
+        "Córdoba",
+        "Valladolid",
+        "Vigo",
+        "Gijón",
+        "Granada",
+        "Elche",
+        "Oviedo",
+        "Badalona",
+        "Cartagena",
+        "Terrassa",
+        "Jerez de la Frontera",
+        "Sabadell",
+        "Móstoles",
+        "Santa Cruz de Tenerife",
+        "Pamplona",
+        "Almería",
+        "Alcalá de Henares",
+        "San Sebastián",
+        "Donostia",
+        "Leganés",
+        "Santander",
+        "Burgos",
+        "Castellón de la Plana",
+        "Alcorcón",
+        "Albacete",
+        "Getafe",
+        "Salamanca",
+        "Logroño",
+        "Huelva",
+        "Badajoz",
+        "Tarragona",
+        "Lleida",
+        "Marbella",
+        "León",
+        "Cádiz",
+        "Jaén",
+        "Ourense",
+        "Lugo",
+        "Santiago de Compostela",
+        "Cáceres",
+        "Melilla",
+        "Ceuta",
+        "Ávila",
+        "Segovia",
+        "Guadalajara",
+        "Cuenca",
+        "Soria",
+        "Zamora",
+        "Palencia",
+        "Toledo",
+        "Ciudad Real",
+        "Huesca",
+    ];
+
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();
 
@@ -351,17 +416,27 @@ const CreateProperty = () => {
                                     helperText={errors.direccion}
                                     sx={{ flexGrow: 1, minWidth: "300px" }}
                                 />
-                                <TextField
-                                    label="Ciudad"
-                                    name="ciudad"
-                                    variant="outlined"
-                                    value={formValues.ciudad}
-                                    onChange={handleChange}
-                                    required
-                                    error={!!errors.ciudad}
-                                    helperText={errors.ciudad}
-                                    sx={{ width: "200px" }}
-                                />
+                                <FormControl sx={{ width: "200px" }} size="medium" variant="outlined" error={!!errors.ciudad}>
+                                    <InputLabel>Ciudad</InputLabel>
+                                    <Select
+                                        name="ciudad"
+                                        value={formValues.ciudad}
+                                        onChange={handleChange}
+                                        label="Ciudad"
+                                        required
+                                        renderValue={(selected) => selected || "Selecciona una ciudad"}
+                                    >
+                                        <MenuItem value="" disabled>
+                                            Selecciona una ciudad
+                                        </MenuItem>
+                                        {ciudadesEspana.map((ciudad) => (
+                                            <MenuItem key={ciudad} value={ciudad}>
+                                                {ciudad}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                    <FormHelperText>{errors.ciudad}</FormHelperText>
+                                </FormControl>
                                 <TextField
                                     label="Código Postal"
                                     name="codigo_postal"
@@ -377,7 +452,8 @@ const CreateProperty = () => {
                                     label="País"
                                     name="pais"
                                     variant="outlined"
-                                    value={formValues.pais}
+                                    value="España"
+                                    disabled
                                     onChange={handleChange}
                                     required
                                     error={!!errors.pais}
