@@ -4,6 +4,7 @@ from propiedad.models.valoracionPropiedad import ValoracionPropiedad
 from .models.fotoPropiedad import FotoPropiedad
 from .models.reserva import Reserva
 from .models.favorito import Favorito
+from .models.precioEspecial import PrecioEspecial
 
 class PropiedadSerializer(serializers.ModelSerializer):
     valoracion_promedio = serializers.SerializerMethodField()
@@ -39,6 +40,11 @@ class FavoritoSerializer(serializers.ModelSerializer):
         model = Favorito
         fields = '__all__'
 
+class PrecioEspecialSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PrecioEspecial
+        fields = '__all__'
+
 class PropiedadRecommendationSerializer(serializers.ModelSerializer):
     score = serializers.SerializerMethodField()
     
@@ -64,6 +70,8 @@ class PropiedadRecommendationSerializer(serializers.ModelSerializer):
             if item['propiedad'].id == obj.id:
                 return item['score']
         return 0
+    
+
 
 
     
