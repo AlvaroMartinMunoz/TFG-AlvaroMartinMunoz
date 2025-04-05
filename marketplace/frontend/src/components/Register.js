@@ -63,7 +63,7 @@ const Register = () => {
 
     const usernameRegex = /^[^\d\s][a-zA-Z0-9\s]*$/;
 
-    const biografiaRegex = /^[a-zA-Z0-9\s,.'!?áéíóúÁÉÍÓÚñÑ-]{10,500}$/;
+    const biografiaRegex = /^[a-zA-Z0-9\s,.'!?áéíóúÁÉÍÓÚñÑ-]{1,500}$/;
 
 
     if (!usernameRegex.test(formData.direccion)) {

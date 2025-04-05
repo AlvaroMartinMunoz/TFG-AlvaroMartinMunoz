@@ -202,10 +202,40 @@ const Recommendations = () => {
 
     if (loading) {
         return (
-            <Box display="flex" justifyContent="center" alignItems="center" minHeight="50vh">
-                <CircularProgress color="primary" />
-                <Typography variant="h6" sx={{ ml: 2, fontWeight: 500, color: "text.secondary" }}>
-                    Cargando recomendaciones...
+            <Box
+                display="flex"
+                flexDirection="column"
+                justifyContent="center"
+                alignItems="center"
+                minHeight="60vh"
+                gap={2}
+            >
+                <CircularProgress
+                    color="primary"
+                    size={40}
+                    thickness={4}
+                />
+                <Typography
+                    variant="h5"
+                    sx={{
+                        fontWeight: 600,
+                        color: "text.primary",
+                        textAlign: "center",
+                        mb: 1
+                    }}
+                >
+                    Preparando sus recomendaciones
+                </Typography>
+                <Typography
+                    variant="body1"
+                    sx={{
+                        color: "text.secondary",
+                        textAlign: "center",
+                        maxWidth: 450,
+                        px: 3
+                    }}
+                >
+                    Para visualizar recomendaciones personalizadas, verifique que ha iniciado sesión y cuenta con propiedades valoradas, guardadas como favoritas o con reservas previas.
                 </Typography>
             </Box>
         );
