@@ -11,6 +11,7 @@ from .views import confirmar_pago_paypal
 from .views import create_payment
 from .views import FavoritoViewSet
 from .views import RecommendationAPI
+from .views import PrecioEspecialViewSet
 
 
 router = DefaultRouter()
@@ -20,6 +21,7 @@ router.register(r'fotos-propiedades', FotoPropiedadViewSet)
 router.register(r'fechas-bloqueadas', FechaBloqueadaViewSet)
 router.register(r'reservas', ReservaViewSet)
 router.register(r'favoritos', FavoritoViewSet)
+router.register(r'precios-especiales', PrecioEspecialViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),
