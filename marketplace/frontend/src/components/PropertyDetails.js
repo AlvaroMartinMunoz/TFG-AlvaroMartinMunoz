@@ -26,6 +26,7 @@ import EuroIcon from '@mui/icons-material/Euro';
 import SaveIcon from '@mui/icons-material/Save';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 
 
@@ -77,6 +78,7 @@ const PropertyDetails = () => {
     const [openAddSpecialPrice, setOpenAddSpecialPrice] = useState(false);
     const [openMenuSpecialPrice, setOpenMenuSpecialPrice] = useState(false);
     const [openDeleteSpecialPrice, setOpenDeleteSpecialPrice] = useState(false);
+    const [datesBetween, setDatesBetween] = useState([]);
 
 
     useEffect(() => {
@@ -516,6 +518,20 @@ const PropertyDetails = () => {
     const handleReserveDateChange = ({ startDate, endDate }) => {
         setReserveStartDate(startDate);
         setReserveEndDate(endDate);
+        if (startDate && endDate) {
+            const start = moment(startDate);
+            const end = moment(endDate).subtract(1, 'day');
+            const dates = [];
+            let currentDate = start.clone();
+            while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+                dates.push(currentDate.format('YYYY-MM-DD'));
+                currentDate.add(1, 'day');
+            }
+
+            setDatesBetween(dates);
+        } else {
+            setDatesBetween([]);
+        }
     };
 
     const handleOpenUnblockDatePicker = () => {
@@ -729,7 +745,10 @@ const PropertyDetails = () => {
             }
             if (response.ok) {
                 const data = await response.json();
+                console.log("Reservas", data);
+                console.log("PropiedadId", propiedadId);
                 const filteredData = data.filter((reserva) => reserva.propiedad === parseInt(propiedadId));
+                console.log("HH", filteredData);
                 setReservas(filteredData);
                 setReserveStartDate(null);
                 setReserveEndDate(null);
@@ -758,6 +777,7 @@ const PropertyDetails = () => {
         }
 
         return Array.from(filledDates);
+
     };
 
     const allBlockedDates = calculateBlockedDatesWithGaps([
@@ -771,6 +791,7 @@ const PropertyDetails = () => {
                     dates.push(startDate.format('YYYY-MM-DD'));
                     startDate.add(1, 'day');
                 }
+
                 return dates;
             })
     ]);
@@ -799,9 +820,10 @@ const PropertyDetails = () => {
 
         const startDate = moment(reserveStartDate);
         const endDate = moment(reserveEndDate);
+        const endDateAdjusted = endDate.subtract(1, 'day');
         const datesBetween = [];
         let currentDate = startDate.clone();
-        while (currentDate.isBefore(endDate) || currentDate.isSame(endDate, 'day')) {
+        while (currentDate.isBefore(endDateAdjusted) || currentDate.isSame(endDateAdjusted, 'day')) {
             datesBetween.push(currentDate.format('YYYY-MM-DD'));
             currentDate.add(1, 'day');
         }
@@ -814,20 +836,19 @@ const PropertyDetails = () => {
             return;
         }
 
+        const subtotal = datesBetween.reduce((total, date) => {
+            const specialPrice = specialPricesList.find(
+                (price) => moment(date).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
+            );
+            return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+        }, 0);
+
+        const comision = subtotal * 0.1;
+
+        const precioTotal = subtotal + comision;
+
         const formattedStartDate = moment(reserveStartDate).format('YYYY-MM-DD');
         const formattedEndDate = moment(reserveEndDate).format('YYYY-MM-DD');
-
-        const numNoches = moment(reserveEndDate).diff(moment(reserveStartDate), 'days');
-
-        const precioTotalSinComision = propiedad.precio_por_noche * numNoches;
-
-        const porcentajeComision = 0.1;
-
-        const comision = precioTotalSinComision * porcentajeComision;
-
-        const precioTotal = precioTotalSinComision + comision;
-
-
 
         const reservationData = {
             usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
@@ -845,7 +866,10 @@ const PropertyDetails = () => {
             currency: 'eur',
             correo: cliente?.usuario?.email,
             nombrePropiedad: propiedad.nombre,
-
+            tiene_precio_especial: specialPricesList.some(price =>
+                moment(reserveStartDate).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]') ||
+                moment(reserveEndDate).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
+            )
         };
 
         if (metodoPago === "Tarjeta de crédito") {
@@ -1064,7 +1088,17 @@ const PropertyDetails = () => {
                             </Typography>
 
                             <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
-                                {propiedad?.precio_por_noche ? `${propiedad.precio_por_noche} € por noche` : 'Precio no disponible'}
+                                {(() => {
+                                    const today = moment().format('YYYY-MM-DD');
+                                    const specialPrice = specialPricesList.find(
+                                        (price) => today >= price.fecha_inicio && today <= price.fecha_fin
+                                    );
+                                    return specialPrice
+                                        ? `${specialPrice.precio_especial} € por noche (Precio especial)`
+                                        : propiedad?.precio_por_noche
+                                            ? `${propiedad.precio_por_noche} € por noche`
+                                            : 'Precio no disponible';
+                                })()}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                                 {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
@@ -1980,48 +2014,162 @@ const PropertyDetails = () => {
                                 sx={{
                                     width: '100%',
                                     mb: 3,
-                                    p: 2,
-                                    bgcolor: 'rgba(0, 0, 0, 0.02)',
-                                    borderRadius: 1,
-                                    border: '1px solid rgba(0, 0, 0, 0.08)'
+                                    p: 3,
+                                    bgcolor: 'rgba(250, 250, 250, 0.95)',
+                                    borderRadius: 2,
+                                    border: '1px solid rgba(0, 0, 0, 0.09)',
+                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
                                 }}
                             >
-                                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600, color: 'text.primary' }}>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        mb: 2.5,
+                                        fontWeight: 600,
+                                        color: 'text.primary',
+                                        position: 'relative',
+                                        pb: 1.5,
+                                        '&:after': {
+                                            content: '""',
+                                            position: 'absolute',
+                                            bottom: 0,
+                                            left: 0,
+                                            width: '40px',
+                                            height: '3px',
+                                            backgroundColor: 'primary.main',
+                                            borderRadius: '2px'
+                                        }
+                                    }}
+                                >
                                     Detalles del precio
                                 </Typography>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        {propiedad?.precio_por_noche} € x {moment(reserveEndDate).diff(moment(reserveStartDate), 'days')} noches
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight={500}>
-                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days')).toFixed(2)} €
-                                    </Typography>
+
+                                {/* Daily breakdown section with subtle grouping */}
+                                <Box sx={{ mb: 3, pl: 0.5, pr: 0.5 }}>
+                                    {datesBetween.map((date, index) => {
+                                        const specialPrice = specialPricesList.find(
+                                            (price) => date >= price.fecha_inicio && date <= price.fecha_fin
+                                        );
+                                        const price = specialPrice ? specialPrice.precio_especial : propiedad.precio_por_noche;
+                                        const isSpecialPrice = !!specialPrice;
+
+                                        return (
+                                            <Box
+                                                key={index}
+                                                sx={{
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    mb: 1,
+                                                    p: 1,
+                                                    borderRadius: 1,
+                                                    backgroundColor: isSpecialPrice ? 'rgba(156, 39, 176, 0.04)' : 'transparent',
+                                                    transition: 'background-color 0.2s ease'
+                                                }}
+                                            >
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {moment(date).format('DD MMM, yyyy')}
+                                                    </Typography>
+                                                    {isSpecialPrice && (
+                                                        <Tooltip title="Precio especial" arrow>
+                                                            <Box sx={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                ml: 1,
+                                                                borderRadius: '4px',
+                                                                p: '2px 5px',
+                                                                backgroundColor: 'secondary.light',
+                                                            }}>
+                                                                <EuroIcon sx={{ fontSize: 14, mr: 0.5, color: 'secondary.main' }} />
+                                                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                                                                    Especial
+                                                                </Typography>
+                                                            </Box>
+                                                        </Tooltip>
+                                                    )}
+                                                </Box>
+                                                <Typography variant="body2" fontWeight={600} sx={{ color: isSpecialPrice ? 'secondary.dark' : 'text.primary' }}>
+                                                    {price} €
+                                                </Typography>
+                                            </Box>
+                                        );
+                                    })}
                                 </Box>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                    <Typography variant="body2" color="text.secondary">
-                                        Comisión de servicio (10%)
-                                    </Typography>
-                                    <Typography variant="body2" fontWeight={500}>
-                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 0.10).toFixed(2)} €
-                                    </Typography>
+
+                                {/* Summary section with improved styling */}
+                                <Box sx={{
+                                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                    p: 2,
+                                    borderRadius: 1.5,
+                                    border: '1px solid rgba(0, 0, 0, 0.06)'
+                                }}>
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                            Subtotal ({datesBetween.length} {datesBetween.length === 1 ? 'noche' : 'noches'})
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {datesBetween.reduce((total, date) => {
+                                                const specialPrice = specialPricesList.find(
+                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
+                                                );
+                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                            }, 0).toFixed(2)} €
+                                        </Typography>
+                                    </Box>
+
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                                                Comisión de servicio
+                                            </Typography>
+                                            <Tooltip title="Tarifa por uso de la plataforma" arrow>
+                                                <InfoOutlinedIcon sx={{ fontSize: 16, ml: 0.5, color: 'text.secondary', opacity: 0.7 }} />
+                                            </Tooltip>
+                                        </Box>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {(datesBetween.reduce((total, date) => {
+                                                const specialPrice = specialPricesList.find(
+                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
+                                                );
+                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                            }, 0) * 0.10).toFixed(2)} €
+                                        </Typography>
+                                    </Box>
                                 </Box>
+
+                                {/* Total price with enhanced visual */}
                                 <Box sx={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
-                                    mt: 2,
+                                    alignItems: 'center',
+                                    mt: 3,
                                     pt: 2,
                                     borderTop: '1px solid rgba(0, 0, 0, 0.1)'
                                 }}>
-                                    <Typography variant="subtitle2" fontWeight={700}>
+                                    <Typography variant="subtitle1" fontWeight={700}>
                                         Precio Total
                                     </Typography>
-                                    <Typography variant="subtitle2" fontWeight={700}>
-                                        {(propiedad?.precio_por_noche * moment(reserveEndDate).diff(moment(reserveStartDate), 'days') * 1.10).toFixed(2)} €
-                                    </Typography>
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        backgroundColor: 'primary.main',
+                                        color: 'white',
+                                        px: 2,
+                                        py: 1,
+                                        borderRadius: 1.5
+                                    }}>
+                                        <Typography variant="subtitle1" fontWeight={700}>
+                                            {(datesBetween.reduce((total, date) => {
+                                                const specialPrice = specialPricesList.find(
+                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
+                                                );
+                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                            }, 0) * 1.10).toFixed(2)} €
+                                        </Typography>
+                                    </Box>
                                 </Box>
                             </Paper>
                         )}
-
                         <Box sx={{
                             display: 'flex',
                             flexDirection: 'row',
