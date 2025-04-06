@@ -1,4 +1,4 @@
-import { Box, Typography, Container, Paper, Modal, IconButton, Button, TextField, FormControl, Input, InputLabel, MenuItem, Select, Rating } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, Divider, ListItem, List, ListItemIcon, ListItemText, InputAdornment, IconButton, DialogActions, Button, DialogTitle, DialogContent, TextField, FormControl, InputLabel, MenuItem, Select, Rating, Dialog, CircularProgress, Tooltip } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import Carousel from 'react-material-ui-carousel';
@@ -18,6 +18,15 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import { set } from 'date-fns';
 import PropertyValorations from './PropertyValorations';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import ArrowRightAltIcon from '@mui/icons-material/ArrowRightAlt';
+import EuroIcon from '@mui/icons-material/Euro';
+import SaveIcon from '@mui/icons-material/Save';
+import EventBusyIcon from '@mui/icons-material/EventBusy';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+
 
 
 
@@ -61,6 +70,14 @@ const PropertyDetails = () => {
     const [notification, setNotification] = useState(null);
     const clienteId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
     const [cliente, setCliente] = useState(null);
+    const [specialPriceStartDate, setSpecialPriceStartDate] = useState(null);
+    const [specialPriceEndDate, setSpecialPriceEndDate] = useState(null);
+    const [specialPricesList, setSpecialPricesList] = useState([]);
+    const [specialPrice, setSpecialPrice] = useState('');
+    const [openAddSpecialPrice, setOpenAddSpecialPrice] = useState(false);
+    const [openMenuSpecialPrice, setOpenMenuSpecialPrice] = useState(false);
+    const [openDeleteSpecialPrice, setOpenDeleteSpecialPrice] = useState(false);
+
 
     useEffect(() => {
         if (isAuthenticated()) {
@@ -69,18 +86,36 @@ const PropertyDetails = () => {
             fetchReservas();
             refreshAccessToken();
             checkIfFavorite();
+            fetchSpecialPrices();
         }
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
         checkUserRating();
         fetchMediaValoraciones();
 
-    }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker]);
+
+    }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker, openAddSpecialPrice, openMenuSpecialPrice, openDeleteSpecialPrice]);
 
     useEffect(() => {
         if (clienteId)
             fetchCliente(clienteId);
     }, [clienteId]);
+
+    const fetchSpecialPrices = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`);
+            if (response.ok) {
+                const data = await response.json();
+                const filteredData = data.filter((precio) => precio.propiedad === parseInt(propiedadId) && precio.fecha_fin >= moment().format('YYYY-MM-DD'));
+                setSpecialPricesList(filteredData);
+            } else {
+                console.error("Error fetching special prices:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching special prices:", error);
+        }
+    };
+
 
 
     const validateFields = () => {
@@ -91,6 +126,27 @@ const PropertyDetails = () => {
         setAlertMessage("");
         return true;
     };
+
+    const handleDeleteSpecialPrice = async (specialPriceId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/${specialPriceId}/`, {
+                method: "DELETE",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (response.ok) {
+                alert("Precio especial eliminado correctamente");
+                fetchSpecialPrices();
+            } else {
+                console.error("Error deleting special price:", response.statusText);
+            }
+        } catch (error) {
+            console.error("Error deleting special price:", error);
+        }
+    };
+
 
     const fetchCliente = async (clienteId) => {
         try {
@@ -107,6 +163,98 @@ const PropertyDetails = () => {
         }
     };
 
+    const handleSpecialPriceDateChange = ({ startDate, endDate }) => {
+        setSpecialPriceStartDate(startDate);
+        setSpecialPriceEndDate(endDate);
+    };
+
+    const handleCloseMenuSpecialPrice = () => {
+        setOpenMenuSpecialPrice(false);
+        setOpenDeleteSpecialPrice(false);
+    };
+
+    const handleCloseDeleteSpecialPrice = () => {
+        setOpenDeleteSpecialPrice(false);
+        setSpecialPriceStartDate(null);
+        setSpecialPriceEndDate(null);
+        setSpecialPrice(null);
+    };
+
+    const validateSpecialPriceDates = (startData, endDate) => {
+        if (!startData || !endDate) {
+            alert("Por favor, seleccione ambas fechas");
+            return false;
+        }
+        if (specialPrice <= 0) {
+            alert("El precio especial debe ser mayor a 0");
+            return false;
+        }
+        if (specialPrice > 5000) {
+            alert("El precio especial no puede ser mayor a 5000");
+            return false;
+        }
+
+        const start = moment(startData);
+        const end = moment(endDate);
+        const datesBetween = [];
+        let currentDate = start.clone();
+
+
+        while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+            datesBetween.push(currentDate.format('YYYY-MM-DD'));
+            currentDate.add(1, 'day');
+        }
+
+        const hasUnavailableDates = datesBetween.some((date) => allBlockedDatesWithSpecialPrices.includes(date));
+        if (hasUnavailableDates) {
+            alert('Las fechas seleccionadas no están disponibles porque tienen que ser días seguidos');
+            return false;
+        }
+        return true;
+    };
+
+
+    const handleSpecialPriceChange = async (priceValue) => {
+        try {
+            if (!specialPriceStartDate || !specialPriceEndDate || !priceValue) {
+                alert("Por favor, complete todas las fechas y el precio especial");
+                return;
+            }
+
+            if (!validateSpecialPriceDates(specialPriceStartDate, specialPriceEndDate)) {
+                return;
+            }
+
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    propiedad: propiedadId,
+                    fecha_inicio: moment(specialPriceStartDate).format('YYYY-MM-DD'),
+                    fecha_fin: moment(specialPriceEndDate).format('YYYY-MM-DD'),
+                    precio_especial: parseFloat(priceValue),
+                }),
+            });
+            if (response.ok) {
+                alert("Precio especial creado correctamente");
+                fetchSpecialPrices();
+                handleCloseAddSpecialPrice();
+
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const handleCloseAddSpecialPrice = () => {
+        setOpenAddSpecialPrice(false);
+        setSpecialPriceStartDate(null);
+        setSpecialPriceEndDate(null);
+        setSpecialPrice(null);
+    };
 
     const checkIfFavorite = async () => {
         try {
@@ -428,6 +576,8 @@ const PropertyDetails = () => {
     };
 
 
+
+
     const handleClickOpen = (index) => {
         setSelectedFotoIndex(index);
         setOpen(true);
@@ -593,8 +743,25 @@ const PropertyDetails = () => {
         }
     };
 
-    const allBlockedDates = [
-        ...blockedDates.map((fecha) => fecha.fecha),
+    const calculateBlockedDatesWithGaps = (blockedDates) => {
+        const sortedDates = blockedDates.sort((a, b) => moment(a).diff(moment(b)));
+        const filledDates = new Set(blockedDates);
+
+        for (let i = 0; i < sortedDates.length - 1; i++) {
+            const current = moment(sortedDates[i]);
+            const next = moment(sortedDates[i + 1]);
+
+            if (next.diff(current, 'days') === 2) {
+                const gapDate = current.clone().add(1, 'day').format('YYYY-MM-DD');
+                filledDates.add(gapDate);
+            }
+        }
+
+        return Array.from(filledDates);
+    };
+
+    const allBlockedDates = calculateBlockedDatesWithGaps([
+        ...blockedDates?.map((fecha) => fecha.fecha),
         ...reservas.filter((reserva) => reserva.estado !== "Cancelada")
             .flatMap((reserva) => {
                 const startDate = moment(reserva.fecha_llegada);
@@ -606,7 +773,20 @@ const PropertyDetails = () => {
                 }
                 return dates;
             })
-    ];
+    ]);
+    const allBlockedDatesWithSpecialPrices = calculateBlockedDatesWithGaps([
+        ...allBlockedDates,
+        ...(Array.isArray(specialPricesList) ? specialPricesList.flatMap((precio) => {
+            const startDate = moment(precio.fecha_inicio);
+            const endDate = moment(precio.fecha_fin);
+            const dates = [];
+            while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
+                dates.push(startDate.format('YYYY-MM-DD'));
+                startDate.add(1, 'day');
+            }
+            return dates;
+        }) : [])
+    ]);
 
 
     const handleConfirmReserve = async (retried = false) => {
@@ -879,11 +1059,11 @@ const PropertyDetails = () => {
                             >
                                 {isFavorite ? <FavoriteIcon sx={{ color: "#e91e63" }} /> : <FavoriteBorderIcon />}
                             </IconButton>
-                            <Typography variant="h4" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
+                            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
                                 {propiedad?.nombre || 'Cargando...'}
                             </Typography>
 
-                            <Typography variant="h5" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
+                            <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
                                 {propiedad?.precio_por_noche ? `${propiedad.precio_por_noche} € por noche` : 'Precio no disponible'}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
@@ -896,7 +1076,7 @@ const PropertyDetails = () => {
                             ) : errorMedia ? (
                                 <Typography variant='body1' color='text.secondary' sx={{ my: 2 }}>{errorMedia}</Typography>
                             ) : (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <Rating
                                         name="read-only"
                                         value={mediaValoraciones?.media || 0}
@@ -911,22 +1091,58 @@ const PropertyDetails = () => {
                             )}
 
                             {esAnfitrion && isAuthenticated() ? (
-                                <Button
-                                    variant='contained'
-                                    color='primary'
-                                    size="large"
-                                    startIcon={<AddIcon />}
-                                    sx={{
-                                        mt: 2,
-                                        py: 1.5,
-                                        fontWeight: 600,
-                                        borderRadius: 2,
-                                        boxShadow: 3,
-                                    }}
-                                    onClick={() => setOpenManageDates(true)}
+                                <Box
+                                    display="flex"
+                                    flexDirection="column"
+                                    width="100%"
+                                    maxWidth="450px"
+                                    mx="auto"
+                                    mt={2}
+                                    mb={1}
                                 >
-                                    Gestionar Fechas Disponibles
-                                </Button>
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        size="medium"
+                                        fullWidth
+                                        startIcon={<AddIcon />}
+                                        sx={{
+                                            py: 1,
+                                            fontWeight: 600,
+                                            borderRadius: 2,
+                                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
+                                            textTransform: "none",
+                                            fontSize: "0.95rem",
+                                            mb: 2
+                                        }}
+                                        onClick={() => setOpenManageDates(true)}
+                                    >
+                                        Gestionar Fechas Disponibles
+                                    </Button>
+
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        size="medium"
+                                        fullWidth
+                                        startIcon={<AddIcon />}
+                                        sx={{
+                                            py: 1,
+                                            fontWeight: 600,
+                                            borderRadius: 2,
+                                            borderWidth: 1.5,
+                                            textTransform: "none",
+                                            fontSize: "0.95rem",
+                                            "&:hover": {
+                                                borderWidth: 1.5
+                                            }
+                                        }}
+                                        onClick={() => setOpenMenuSpecialPrice(true)}
+                                    >
+                                        Gestionar Fechas Especiales
+                                    </Button>
+                                </Box>
+
                             ) : isAuthenticated() ? (
                                 <Button
                                     variant='contained'
@@ -1326,69 +1542,120 @@ const PropertyDetails = () => {
                     </Box>
                 </Modal>
 
-                <Modal
+                <Dialog
                     open={openManageDates}
                     onClose={() => setOpenManageDates(false)}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        elevation: 3,
+                        sx: {
+                            borderRadius: 1,
+                            overflow: 'hidden'
+                        }
                     }}
                 >
-                    <Paper
-                        sx={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '500px',
-                            p: 4,
-                            borderRadius: 3,
-                            boxShadow: 24
-                        }}
-                    >
-                        <IconButton
-                            onClick={() => setOpenManageDates(false)}
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8
-                            }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-                        <Typography variant="h5" sx={{ mb: 4, fontWeight: 600, textAlign: 'center' }}>
-                            Gestionar Fechas Disponibles
+
+
+                    <Paper square sx={{ position: 'relative' }}>
+                        <DialogTitle sx={{
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            py: 2,
+                            pl: 3,
+                            pr: 6
+                        }}>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
+                                Gestionar Fechas Disponibles
+                            </Typography>
+                            <IconButton
+                                aria-label="cerrar"
+                                onClick={() => setOpenManageDates(false)}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 12,
+                                    top: 12,
+                                    color: 'primary.contrastText'
+                                }}
+                                size="small"
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </DialogTitle>
+                    </Paper>
+
+                    <DialogContent sx={{ px: 0, py: 2 }}>
+                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
+                            Seleccione una acción para continuar
                         </Typography>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                size="large"
+
+                        <List disablePadding>
+                            <ListItem
+                                button
                                 onClick={() => handleOpenDatePicker()}
                                 sx={{
                                     py: 1.5,
-                                    fontWeight: 600,
-                                    borderRadius: 2,
+                                    '&:hover': {
+                                        bgcolor: 'primary.50'
+                                    }
                                 }}
                             >
-                                Bloquear Fecha
-                            </Button>
-                            <Button
-                                variant="contained"
-                                color="error"
-                                size="large"
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <AddCircleOutlineIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Bloquear Fecha"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+
+                            <Divider component="li" />
+
+                            <ListItem
+                                button
                                 onClick={handleOpenUnblockDatePicker}
                                 sx={{
                                     py: 1.5,
-                                    fontWeight: 600,
-                                    borderRadius: 2,
+                                    '&:hover': {
+                                        bgcolor: 'error.50'
+                                    }
                                 }}
                             >
-                                Desbloquear Fecha
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Modal>
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <DeleteOutlineIcon color="error" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Desbloquear Fecha"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+                        </List>
+                    </DialogContent>
 
+                    <Divider />
+
+                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                            onClick={() => setOpenManageDates(false)}
+                            variant="contained"
+                            color="primary"
+                            disableElevation
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: 1,
+                                px: 3
+                            }}
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogActions>
+                </Dialog>
                 <Modal
                     open={openDatePicker}
                     onClose={handleCloseDatePicker}
@@ -1800,6 +2067,494 @@ const PropertyDetails = () => {
                         </Box>
                     </Paper>
                 </Modal>
+                <Dialog
+                    open={openMenuSpecialPrice}
+                    onClose={handleCloseMenuSpecialPrice}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        elevation: 3,
+                        sx: {
+                            borderRadius: 1,
+                            overflow: 'hidden'
+                        }
+                    }}
+                >
+                    <Paper square sx={{ position: 'relative' }}>
+                        <DialogTitle sx={{
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            py: 2,
+                            pl: 3,
+                            pr: 6
+                        }}>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
+                                Gestión de fechas especiales
+                            </Typography>
+                            <IconButton
+                                aria-label="cerrar"
+                                onClick={handleCloseMenuSpecialPrice}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 12,
+                                    top: 12,
+                                    color: 'primary.contrastText'
+                                }}
+                                size="small"
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </DialogTitle>
+                    </Paper>
+
+                    <DialogContent sx={{ px: 0, py: 2 }}>
+                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
+                            Seleccione una acción para continuar
+                        </Typography>
+
+                        <List disablePadding>
+                            <ListItem
+                                button
+                                onClick={() => setOpenAddSpecialPrice(true)}
+                                sx={{
+                                    py: 1.5,
+                                    '&:hover': {
+                                        bgcolor: 'primary.50'
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <AddCircleOutlineIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Añadir fechas con precio especial"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+
+                            <Divider component="li" />
+
+                            <ListItem
+                                button
+                                onClick={() => setOpenDeleteSpecialPrice(true)}
+                                sx={{
+                                    py: 1.5,
+                                    '&:hover': {
+                                        bgcolor: 'error.50'
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <DeleteOutlineIcon color="error" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Eliminar fechas con precio especial"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+                        </List>
+                    </DialogContent>
+
+                    <Divider />
+
+                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                            onClick={handleCloseMenuSpecialPrice}
+                            variant="contained"
+                            color="primary"
+                            disableElevation
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: 1,
+                                px: 3
+                            }}
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                <Dialog
+                    open={openAddSpecialPrice}
+                    onClose={handleCloseAddSpecialPrice}
+                    fullWidth
+                    maxWidth="md"
+                    PaperProps={{
+                        elevation: 4,
+                        sx: {
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            height: '90vh',
+                            maxHeight: '650px',
+                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                        }
+                    }}
+                >
+                    <Paper square sx={{ position: 'relative' }}>
+                        <DialogTitle sx={{
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            py: 2.5,
+                            pl: 3,
+                            pr: 6,
+                            borderBottom: '1px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 600, letterSpacing: '0.01em' }}>
+                                Configurar precio especial
+                            </Typography>
+                            <IconButton
+                                aria-label="cerrar"
+                                onClick={handleCloseAddSpecialPrice}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 16,
+                                    top: 14,
+                                    color: 'primary.contrastText',
+                                    '&:hover': {
+                                        bgcolor: 'rgba(255,255,255,0.15)'
+                                    },
+                                    transition: 'background-color 0.2s'
+                                }}
+                                size="small"
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </DialogTitle>
+                    </Paper>
+
+                    <DialogContent sx={{ pt: 4, px: 4, pb: 3 }}>
+                        <Box mb={4.5}>
+                            <Typography variant="subtitle1" color="text.primary" mb={2} fontWeight={600} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CalendarTodayIcon sx={{ fontSize: 18, mr: 1.5, color: 'primary.main', opacity: 0.9 }} />
+                                Rango de fechas
+                            </Typography>
+                            <Paper
+                                variant="outlined"
+                                sx={{
+                                    p: 2.5,
+                                    borderRadius: 1.5,
+                                    borderColor: 'divider',
+                                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                                    bgcolor: 'background.paper',
+                                    position: 'relative',
+                                    zIndex: 1,
+                                }}
+                            >
+                                <DateRangePicker
+                                    startDate={specialPriceStartDate}
+                                    startDateId="start_date_id"
+                                    endDate={specialPriceEndDate}
+                                    startDatePlaceholderText='Fecha inicio'
+                                    endDatePlaceholderText='Fecha fin'
+                                    endDateId="end_date_id"
+                                    onDatesChange={handleSpecialPriceDateChange}
+                                    focusedInput={focusedInput}
+                                    onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
+                                    minimumNights={1}
+                                    isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDatesWithSpecialPrices.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
+                                    hideKeyboardShortcutsPanel
+                                    required
+                                    customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
+                                    displayFormat="DD/MM/YYYY"
+                                    small
+                                    noBorder
+                                    daySize={36}
+                                    renderCalendarInfo={() => (
+                                        <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.85rem', color: 'text.secondary' }}>
+                                            Las fechas no disponibles aparecen deshabilitadas
+                                        </Box>
+                                    )}
+                                />
+                            </Paper>
+                        </Box>
+
+                        <Box mb={4.5} sx={{ position: 'relative', zIndex: 0 }}>
+                            <Typography variant="subtitle1" color="text.primary" mb={2} fontWeight={600} sx={{ display: 'flex', alignItems: 'center' }}>
+                                <EuroIcon sx={{ fontSize: 18, mr: 1.5, color: 'primary.main', opacity: 0.9 }} />
+                                Valor del precio especial
+                            </Typography>
+                            <TextField
+                                label="Precio por noche"
+                                type="number"
+                                value={specialPrice}
+                                onChange={(e) => setSpecialPrice(e.target.value)}
+                                fullWidth
+                                variant="outlined"
+                                size="medium"
+                                InputProps={{
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }}>€</Typography>
+                                        </InputAdornment>
+                                    )
+                                }}
+                                sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                        borderRadius: 1.5,
+                                        '&:hover .MuiOutlinedInput-notchedOutline': {
+                                            borderColor: 'primary.main',
+                                            borderWidth: '1px'
+                                        },
+                                    }
+                                }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
+                                El precio especial tiene prioridad sobre cualquier otro precio configurado para estas fechas
+                            </Typography>
+                        </Box>
+
+                        <Divider sx={{ mb: 4, opacity: 0.7 }} />
+
+                        <Box display="flex" justifyContent="flex-end" gap={2}>
+                            <Button
+                                variant="outlined"
+                                onClick={handleCloseAddSpecialPrice}
+                                sx={{
+                                    px: 3.5,
+                                    py: 1.2,
+                                    textTransform: 'none',
+                                    fontWeight: 500,
+                                    borderRadius: 1.5,
+                                    borderColor: 'divider',
+                                    color: 'text.primary',
+                                    '&:hover': {
+                                        borderColor: 'text.secondary',
+                                        bgcolor: 'rgba(0,0,0,0.02)'
+                                    }
+                                }}
+                                startIcon={<CloseIcon fontSize="small" />}
+                            >
+                                Cancelar
+                            </Button>
+
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={() => handleSpecialPriceChange(specialPrice)}
+                                disabled={loading || !specialPrice || !specialPriceStartDate || !specialPriceEndDate}
+                                disableElevation
+                                sx={{
+                                    px: 4,
+                                    py: 1.2,
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    borderRadius: 1.5,
+                                    boxShadow: '0 3px 8px rgba(0,0,0,0.08)',
+                                    '&:hover': {
+                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                                    }
+                                }}
+                                startIcon={loading ? null : <SaveIcon fontSize="small" />}
+                            >
+                                {loading ? (
+                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <CircularProgress size={20} color="inherit" sx={{ mr: 1.5 }} />
+                                        <span>Procesando...</span>
+                                    </Box>
+                                ) : 'Aplicar cambios'}
+                            </Button>
+                        </Box>
+                    </DialogContent>
+                </Dialog>
+                <Dialog
+                    open={openDeleteSpecialPrice}
+                    onClose={handleCloseDeleteSpecialPrice}
+                    fullWidth
+                    maxWidth="sm"
+                    PaperProps={{
+                        elevation: 4,
+                        sx: {
+                            borderRadius: 2,
+                            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.18)',
+                            overflow: 'hidden'
+                        }
+                    }}
+                >
+                    <DialogTitle
+                        sx={{
+                            borderBottom: '1px solid',
+                            borderColor: 'divider',
+                            py: 2.5,
+                            px: 3,
+                            fontWeight: 600,
+                            fontSize: '1.1rem',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            bgcolor: 'background.paper',
+                            color: 'text.primary'
+                        }}
+                    >
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <EventBusyIcon sx={{ mr: 1.5, color: 'error.main', opacity: 0.85 }} />
+                            Eliminar fechas con precio especial
+                        </Box>
+                        <IconButton
+                            onClick={handleCloseDeleteSpecialPrice}
+                            size="small"
+                            aria-label="cerrar"
+                            sx={{
+                                color: 'text.secondary',
+                                '&:hover': {
+                                    bgcolor: 'action.hover',
+                                    color: 'text.primary'
+                                }
+                            }}
+                        >
+                            <CloseIcon fontSize="small" />
+                        </IconButton>
+                    </DialogTitle>
+
+                    <Box sx={{ maxHeight: '400px', overflowY: 'auto' }}>
+                        <DialogContent sx={{ p: 0 }}>
+                            {specialPricesList?.length > 0 ? (
+                                <>
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            py: 1.5,
+                                            px: 3,
+                                            bgcolor: 'action.hover',
+                                            borderBottom: '1px solid',
+                                            borderColor: 'divider'
+                                        }}
+                                    >
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '30%' }}>
+                                            FECHA INICIO
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '30%' }}>
+                                            FECHA FIN
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '25%', textAlign: 'right' }}>
+                                            PRECIO
+                                        </Typography>
+                                        <Box sx={{ width: '15%' }}></Box>
+                                    </Box>
+
+                                    {specialPricesList?.map((date, index) => (
+                                        <Box
+                                            key={index}
+                                            sx={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                py: 2,
+                                                px: 3,
+                                                borderBottom: index !== specialPricesList.length - 1 ? '1px solid' : 'none',
+                                                borderColor: 'divider',
+                                                transition: 'background-color 0.2s',
+                                                '&:hover': {
+                                                    bgcolor: 'action.hover'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ width: '30%' }}>
+                                                <Typography variant="body2" color="text.primary" fontWeight={500}>
+                                                    {date.fecha_inicio}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ width: '30%' }}>
+                                                <Typography variant="body2" color="text.primary" fontWeight={500}>
+                                                    {date.fecha_fin}
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ width: '25%', textAlign: 'right' }}>
+                                                <Typography variant="body2" color="primary.main" fontWeight={600}>
+                                                    {date.precio_especial} €
+                                                </Typography>
+                                            </Box>
+                                            <Box sx={{ width: '15%', textAlign: 'right' }}>
+                                                <Tooltip title="Eliminar precio especial" placement="top" arrow>
+                                                    <IconButton
+                                                        onClick={() => handleDeleteSpecialPrice(date.id)}
+                                                        size="small"
+                                                        color="error"
+                                                        sx={{
+                                                            transition: 'all 0.2s',
+                                                            '&:hover': {
+                                                                bgcolor: 'error.lighter',
+                                                                transform: 'scale(1.05)'
+                                                            }
+                                                        }}
+                                                    >
+                                                        <DeleteOutlineIcon fontSize="small" />
+                                                    </IconButton>
+                                                </Tooltip>
+                                            </Box>
+                                        </Box>
+                                    ))}
+                                </>
+                            ) : (
+                                <Box sx={{ p: 4, textAlign: 'center' }}>
+                                    <Box sx={{ opacity: 0.7, mb: 2 }}>
+                                        <EventBusyIcon sx={{ fontSize: '3rem', color: 'text.disabled' }} />
+                                    </Box>
+                                    <Typography variant="body1" color="text.secondary" fontWeight={500}>
+                                        No hay fechas con precios especiales
+                                    </Typography>
+                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
+                                        Puede agregar precios especiales desde la sección de calendario
+                                    </Typography>
+                                </Box>
+                            )}
+                        </DialogContent>
+                    </Box>
+
+                    <DialogActions
+                        sx={{
+                            p: 2.5,
+                            borderTop: '1px solid',
+                            borderColor: 'divider',
+                            justifyContent: 'space-between',
+                            bgcolor: 'background.paper'
+                        }}
+                    >
+                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                            {specialPricesList?.length > 0 ? `${specialPricesList.length} fecha${specialPricesList.length > 1 ? 's' : ''} con precio especial` : ''}
+                        </Typography>
+                        <Box>
+                            <Button
+                                onClick={handleCloseDeleteSpecialPrice}
+                                variant="outlined"
+                                color="inherit"
+                                startIcon={<ArrowBackIcon fontSize="small" />}
+                                sx={{
+                                    mr: 1.5,
+                                    textTransform: 'none',
+                                    fontWeight: 500,
+                                    borderRadius: 1.5,
+                                    px: 2.5
+                                }}
+                            >
+                                Volver
+                            </Button>
+                            {specialPricesList?.length > 0 && (
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    disableElevation
+                                    sx={{
+                                        textTransform: 'none',
+                                        fontWeight: 500,
+                                        borderRadius: 1.5,
+                                        px: 2.5
+                                    }}
+                                    onClick={() => handleCloseDeleteSpecialPrice()}
+                                >
+                                    Finalizar
+                                </Button>
+                            )}
+                        </Box>
+                    </DialogActions>
+                </Dialog>
+
             </Container >
         </Box >
     );
