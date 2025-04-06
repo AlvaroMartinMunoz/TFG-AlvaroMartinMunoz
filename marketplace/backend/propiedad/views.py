@@ -609,20 +609,20 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'No tienes permiso para ver esta reserva'}, status=status.HTTP_403_FORBIDDEN)
         return super().retrieve(request, *args, **kwargs)
     
-    def list(self, request, *args, **kwargs):
-        usuario = Usuario.objects.filter(usuario=request.user).first()
-        usuarioId = usuario.id
-        print(usuarioId)
-        queryset = self.queryset.filter(
-            Q(usuario_id=usuarioId) | Q(anfitrion_id=usuarioId)
-        )
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
+    # def list(self, request, *args, **kwargs):
+    #     usuario = Usuario.objects.filter(usuario=request.user).first()
+    #     usuarioId = usuario.id
+    #     print(usuarioId)
+    #     queryset = self.queryset.filter(
+    #         Q(usuario_id=usuarioId) | Q(anfitrion_id=usuarioId)
+    #     )
+    #     page = self.paginate_queryset(queryset)
+    #     if page is not None:
+    #         serializer = self.get_serializer(page, many=True)
+    #         return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
     
 class FavoritoViewSet(viewsets.ModelViewSet):
     queryset = Favorito.objects.all()
