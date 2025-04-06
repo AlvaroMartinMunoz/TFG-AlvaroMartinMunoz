@@ -599,7 +599,16 @@ class ReservaViewSet(viewsets.ModelViewSet):
         return Response({'error': 'No puedes eliminar reservas'}, status=status.HTTP_403_FORBIDDEN)
     
     def partial_update(self, request, *args, **kwargs):
-        return Response({'error': 'No puedes actualizar reservas'}, status=status.HTTP_403_FORBIDDEN)
+        usuario = Usuario.objects.filter(usuario=request.user).first()
+        usuarioId = usuario.id
+        reserva = self.get_object()
+
+        print(reserva.anfitrion.id, usuarioId)
+        print(reserva.usuario.id, usuarioId)
+        if reserva.anfitrion.id != usuarioId and reserva.usuario.id != usuarioId:
+            return Response({'error': 'No tienes permiso para editar esta reserva'}, status=status.HTTP_403_FORBIDDEN)  
+        
+        return super().partial_update(request, *args, **kwargs)
     
     def retrieve(self, request, *args, **kwargs):
         reserva = self.get_object()
