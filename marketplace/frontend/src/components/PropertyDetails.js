@@ -103,6 +103,13 @@ const PropertyDetails = () => {
             fetchCliente(clienteId);
     }, [clienteId]);
 
+    const isSpecialPriceDate = (date) => {
+        return specialPricesList.some(
+            (price) =>
+                moment(date).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
+        );
+    };
+
     const fetchSpecialPrices = async () => {
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`);
@@ -1088,17 +1095,7 @@ const PropertyDetails = () => {
                             </Typography>
 
                             <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
-                                {(() => {
-                                    const today = moment().format('YYYY-MM-DD');
-                                    const specialPrice = specialPricesList.find(
-                                        (price) => today >= price.fecha_inicio && today <= price.fecha_fin
-                                    );
-                                    return specialPrice
-                                        ? `${specialPrice.precio_especial} € por noche (Precio especial)`
-                                        : propiedad?.precio_por_noche
-                                            ? `${propiedad.precio_por_noche} € por noche`
-                                            : 'Precio no disponible';
-                                })()}
+                                {propiedad ? `${propiedad.precio_por_noche} € por noche` : 'Cargando...'}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                                 {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
@@ -1842,7 +1839,6 @@ const PropertyDetails = () => {
                             alignItems: 'center',
                             boxShadow: 24,
                             overflow: 'auto'
-
                         }}
                     >
                         <Box sx={{
@@ -1857,6 +1853,7 @@ const PropertyDetails = () => {
 
                         <IconButton
                             onClick={handleCloseReserveDatePicker}
+                            aria-label="Cerrar"
                             sx={{
                                 position: 'absolute',
                                 top: 8,
@@ -1880,7 +1877,7 @@ const PropertyDetails = () => {
                                 color: 'text.primary'
                             }}
                         >
-                            Reservar Alojamiento
+                            Realizar Reserva
                         </Typography>
 
                         <Box sx={{
@@ -1896,14 +1893,14 @@ const PropertyDetails = () => {
                                     color: 'text.secondary'
                                 }}
                             >
-                                Seleccione fechas de estancia:
+                                Seleccione las fechas de su estancia:
                             </Typography>
                             <DateRangePicker
                                 startDate={reserveStartDate}
                                 startDateId="start_date_id"
                                 endDate={reserveEndDate}
-                                startDatePlaceholderText='Entrada'
-                                endDatePlaceholderText='Salida'
+                                startDatePlaceholderText='Fecha de entrada'
+                                endDatePlaceholderText='Fecha de salida'
                                 endDateId="end_date_id"
                                 onDatesChange={handleReserveDateChange}
                                 focusedInput={focusedInput}
@@ -1915,6 +1912,35 @@ const PropertyDetails = () => {
                                 customArrowIcon={<span style={{ padding: '0 8px' }}>→</span>}
                                 displayFormat="DD/MM/YYYY"
                                 small
+                                renderDayContents={(day) => {
+                                    const isSpecial = isSpecialPriceDate(day);
+                                    return (
+                                        <div style={{
+                                            position: 'relative',
+                                            width: '100%',
+                                            height: '100%',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            backgroundColor: isSpecial ? 'rgba(156, 39, 176, 0.1)' : 'transparent',
+                                            borderRadius: '50%',
+                                            color: isSpecial ? '#9c27b0' : 'inherit',
+                                            fontWeight: isSpecial ? 'bold' : 'normal'
+                                        }}>
+                                            {day.date()}
+                                            {isSpecial && (
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: 2,
+                                                    fontSize: 10,
+                                                    color: '#9c27b0'
+                                                }}>
+                                                    €
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                }}
                             />
                         </Box>
 
@@ -1933,6 +1959,7 @@ const PropertyDetails = () => {
                                 <IconButton
                                     onClick={handleDecrement}
                                     size="small"
+                                    aria-label="Reducir número de huéspedes"
                                     sx={{
                                         bgcolor: 'rgba(0, 0, 0, 0.04)',
                                         color: 'text.secondary',
@@ -1948,6 +1975,7 @@ const PropertyDetails = () => {
                                 <IconButton
                                     onClick={handleIncrement}
                                     size="small"
+                                    aria-label="Aumentar número de huéspedes"
                                     sx={{
                                         bgcolor: 'rgba(0, 0, 0, 0.04)',
                                         color: 'text.secondary',
@@ -1974,6 +2002,7 @@ const PropertyDetails = () => {
                             >
                                 <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
                                 <MenuItem value="PayPal">PayPal</MenuItem>
+                                <MenuItem value="Transferencia bancaria">Transferencia Bancaria</MenuItem>
                             </Select>
                         </FormControl>
 
@@ -1986,14 +2015,14 @@ const PropertyDetails = () => {
                                     color: 'text.secondary'
                                 }}
                             >
-                                Comentarios sobre la reserva:
+                                Información adicional:
                             </Typography>
                             <TextField
                                 value={comentarios_usuario}
                                 onChange={(e) => setComentariosUsuario(e.target.value)}
                                 multiline
                                 rows={3}
-                                placeholder="Información adicional para el anfitrión..."
+                                placeholder="Indique cualquier requerimiento especial o información relevante para su estancia..."
                                 sx={{
                                     width: '100%',
                                     '& .MuiOutlinedInput-root': {
@@ -2041,10 +2070,10 @@ const PropertyDetails = () => {
                                         }
                                     }}
                                 >
-                                    Detalles del precio
+                                    Resumen de precios
                                 </Typography>
 
-                                {/* Daily breakdown section with subtle grouping */}
+                                {/* Desglose diario */}
                                 <Box sx={{ mb: 3, pl: 0.5, pr: 0.5 }}>
                                     {datesBetween.map((date, index) => {
                                         const specialPrice = specialPricesList.find(
@@ -2071,7 +2100,7 @@ const PropertyDetails = () => {
                                                         {moment(date).format('DD MMM, yyyy')}
                                                     </Typography>
                                                     {isSpecialPrice && (
-                                                        <Tooltip title="Precio especial" arrow>
+                                                        <Tooltip title="Tarifa especial para esta fecha" arrow>
                                                             <Box sx={{
                                                                 display: 'flex',
                                                                 alignItems: 'center',
@@ -2082,7 +2111,7 @@ const PropertyDetails = () => {
                                                             }}>
                                                                 <EuroIcon sx={{ fontSize: 14, mr: 0.5, color: 'secondary.main' }} />
                                                                 <Typography variant="caption" sx={{ fontWeight: 600, color: 'secondary.main' }}>
-                                                                    Especial
+                                                                    Tarifa Especial
                                                                 </Typography>
                                                             </Box>
                                                         </Tooltip>
@@ -2096,7 +2125,7 @@ const PropertyDetails = () => {
                                     })}
                                 </Box>
 
-                                {/* Summary section with improved styling */}
+                                {/* Sección de resumen */}
                                 <Box sx={{
                                     backgroundColor: 'rgba(0, 0, 0, 0.02)',
                                     p: 2,
@@ -2122,7 +2151,7 @@ const PropertyDetails = () => {
                                             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
                                                 Comisión de servicio
                                             </Typography>
-                                            <Tooltip title="Tarifa por uso de la plataforma" arrow>
+                                            <Tooltip title="Tarifa administrativa por uso de la plataforma" arrow>
                                                 <InfoOutlinedIcon sx={{ fontSize: 16, ml: 0.5, color: 'text.secondary', opacity: 0.7 }} />
                                             </Tooltip>
                                         </Box>
@@ -2137,7 +2166,7 @@ const PropertyDetails = () => {
                                     </Box>
                                 </Box>
 
-                                {/* Total price with enhanced visual */}
+                                {/* Precio total */}
                                 <Box sx={{
                                     display: 'flex',
                                     justifyContent: 'space-between',
@@ -2147,7 +2176,7 @@ const PropertyDetails = () => {
                                     borderTop: '1px solid rgba(0, 0, 0, 0.1)'
                                 }}>
                                     <Typography variant="subtitle1" fontWeight={700}>
-                                        Precio Total
+                                        Importe Total
                                     </Typography>
                                     <Box sx={{
                                         display: 'flex',
@@ -2199,7 +2228,7 @@ const PropertyDetails = () => {
                                 variant="contained"
                                 color="primary"
                                 onClick={handleConfirmReserve}
-                                disabled={loading}
+                                disabled={loading || !reserveStartDate || !reserveEndDate}
                                 sx={{
                                     flex: 2,
                                     py: 1.2,
@@ -2210,7 +2239,12 @@ const PropertyDetails = () => {
                                     }
                                 }}
                             >
-                                {loading ? 'Procesando...' : 'Confirmar reserva'}
+                                {loading ? (
+                                    <>
+                                        <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                                        Procesando
+                                    </>
+                                ) : 'Confirmar Reserva'}
                             </Button>
                         </Box>
                     </Paper>
