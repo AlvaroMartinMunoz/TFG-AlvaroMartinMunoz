@@ -816,3 +816,17 @@ class PrecioEspecialViewSet(viewsets.ModelViewSet):
         
         return Response({'status': 'precio especial creado'}, status=status.HTTP_201_CREATED)
     
+    def partial_update(self, request, *args, **kwargs):
+       return Response({'error': 'No puedes actualizar precios especiales'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def update(self, request, *args, **kwargs):
+        return Response({'error': 'No puedes actualizar precios especiales'}, status=status.HTTP_403_FORBIDDEN)
+    
+    def delete(self, request, *args, **kwargs):
+        precio_especial = self.get_object()
+        propiedad = precio_especial.propiedad
+        
+        if propiedad.anfitrion.usuario_id != request.user.id:
+            return Response({'error': 'No tienes permiso para eliminar este precio especial'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+    
