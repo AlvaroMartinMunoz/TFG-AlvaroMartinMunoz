@@ -93,6 +93,7 @@ const Profile = () => {
 
     const validateProfileData = async () => {
         const newErrors = {};
+        const usernameRegex = /^[^\d\s][a-zA-Z0-9\s]*$/;
         const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
         const emailDominio = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
@@ -113,6 +114,24 @@ const Profile = () => {
             newErrors.telefono = "El teléfono debe tener 9 dígitos numéricos";
         }
 
+        if (!usernameRegex.test(formData.direccion)) {
+            errors.direccion = "La dirección no puede empezar con espacios ni con numeros";
+        }
+
+        if (formData.direccion.length < 5) {
+            newErrors.direccion = "La dirección debe tener al menos 5 caracteres";
+        }
+        if (formData.biografia.length < 10) {
+            newErrors.biografia = "La biografía debe tener al menos 10 caracteres";
+        }
+        if (formData.biografia.length > 250) {
+            newErrors.biografia = "La biografía no puede tener más de 250 caracteres";
+        }
+        if (formData.telefono.length < 9) {
+            newErrors.telefono = "El teléfono debe tener al menos 9 dígitos";
+        }
+
+
         try {
             const checkResponse = await fetch("http://localhost:8000/api/usuarios/");
             const usuarios = await checkResponse.json();
@@ -121,6 +140,7 @@ const Profile = () => {
                 u.usuario.email === formData.usuario.email &&
                 u.usuario.id !== formData.usuario.id
             );
+
             const existeTelefono = usuarios.some(
                 (u) => u.telefono === formData.telefono && u.id !== formData.id
             );
@@ -415,6 +435,8 @@ const Profile = () => {
                                             name="direccion"
                                             variant="outlined"
                                             value={formData.direccion}
+                                            error={!!errors.direccion}
+                                            helperText={errors.direccion}
                                             disabled={!isEditing}
                                             onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
                                             sx={{ mb: 2 }}
@@ -430,6 +452,8 @@ const Profile = () => {
                                             variant="outlined"
                                             value={formData.biografia}
                                             disabled={!isEditing}
+                                            error={!!errors.biografia}
+                                            helperText={errors.biografia}
                                             onChange={(e) => setFormData({ ...formData, biografia: e.target.value })}
                                             sx={{ mb: 2 }}
                                             multiline
