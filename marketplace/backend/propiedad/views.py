@@ -36,6 +36,8 @@ import numpy as np
 from django.core.mail import send_mail
 from .models.precioEspecial import PrecioEspecial
 from .serializers import PrecioEspecialSerializer
+from rest_framework.decorators import api_view, permission_classes
+
 
 #STRIPE      
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -839,3 +841,57 @@ class PrecioEspecialViewSet(viewsets.ModelViewSet):
             return Response({'error': 'No tienes permiso para eliminar este precio especial'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
     
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def propiedades_por_usuario(request, usuario_id):
+    usuario = Usuario.objects.filter(usuario=request.user).first()
+    usuarioId = usuario.id
+    try:
+        if usuarioId != int(usuario_id):
+            return Response({'error': 'No tienes permiso para ver estas propiedades'}, status=status.HTTP_403_FORBIDDEN)
+        
+        propiedades = Propiedad.objects.filter(anfitrion=usuarioId)
+        serializer = PropiedadSerializer(propiedades, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedades no encontradas'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def valoraciones_por_propiedad(request, propiedad_id):
+
+    propiedad = Propiedad.objects.filter(id=propiedad_id).first()
+    if not propiedad:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    
+    valoraciones = ValoracionPropiedad.objects.filter(propiedad=propiedad_id)
+    serializer = ValoracionPropiedadSerializer(valoraciones, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def reservas_por_propiedad(request, propiedad_id):
+
+    try:
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    
+   
+    reservas = Reserva.objects.filter(propiedad=propiedad_id)
+    serializer = ReservaSerializer(reservas, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET']) 
+@permission_classes([IsAuthenticated])
+def precios_especiales_por_propiedad(request, propiedad_id):
+    try:
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+
+    precios_especiales = PrecioEspecial.objects.filter(propiedad=propiedad_id)
+    serializer = PrecioEspecialSerializer(precios_especiales, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)

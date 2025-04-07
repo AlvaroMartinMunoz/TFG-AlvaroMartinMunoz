@@ -12,6 +12,10 @@ from .views import create_payment
 from .views import FavoritoViewSet
 from .views import RecommendationAPI
 from .views import PrecioEspecialViewSet
+from .views import propiedades_por_usuario
+from .views import valoraciones_por_propiedad
+from .views import reservas_por_propiedad
+from .views import precios_especiales_por_propiedad
 
 
 router = DefaultRouter()
@@ -31,5 +35,8 @@ urlpatterns = [
     path('create-checkout-paypal/', create_payment),
     path('confirmar-pago-paypal/', confirmar_pago_paypal),
     path('recomendaciones/', RecommendationAPI.as_view()),
-
+    path('propiedades-por-usuario/<int:usuario_id>/', propiedades_por_usuario),
+    path('valoraciones-por-propiedad/<int:propiedad_id>/', valoraciones_por_propiedad),
+    path('reservas-por-propiedad/<int:propiedad_id>/', reservas_por_propiedad),
+    path('precios-especiales-por-propiedad/<int:propiedad_id>/', precios_especiales_por_propiedad),
 ]
