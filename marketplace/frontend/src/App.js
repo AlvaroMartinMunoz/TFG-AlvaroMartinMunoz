@@ -33,6 +33,7 @@ import TermsAndConditions from "./components/Footer/TermsAndConditions";
 import PrivacyPolicy from "./components/Footer/PrivacyPolicy";
 import AboutUs from "./components/Footer/AboutUs";
 import Recommendations from "./components/Recommendations";
+import PropertyDashboard from "./components/PropertyDashboard";
 
 const theme = createTheme({
   palette: {
@@ -74,6 +75,7 @@ function App() {
                 <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
                 <Route path="/sobre-nosotros" element={<AboutUs />} />
                 <Route path="/recomendaciones" element={<PrivateRoute component={Recommendations} />} />
+                <Route path="/dashboard/:propiedadId" element={<PrivateRoute component={PropertyDashboard} />} />
               </Routes>
             </Container>
             <Footer />

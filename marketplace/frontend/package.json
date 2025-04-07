@@ -11,6 +11,7 @@
     "@mui/material": "^6.4.3",
     "@mui/x-date-pickers": "^7.26.0",
     "@mui/x-date-pickers-pro": "^7.27.1",
+    "@stripe/stripe-js": "^7.0.0",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "axios": "^1.8.3",
@@ -28,6 +29,7 @@
     "react-multi-date-picker": "^4.5.2",
     "react-responsive-carousel": "^3.2.23",
     "react-router-dom": "^6.29.0",
+    "recharts": "^2.15.2",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
