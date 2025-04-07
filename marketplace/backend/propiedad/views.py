@@ -859,7 +859,6 @@ def propiedades_por_usuario(request, usuario_id):
         return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
 def valoraciones_por_propiedad(request, propiedad_id):
 
     propiedad = Propiedad.objects.filter(id=propiedad_id).first()
@@ -885,7 +884,6 @@ def reservas_por_propiedad(request, propiedad_id):
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(['GET']) 
-@permission_classes([IsAuthenticated])
 def precios_especiales_por_propiedad(request, propiedad_id):
     try:
         propiedad = Propiedad.objects.get(id=propiedad_id)
@@ -894,4 +892,76 @@ def precios_especiales_por_propiedad(request, propiedad_id):
 
     precios_especiales = PrecioEspecial.objects.filter(propiedad=propiedad_id)
     serializer = PrecioEspecialSerializer(precios_especiales, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def favoritos_por_usuario(request, usuario_id):
+    usuario = Usuario.objects.filter(usuario=request.user).first()
+    usuarioId = usuario.id
+    try:
+        if usuarioId != int(usuario_id):
+            return Response({'error': 'No tienes permiso para ver estos favoritos'}, status=status.HTTP_403_FORBIDDEN)
+        
+        favoritos = Favorito.objects.filter(usuario=usuarioId)
+        serializer = FavoritoSerializer(favoritos, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Favorito.DoesNotExist:
+        return Response({'error': 'Favoritos no encontrados'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+def fotos_por_propiedad(request, propiedad_id):
+    try :
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    fotos = FotoPropiedad.objects.filter(propiedad=propiedad_id)
+    serializer = FotoPropiedadSerializer(fotos, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def solicitudes_de_reserva_anfitrion(request, usuario_id):
+    usuario = Usuario.objects.filter(usuario=request.user).first()
+    usuarioId = usuario.id
+    try:
+        if usuarioId != int(usuario_id):
+            return Response({'error': 'No tienes permiso para ver estas reservas'}, status=status.HTTP_403_FORBIDDEN)
+        
+        reservas = Reserva.objects.filter(anfitrion=usuarioId)
+        serializer = ReservaSerializer(reservas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Reserva.DoesNotExist:
+        return Response({'error': 'Reservas no encontradas'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def solicitudes_de_reserva_usuario(request, usuario_id):
+    usuario = Usuario.objects.filter(usuario=request.user).first()
+    usuarioId = usuario.id
+    try:
+        if usuarioId != int(usuario_id):
+            return Response({'error': 'No tienes permiso para ver estas reservas'}, status=status.HTTP_403_FORBIDDEN)
+        
+        reservas = Reserva.objects.filter(usuario=usuarioId)
+        serializer = ReservaSerializer(reservas, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Reserva.DoesNotExist:
+        return Response({'error': 'Reservas no encontradas'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+@api_view(['GET'])
+def fechas_bloqueadas_por_propiedad(request, propiedad_id):
+    try:
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    
+    fechas_bloqueadas = FechaBloqueada.objects.filter(propiedad=propiedad_id)
+    serializer = FechaBloqueadaSerializer(fechas_bloqueadas, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)

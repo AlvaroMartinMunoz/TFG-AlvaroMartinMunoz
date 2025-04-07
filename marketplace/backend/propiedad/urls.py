@@ -16,6 +16,12 @@ from .views import propiedades_por_usuario
 from .views import valoraciones_por_propiedad
 from .views import reservas_por_propiedad
 from .views import precios_especiales_por_propiedad
+from .views import favoritos_por_usuario
+from .views import fotos_por_propiedad
+from .views import solicitudes_de_reserva_anfitrion
+from .views import solicitudes_de_reserva_usuario
+from .views import fechas_bloqueadas_por_propiedad
+
 
 
 router = DefaultRouter()
@@ -39,4 +45,9 @@ urlpatterns = [
     path('valoraciones-por-propiedad/<int:propiedad_id>/', valoraciones_por_propiedad),
     path('reservas-por-propiedad/<int:propiedad_id>/', reservas_por_propiedad),
     path('precios-especiales-por-propiedad/<int:propiedad_id>/', precios_especiales_por_propiedad),
+    path('favoritos-por-usuario/<int:usuario_id>/', favoritos_por_usuario),
+    path('fotos-por-propiedad/<int:propiedad_id>/', fotos_por_propiedad),
+    path('solicitudes-reserva-anfitrion/<int:usuario_id>/', solicitudes_de_reserva_anfitrion),
+    path('solicitudes-reserva-usuario/<int:usuario_id>/', solicitudes_de_reserva_usuario),
+    path('fechas-bloqueadas-por-propiedad/<int:propiedad_id>/', fechas_bloqueadas_por_propiedad),
 ]
