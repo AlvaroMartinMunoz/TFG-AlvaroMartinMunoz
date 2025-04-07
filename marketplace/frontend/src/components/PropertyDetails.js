@@ -34,6 +34,7 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 
 const PropertyDetails = () => {
+    const usuarioId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
     const { propiedadId } = useParams();
     const [propiedad, setPropiedad] = useState(null);
     const [fotos, setFotos] = useState([]);
@@ -112,10 +113,10 @@ const PropertyDetails = () => {
 
     const fetchSpecialPrices = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`);
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}/`);
             if (response.ok) {
                 const data = await response.json();
-                const filteredData = data.filter((precio) => precio.propiedad === parseInt(propiedadId) && precio.fecha_fin >= moment().format('YYYY-MM-DD'));
+                const filteredData = data.filter((precio) => precio.fecha_fin >= moment().format('YYYY-MM-DD'));
                 setSpecialPricesList(filteredData);
             } else {
                 console.error("Error fetching special prices:", response.statusText);
@@ -267,7 +268,7 @@ const PropertyDetails = () => {
 
     const checkIfFavorite = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos/`, {
+            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -391,10 +392,10 @@ const PropertyDetails = () => {
 
     const checkUserRating = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/`);
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`);
             if (response.ok) {
                 const data = await response.json();
-                const dataFiltered = data.filter((valoracion) => valoracion.usuario === JSON.parse(localStorage.getItem('additionalInfo')).usuarioId && valoracion.propiedad === parseInt(propiedadId));
+                const dataFiltered = data.filter((valoracion) => valoracion.usuario === JSON.parse(localStorage.getItem('additionalInfo')).usuarioId);
                 if (dataFiltered.length > 0) {
                     setHasRated(true);
                     setUserRating(dataFiltered[0]);
@@ -621,7 +622,7 @@ const PropertyDetails = () => {
 
     const fetchBlockedDates = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas-por-propiedad/${propiedadId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -637,8 +638,7 @@ const PropertyDetails = () => {
             }
             if (response.ok) {
                 const data = await response.json();
-                const filteredData = data.filter((fecha) => fecha.propiedad === parseInt(propiedadId));
-                setBlockedDates(filteredData);
+                setBlockedDates(data);
             }
         } catch (error) {
             console.error(error);
@@ -736,7 +736,7 @@ const PropertyDetails = () => {
 
     const fetchReservas = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -752,11 +752,7 @@ const PropertyDetails = () => {
             }
             if (response.ok) {
                 const data = await response.json();
-                console.log("Reservas", data);
-                console.log("PropiedadId", propiedadId);
-                const filteredData = data.filter((reserva) => reserva.propiedad === parseInt(propiedadId));
-                console.log("HH", filteredData);
-                setReservas(filteredData);
+                setReservas(data);
                 setReserveStartDate(null);
                 setReserveEndDate(null);
                 setFocusedInput(null);

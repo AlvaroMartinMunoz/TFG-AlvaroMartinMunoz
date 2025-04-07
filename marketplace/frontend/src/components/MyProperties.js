@@ -50,13 +50,15 @@ const MyProperties = () => {
     const fetchPropertyPhotos = async (propiedadId) => {
         setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            const response = await fetch(`http://localhost:8000/api/propiedades/fotos-por-propiedad/${propiedadId}`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
+                console.log("Filtered Data:", filteredData);
                 const portadaFoto = filteredData.find((foto) => foto.es_portada);
                 const url = await portadaFoto ? portadaFoto.foto : "https://source.unsplash.com/1600x900/?house";
-                setUrl((prev) => ({ ...prev, [propiedadId]: url }));
+                setUrl((prev) => ({ ...prev, [propiedadId]: "http://localhost:8000" + url }));
+                console.log("URL:", url);
                 setImageLoading((prev) => ({ ...prev, [propiedadId]: false }));
             }
         } catch (error) {
@@ -122,7 +124,7 @@ const MyProperties = () => {
         const usuarioId = JSON.parse(usuarioIdSinParse).usuarioId;
 
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",

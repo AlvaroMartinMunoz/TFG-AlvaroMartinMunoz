@@ -23,6 +23,7 @@ import { AccordionDetails } from "@mui/material";
 import { useLocation } from "react-router-dom";
 
 const MyReserves = () => {
+    const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [misReservas, setMisReservas] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
     const [url, setUrl] = useState([]);
@@ -242,7 +243,7 @@ const MyReserves = () => {
 
     const fetchReservas = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/solicitudes-reserva-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -260,9 +261,9 @@ const MyReserves = () => {
                 }
             } else if (response.ok) {
                 const data = await response.json();
-                const dataFiltered = data.filter(reserva => reserva.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
-                setMisReservas(dataFiltered);
-                fetchProperties(dataFiltered);
+                // const dataFiltered = data.filter(reserva => reserva.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId);
+                setMisReservas(data);
+                fetchProperties(data);
             } else {
                 console.log("Error al obtener las reservas");
             }

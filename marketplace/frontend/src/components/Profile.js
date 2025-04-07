@@ -157,8 +157,8 @@ const Profile = () => {
             setSaveLoading(true);
 
             const requestData = {
-                username: formData.usuario.username,  // Campo write_only
-                email: formData.usuario.email,        // Campo write_only
+                username: formData.usuario.username,
+                email: formData.usuario.email,
                 telefono: formData.telefono,
                 direccion: formData.direccion,
                 biografia: formData.biografia,

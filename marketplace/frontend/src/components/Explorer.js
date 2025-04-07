@@ -45,6 +45,7 @@ const Explorer = () => {
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 
+  const usuarioId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
   const [fechaLlegada, setFechaLlegada] = useState(null);
   const [fechaSalida, setFechaSalida] = useState(null);
   const [numPersonas, setNumPersonas] = useState(0);
@@ -224,7 +225,7 @@ const Explorer = () => {
 
   const fetchFavoritos = async () => {
     try {
-      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/",
+      const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`,
         {
           method: "GET",
           headers: {

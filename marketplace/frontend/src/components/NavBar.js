@@ -27,6 +27,7 @@ import { Link, useNavigate } from "react-router-dom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 
 const NavBar = () => {
+  const usuarioId = JSON.parse(localStorage.getItem("additionalInfo"))?.usuarioId;
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
   const [favoritosNavbar, setFavoritosNavbar] = useState(0);
@@ -66,7 +67,7 @@ const NavBar = () => {
   const fetchFavoritosNavbar = async (retried = false) => {
     if (!isAuthenticated()) return;
     try {
-      const response = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+      const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -75,10 +76,10 @@ const NavBar = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const dataFiltered = data.filter((favorito) =>
-          favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId
-        );
-        setFavoritosNavbar(dataFiltered.length);
+        // const dataFiltered = data.filter((favorito) =>
+        //   favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId
+        // );
+        setFavoritosNavbar(data.length);
       }
       if (response.status === 401 && !retried) {
         console.log("Token expirado");

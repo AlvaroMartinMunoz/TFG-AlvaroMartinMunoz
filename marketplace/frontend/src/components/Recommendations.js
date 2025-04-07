@@ -29,6 +29,7 @@ import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 
 const Recommendations = () => {
+    const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -69,7 +70,7 @@ const Recommendations = () => {
 
     const fetchFavorites = useCallback(async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

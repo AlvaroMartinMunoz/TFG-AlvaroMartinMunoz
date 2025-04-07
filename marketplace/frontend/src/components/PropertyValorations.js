@@ -62,7 +62,7 @@ const PropertyValorations = ({ propiedadId }) => {
     const fetchPropertyValorations = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades`, {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -74,8 +74,7 @@ const PropertyValorations = ({ propiedadId }) => {
             }
 
             const data = await response.json();
-            const dataFilteredNum = data.filter((valoracion) => valoracion.propiedad === parseInt(propiedadId));
-            setNumeroValoraciones(dataFilteredNum.length);
+            setNumeroValoraciones(data.length);
             const dataFiltered = data.filter((valoracion) => valoracion.usuario !== usuarioId && valoracion.propiedad === parseInt(propiedadId));
 
             setValoraciones(dataFiltered);

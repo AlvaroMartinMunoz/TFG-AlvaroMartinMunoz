@@ -33,6 +33,7 @@ import SortIcon from "@mui/icons-material/Sort";
 import FilterListIcon from "@mui/icons-material/FilterList";
 
 const MyReservationRequests = () => {
+    const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [solicitudes, setSolicitudes] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -77,7 +78,7 @@ const MyReservationRequests = () => {
 
     const fetchSolicitudes = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/reservas/", {
+            const response = await fetch(`http://localhost:8000/api/propiedades/solicitudes-reserva-anfitrion/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
