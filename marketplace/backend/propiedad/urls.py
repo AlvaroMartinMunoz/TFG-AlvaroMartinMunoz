@@ -21,6 +21,8 @@ from .views import fotos_por_propiedad
 from .views import solicitudes_de_reserva_anfitrion
 from .views import solicitudes_de_reserva_usuario
 from .views import fechas_bloqueadas_por_propiedad
+from .views import ocupacion_tendencia_por_propiedad
+from .views import precio_tendencia_por_propiedad
 
 
 
@@ -50,4 +52,6 @@ urlpatterns = [
     path('solicitudes-reserva-anfitrion/<int:usuario_id>/', solicitudes_de_reserva_anfitrion),
     path('solicitudes-reserva-usuario/<int:usuario_id>/', solicitudes_de_reserva_usuario),
     path('fechas-bloqueadas-por-propiedad/<int:propiedad_id>/', fechas_bloqueadas_por_propiedad),
+    path('ocupacion-tendencias/<int:propiedad_id>', ocupacion_tendencia_por_propiedad ),
+    path('precio-tendencias/<int:propiedad_id>', precio_tendencia_por_propiedad ),
 ]

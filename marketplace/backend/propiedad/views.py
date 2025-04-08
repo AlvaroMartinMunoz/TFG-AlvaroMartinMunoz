@@ -15,8 +15,7 @@ from .serializers import FechaBloqueadaSerializer
 from .models.reserva import Reserva
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from usuario.models.usuario import Usuario
-from datetime import timedelta
-from datetime import datetime
+from datetime import timedelta, datetime
 from django.db import IntegrityError
 from django.db.models import Avg
 import stripe
@@ -25,7 +24,6 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 import json
-import paypalrestsdk
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from .models.favorito import Favorito
@@ -37,6 +35,21 @@ from django.core.mail import send_mail
 from .models.precioEspecial import PrecioEspecial
 from .serializers import PrecioEspecialSerializer
 from rest_framework.decorators import api_view, permission_classes
+from paypalcheckoutsdk.core import PayPalHttpClient, SandboxEnvironment
+from paypalcheckoutsdk.orders import OrdersCreateRequest
+from paypalcheckoutsdk.orders import OrdersCaptureRequest
+from datetime import datetime
+from datetime import timedelta
+from dateutil.relativedelta import relativedelta
+from rest_framework.response import Response
+from rest_framework import status
+from dateutil.relativedelta import relativedelta
+from django.utils import timezone
+
+
+
+
+
 
 
 #STRIPE      
@@ -154,121 +167,109 @@ def confirmar_pago(request, session_id):
         return JsonResponse({'error': str(e)}, status=400)
     
 #PAYPAL
-paypalrestsdk.configure({
-    "client_id": settings.PAYPAL_CLIENT_ID,
-    "client_secret": settings.PAYPAL_CLIENT_SECRET,
-    "mode": "sandbox"
-    })
+
+def get_paypal_client():
+    environment = SandboxEnvironment(
+        client_id=settings.PAYPAL_CLIENT_ID, 
+        client_secret=settings.PAYPAL_CLIENT_SECRET
+    )
+    return PayPalHttpClient(environment)
 
 @require_POST
 @csrf_exempt
 def create_payment(request):
 
     data = json.loads(request.body)
-    print(data)
     reservationdata = data['reservationData']
     amount = reservationdata['precio_total']
-    descripcion = "Pago para reserva de propiedad"
 
-    payment = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {
-            "payment_method": "paypal"
-        },
-        "transactions": [{
-            "amount": {
-                "total": f"{amount:.2f}",
-                "currency": 'EUR'
-            },
-            "description": descripcion
-        }],
-        "redirect_urls": {
-            "return_url": "http://localhost:3000/mis-reservas",
-            "cancel_url": "http://localhost:3000/detalles"
-        }
-    })
+    client = get_paypal_client()
 
-    if payment.create():
-        approval_url = None
-        for link in payment.links:
-            if link.rel == "approval_url":
-                approval_url = link.href
-                break
-        if approval_url:
-            return JsonResponse({"approval_url": approval_url})
-        else:
-            return JsonResponse({"error": "No se encontró la URL de aprobación"}, status=400)
-    else:
-        return JsonResponse({"error": payment.error}, status=400)
-    
+    try:
+        request_order = OrdersCreateRequest()
+        request_order.prefer('return=representation')
+        request_order.request_body({
+            "intent": "CAPTURE",
+            "purchase_units": [{
+                "amount": {
+                    "currency_code": "EUR",
+                    "value": f"{float(amount):.2f}"
+                },
+                "description": "Pago para reserva de propiedad"
+            }],
+            "application_context": {
+                "return_url": "http://localhost:3000/mis-reservas",
+                "cancel_url": "http://localhost:3000/detalles",
+                "brand_name": "Best Rent Properties",
+                "user_action": "PAY_NOW" 
+            }
+        })
+
+        response = client.execute(request_order)
+        approval_url = next(link.href for link in response.result.links if link.rel == 'approve')
+
+        return JsonResponse({"approval_url": approval_url, "orderID": response.result.id})
+
+    except Exception as e:
+        print(f"Error PayPal: {str(e)}")
+        return JsonResponse({"error": str(e)}, status=400)
+
 @require_POST
 @csrf_exempt
 def confirmar_pago_paypal(request):
     try:
         data = json.loads(request.body)
-        payment_id = data['paymentId']
-        payer_id = data['payerId']
+        order_id = data['orderID']
+        client = get_paypal_client()
 
+        if Reserva.objects.filter(payment_id=order_id).exists():
+            return JsonResponse({'error': 'Pago ya procesado'}, status=409)
 
-        if not payer_id or not payment_id:
-            return JsonResponse({'error': 'Se requieren paymentId y payerId'}, status=400)
+        request_capture = OrdersCaptureRequest(order_id)
+        response = client.execute(request_capture)
 
-        with transaction.atomic():
-            reserva_existente = Reserva.objects.select_for_update().filter(payment_id=payment_id).first()
-            
-            if reserva_existente:
-                print("⛔ Reserva ya existe con payment_id:", payment_id)
-                return JsonResponse({'status': 'success', 'message': 'Pago ya procesado'})
+        if response.result.status == 'COMPLETED':
+            datos = data['reservationData']
 
-            payment = paypalrestsdk.Payment.find(payment_id)
-            
-            if payment.state == 'approved':
-                print("⚠️ Pago ya aprobado en PayPal pero sin registro local")
-                return JsonResponse({'error': 'Inconsistencia detectada'}, status=409)
+            reserva = Reserva.objects.create(
+                propiedad_id=datos['propiedad'],
+                usuario_id=datos['usuario'],
+                anfitrion_id=datos['anfitrion'],
+                fecha_llegada=datos['fecha_llegada'],
+                fecha_salida=datos['fecha_salida'],
+                numero_personas=datos['numero_personas'],
+                precio_por_noche=datos['precio_por_noche'],
+                comentarios_usuario=datos['comentarios_usuario'],
+                fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1), 
+                precio_total=datos['precio_total'],
+                estado='Confirmado',  
+                metodo_pago='PayPal',
+                payment_id=order_id ,
+            )
+            print("✅ Reserva creada ID:", reserva.id)
 
-            if payment.execute({"payer_id": payer_id}):
-                datos = data['reservationData']
-                print(datos)
-                
-                reserva = Reserva.objects.create(
-                    propiedad_id=datos['propiedad'],
-                    usuario_id=datos['usuario'],
-                    anfitrion_id=datos['anfitrion'],
-                    fecha_aceptacion_rechazo=datetime.now() - timedelta(hours=1),  
-                    fecha_llegada=datos['fecha_llegada'],
-                    fecha_salida=datos['fecha_salida'],
-                    numero_personas=datos['numero_personas'],
-                    precio_por_noche=datos['precio_por_noche'],
-                    precio_total=datos['precio_total'],
-                    estado=datos['estado'],
-                    metodo_pago='PayPal',
-                    comentarios_usuario=datos['comentarios_usuario'],
-                    payment_id=payment_id
-                )
-                print("✅ Reserva creada ID:", reserva.id)
+            subject = 'Confirmacion de reserva'
+            message = (
+                f"Hola,\n\n"
+                f"Su reserva ha sido confirmada exitosamente. A continuación, los detalles:\n"
+                f"Propiedad: {datos['nombrePropiedad']}\n"
+                f"Fecha de llegada: {datos['fecha_llegada']}\n"
+                f"Fecha de salida: {datos['fecha_salida']}\n"
+                f"Número de personas: {datos['numero_personas']}\n"
+                f"Precio total: {float(datos['precio_total']):.2f} EUR\n\n"
+                f"Gracias por confiar en nosotros."
+            )
 
-                subject = 'Confirmacion de reserva'
-                message = (
-                    f"Hola,\n\n"
-                    f"Su reserva ha sido confirmada exitosamente. A continuación, los detalles:\n"
-                    f"Propiedad: {datos['nombrePropiedad']}\n"
-                    f"Fecha de llegada: {datos['fecha_llegada']}\n"
-                    f"Fecha de salida: {datos['fecha_salida']}\n"
-                    f"Número de personas: {datos['numero_personas']}\n"
-                    f"Precio total: {float(datos['precio_total']):.2f} EUR\n\n"
-                    f"Gracias por confiar en nosotros."
-                )
+            recipient_list = [datos['correo']]
+            send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
 
-                recipient_list = [datos['correo']]
-                send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, recipient_list)
-
-                return JsonResponse({'status': 'success', 'reserva_id': reserva.id})
-            
-            return JsonResponse({'error': payment.error}, status=400)
+            return JsonResponse({'status': 'success', 'reserva_id': reserva.id})
+        else:
+            return JsonResponse({'error': 'Pago no completado'}, status=400)
 
     except Exception as e:
-        print(f"🔥 Error crítico: {str(e)}")
-        return JsonResponse({'error': 'Error procesando el pago'}, status=500)
+        print(f"Error en confirmación: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
 
     
 class PropiedadViewSet(viewsets.ModelViewSet):
@@ -965,3 +966,103 @@ def fechas_bloqueadas_por_propiedad(request, propiedad_id):
     fechas_bloqueadas = FechaBloqueada.objects.filter(propiedad=propiedad_id)
     serializer = FechaBloqueadaSerializer(fechas_bloqueadas, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def ocupacion_tendencia_por_propiedad(request, propiedad_id):
+    try:
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    
+    now = timezone.now().date()
+    start_date = (now - relativedelta(months=11)).replace(day=1)
+    end_date = (now + relativedelta(months=1)).replace(day=1)
+    
+    reservas = Reserva.objects.filter(
+        propiedad=propiedad_id,
+        fecha_llegada__lt=end_date,
+        fecha_salida__gt=start_date,
+        estado__in=['Aceptada']
+    ).order_by('fecha_llegada')
+    
+    ocupacion_por_mes = {}
+    current_date = start_date
+    while current_date < end_date:
+        mes_key = current_date.strftime('%Y-%m')
+        ocupacion_por_mes[mes_key] = 0
+        current_date = current_date.replace(day=1) + relativedelta(months=1)
+    
+    for reserva in reservas:
+        llegada = max(reserva.fecha_llegada, start_date)
+        salida = min(reserva.fecha_salida, end_date)
+        current = llegada
+        while current < salida:
+            mes_key = current.strftime('%Y-%m')
+            next_month = current.replace(day=1) + relativedelta(months=1)
+            dias_en_mes = (min(salida, next_month) - current).days
+            ocupacion_por_mes[mes_key] += dias_en_mes
+            current = next_month
+    
+    tendencias = []
+    for mes, dias_ocupados in ocupacion_por_mes.items():
+        mes_date = datetime.strptime(mes + '-01', '%Y-%m-%d').date()
+        total_dias = (mes_date.replace(day=1) + relativedelta(months=1) - mes_date.replace(day=1)).days
+        porcentaje = (dias_ocupados / total_dias) * 100 if total_dias > 0 else 0
+        tendencias.append({
+            'mes': mes,
+            'ocupacion': round(porcentaje, 2)
+        })
+    
+    tendencias.sort(key=lambda x: x['mes'])
+    
+    return Response(tendencias, status=status.HTTP_200_OK)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def precio_tendencia_por_propiedad(request, propiedad_id):
+
+    try:
+        propiedad = Propiedad.objects.get(id=propiedad_id)
+    except Propiedad.DoesNotExist:
+        return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
+    
+    precios_especiales = PrecioEspecial.objects.filter(propiedad=propiedad)
+    
+    now = timezone.now().date()
+    start_date = (now - relativedelta(months=11)).replace(day=1)
+    end_date = (now + relativedelta(months=1)).replace(day=1)
+        
+    months = []
+    current_date = start_date
+    while current_date < end_date:
+        months.append(current_date.strftime("%Y-%m"))
+        current_date += relativedelta(months=1)
+    
+    data = []
+    for month in months:
+        month_start = datetime.strptime(month + "-01", "%Y-%m-%d")
+        month_end = month_start + relativedelta(months=1) - timedelta(days=1)
+        
+        total_precio = 0
+        total_dias = 0
+        current_day = month_start
+        while current_day <= month_end:
+            current_day_date = current_day.date()
+            precio_dia = next(
+                (pe.precio_especial for pe in precios_especiales 
+                 if pe.fecha_inicio <= current_day_date <= pe.fecha_fin),
+                propiedad.precio_por_noche 
+            )
+            total_precio += precio_dia
+            total_dias += 1
+            current_day += timedelta(days=1)
+        
+        precio_promedio = total_precio / total_dias if total_dias > 0 else 0
+        
+        data.append({
+            'mes': month,
+            'precio': round(precio_promedio, 2)
+        })
+    
+    return Response(data, status=status.HTTP_200_OK)
