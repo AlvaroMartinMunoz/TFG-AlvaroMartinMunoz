@@ -938,7 +938,7 @@ const PropertyDetails = () => {
                 const data = await response.json();
 
                 if (data.approval_url) {
-                    localStorage.setItem('reservationData', JSON.stringify(reservationData));
+                    localStorage.setItem(`reservation_${data.orderID}`, JSON.stringify(reservationData));
                     window.location.href = data.approval_url;
                 } else {
                     alert('Ocurrió un error al procesar el pago');
@@ -1998,7 +1998,6 @@ const PropertyDetails = () => {
                             >
                                 <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
                                 <MenuItem value="PayPal">PayPal</MenuItem>
-                                <MenuItem value="Transferencia bancaria">Transferencia Bancaria</MenuItem>
                             </Select>
                         </FormControl>
 

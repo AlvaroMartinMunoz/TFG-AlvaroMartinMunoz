@@ -96,35 +96,31 @@ const MyReserves = () => {
 
     useEffect(() => {
         const procesarPagoPaypal = async () => {
-            // Obtener parámetros de la URL
             const params = new URLSearchParams(location.search);
-            const paymentId = params.get("paymentId");
-            const payerId = params.get("PayerID");
+            const orderID = params.get("token");
 
-            // Validar que existan los parámetros requeridos
-            if (!paymentId || !payerId) return;
-
-            // Evitar procesamiento duplicado del mismo pago
-            if (localStorage.getItem("processingPayment") === paymentId) {
-                console.warn("⚠️ Pago ya está siendo procesado");
+            if (!orderID) {
+                console.log("No se detectó orden de PayPal");
+                return;
+            }
+            if (localStorage.getItem("processingOrder") === orderID) {
+                console.warn("⚠️ Orden ya en proceso");
                 return;
             }
 
-            localStorage.setItem("processingPayment", paymentId);
+            localStorage.setItem("processingOrder", orderID);
+
+
 
             try {
-                // Recuperar y validar los datos de reserva almacenados
-                const reservaAlmacenada = localStorage.getItem("reservationData");
+                const reservaAlmacenada = localStorage.getItem(`reservation_${orderID}`);
                 if (!reservaAlmacenada) {
-                    alert("No se encontraron datos de reserva");
+                    alert("Sesión expirada. Por favor realiza la reserva nuevamente");
                     return;
                 }
-                const reservationData = JSON.parse(reservaAlmacenada);
 
-                // Limpiar la URL de parámetros de consulta
                 window.history.replaceState({}, document.title, window.location.pathname);
 
-                // Realizar la solicitud a la API para confirmar el pago
                 const response = await fetch(
                     "http://localhost:8000/api/propiedades/confirmar-pago-paypal/",
                     {
@@ -134,49 +130,43 @@ const MyReserves = () => {
                             Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                         },
                         body: JSON.stringify({
-                            paymentId,
-                            payerId,
-                            reservationData,
+                            orderID,
+                            reservationData: JSON.parse(reservaAlmacenada),
                         }),
                     }
                 );
 
-                // Limpiar datos temporales almacenados
-                localStorage.removeItem("reservationData");
-                localStorage.removeItem("processingPayment");
+                localStorage.removeItem(`reservation_${orderID}`);
+                localStorage.removeItem("processingOrder");
 
-                // Verificar respuesta del servidor
+
                 if (!response.ok) {
                     const errorData = await response.json();
-                    throw new Error(errorData.error || "Error en el pago");
-                }
+                    const errorMessage = errorData.error || "Error en el pago";
 
-                // Procesar la respuesta exitosa
-                const data = await response.json();
-
-                // Notificar al usuario del éxito de la operación
-                setNotification({
+                    if (errorMessage.includes("ya existe")) {
+                        alert("Esta reserva ya fue confirmada anteriormente");
+                        window.location.href = "/mis-reservas";
+                        return;
+                    }
+                    throw new Error(errorMessage);
+                } setNotification({
                     type: "success",
-                    message: "¡Reserva confirmada exitosamente!",
+                    message: "¡Pago completado con éxito!",
                 });
-                setTimeout(() => setNotification(null), 5000);
-                localStorage.setItem("paymentConfirmed", paymentId);
-                alert("¡Reserva confirmada exitosamente!");
 
-                // Redirigir al usuario a la sección de reservas
-                setTimeout(() => {
-                    window.location.href = "/mis-reservas";
-                }, 1500);
+                window.history.replaceState({ paymentCompleted: true }, "");
+                setTimeout(() => window.location.href = "/mis-reservas", 1500);
+
             } catch (error) {
-                console.error("🔥 Error al procesar el pago:", error);
-                alert(`Error al procesar el pago: ${error.message}`);
-                localStorage.removeItem("processingPayment");
+                console.error("Error en el pago:", error);
+                alert(`Error: ${error.message}`);
+                localStorage.removeItem("processingOrder");
             }
         };
 
-        // Controlar el ciclo de vida del efecto para evitar actualizaciones en componentes desmontados
         let isMounted = true;
-        if (isMounted) {
+        if (isMounted && location.search.includes("token")) {
             procesarPagoPaypal();
         }
 
