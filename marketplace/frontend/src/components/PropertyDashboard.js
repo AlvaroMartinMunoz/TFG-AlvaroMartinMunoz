@@ -15,7 +15,12 @@ import {
     LinearProgress,
     Chip,
     useTheme,
-    Stack
+    Stack,
+    Button,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import {
@@ -40,6 +45,8 @@ import EuroIcon from '@mui/icons-material/Euro';
 import StarRateIcon from '@mui/icons-material/StarRate';
 import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+import CompareIcon from '@mui/icons-material/Compare';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 const PropertyDashboard = () => {
     const theme = useTheme();
@@ -53,6 +60,11 @@ const PropertyDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [dateRange, setDateRange] = useState([null, null]);
+    const [selectedPropertyCompare, setSelectedPropertyCompare] = useState('');
+
+    const [ocupacionTendencias, setOcupacionTendencias] = useState([]);
+    const [precioTendencias, setPrecioTendencias] = useState([]);
+    const [competenciaData, setCompetenciaData] = useState(null);
 
     const totalReservas = reservas.length;
     const promedioValoracion = propiedad?.valoracion_promedio || 0;
@@ -70,114 +82,32 @@ const PropertyDashboard = () => {
 
     useEffect(() => {
         fetchPropiedades();
-    }, []);
+        fetchOcupacionTendencias();
+        fetchPrecioTendencias();
+        fetchCompetenciaData();
+        fetchReservas();
+        fetchValoraciones();
+        fetchPreciosEspeciales();
 
-    useEffect(() => {
-        const fetchPreciosEspeciales = async () => {
-            try {
-                const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}`,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                        },
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error('Error fetching precios especiales');
-                }
-                if (response.ok) {
-                    const data = await response.json();
-                    setPreciosEspeciales(data);
-                }
-            } catch (error) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const fetchReservas = async () => {
-            try {
-                const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}`,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                        },
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error('Error fetching reservas');
-                }
-                if (response.ok) {
-                    const data = await response.json();
-                    setReservas(data);
-                }
-            } catch (error) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        const fetchValoraciones = async () => {
-            try {
-                const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`,
-                    {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                        },
-                    }
-                );
-                if (!response.ok) {
-                    throw new Error('Error fetching valoraciones');
-                }
-                if (response.ok) {
-                    const data = await response.json();
-                    setValoraciones(data);
-                }
-            } catch (error) {
-                setError(error.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (propiedadId) {
-            fetchReservas();
-            fetchValoraciones();
-            fetchPreciosEspeciales();
-        }
     }, [propiedadId]);
 
     const fetchPropiedades = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades-por-usuario/${usuarioId}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                    },
-                }
-            );
-            if (!response.ok) {
-                throw new Error('Error fetching propiedades');
-            }
-            if (response.ok) {
-                const data = await response.json();
-                setPropiedades(data);
-                const selectedPropiedad = data.find((prop) => prop.id === parseInt(propiedadId));
-                setPropiedad(selectedPropiedad);
-                if (selectedPropiedad?.anfitrion !== usuarioId) {
-                    setError('No tienes permiso para ver esta propiedad');
-                    window.location.href = '/mis-propiedades';
-                }
+            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching propiedades');
+            const data = await response.json();
+            setPropiedades(data);
+            const selectedPropiedad = data.find((prop) => prop.id === parseInt(propiedadId));
+            setPropiedad(selectedPropiedad);
+            if (selectedPropiedad?.anfitrion !== usuarioId) {
+                setError('No tienes permiso para ver esta propiedad');
+                window.location.href = '/mis-propiedades';
             }
         } catch (error) {
             setError(error.message);
@@ -186,8 +116,130 @@ const PropertyDashboard = () => {
         }
     };
 
-    if (loading) return <LinearProgress />;
-    if (error) return <Typography color="error">{error}</Typography>;
+    const fetchPreciosEspeciales = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching precios especiales');
+            const data = await response.json();
+            setPreciosEspeciales(data);
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const fetchReservas = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching reservas');
+            const data = await response.json();
+            setReservas(data);
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const fetchValoraciones = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching valoraciones');
+            const data = await response.json();
+            setValoraciones(data);
+        } catch (error) {
+            setError(error.message);
+        }
+    };
+
+    const fetchOcupacionTendencias = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/ocupacion-tendencias/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching tendencias de ocupación');
+            const data = await response.json();
+            setOcupacionTendencias(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const fetchPrecioTendencias = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precio-tendencias/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching tendencias de precios');
+            const data = await response.json();
+            setPrecioTendencias(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const fetchCompetenciaData = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/competencia/${propiedadId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching datos de competencia');
+            const data = await response.json();
+            setCompetenciaData(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const COLORS = [
+        theme.palette.error.main,
+        theme.palette.warning.main,
+        theme.palette.info.main,
+        theme.palette.success.main,
+        theme.palette.primary.main,
+    ];
+
+    const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent }) => {
+        const RADIAN = Math.PI / 180;
+        const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+        const x = cx + radius * Math.cos(-midAngle * RADIAN);
+        const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+        return (
+            <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central">
+                {`${(percent * 100).toFixed(0)}%`}
+            </text>
+        );
+    };
+
+
 
     return (
         <Box sx={{
@@ -197,78 +249,25 @@ const PropertyDashboard = () => {
             backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.4))',
         }}>
             <Container maxWidth="xl">
-                <Box sx={{
-                    mb: 4,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderBottom: `1px solid ${theme.palette.divider}`,
-                    pb: 2
-                }}>
+                <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="h4" sx={{
-                            fontWeight: 'bold',
-                            color: theme.palette.primary.dark,
-                        }}>
+                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.dark }}>
                             {propiedad?.nombre}
                         </Typography>
-                        <Chip
-                            label={propiedad?.tipo_de_propiedad}
-                            color="secondary"
-                            variant="outlined"
-                            sx={{ fontWeight: 500 }}
-                        />
+                        <Chip label={propiedad?.tipo_de_propiedad} color="secondary" variant="outlined" sx={{ fontWeight: 500 }} />
                     </Box>
+
                 </Box>
 
-                {/* Metrics Row - Using Flexbox instead of Grid */}
-                <Box sx={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: 3,
-                    mb: 4
-                }}>
-                    <MetricCard
-                        icon={<EventAvailableIcon />}
-                        title="Reservas Totales"
-                        value={totalReservas}
-                        subtitle="Últimos 12 meses"
-                        color={theme.palette.primary.main}
-                    />
-                    <MetricCard
-                        icon={<EuroIcon />}
-                        title="Ingresos Totales"
-                        value={`€${ingresosTotales.toFixed(2)}`}
-                        subtitle="Ingresos anuales"
-                        color={theme.palette.success.main}
-                    />
-                    <MetricCard
-                        icon={<StarRateIcon />}
-                        title="Valoración Promedio"
-                        value={promedioValoracion}
-                        subtitle={`de ${valoraciones.length} reseñas`}
-                        color={theme.palette.warning.main}
-                    />
-                    <MetricCard
-                        icon={<PeopleIcon />}
-                        title="Tasa de Ocupación"
-                        value={`${ocupacionPorcentaje}%`}
-                        subtitle="Días ocupados/año"
-                        color={theme.palette.info.main}
-                    />
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+                    <MetricCard icon={<EventAvailableIcon />} title="Reservas Totales" value={totalReservas} subtitle="Últimos 12 meses" color={theme.palette.primary.main} />
+                    <MetricCard icon={<EuroIcon />} title="Ingresos Totales" value={`€${ingresosTotales.toFixed(2)}`} subtitle="Ingresos anuales" color={theme.palette.success.main} />
+                    <MetricCard icon={<StarRateIcon />} title="Valoración Promedio" value={promedioValoracion.toFixed(2) + "/5"} subtitle={`de ${valoraciones.length} reseñas`} color={theme.palette.warning.main} />
+                    <MetricCard icon={<PeopleIcon />} title="Tasa de Ocupación" value={`${ocupacionPorcentaje}%`} subtitle="Días ocupados/año" color={theme.palette.info.main} />
                 </Box>
 
-                {/* Charts Section - Using CSS Grid */}
-                <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' },
-                    gap: 3,
-                    mb: 4
-                }}>
-                    <Card elevation={0} sx={{
-                        borderRadius: 2,
-                        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
-                    }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 4 }}>
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
                                 Reservas e Ingresos Mensuales
@@ -278,14 +277,7 @@ const PropertyDashboard = () => {
                                     <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
                                     <XAxis dataKey="mes" tickLine={false} />
                                     <YAxis axisLine={false} tickLine={false} />
-                                    <Tooltip
-                                        contentStyle={{
-                                            backgroundColor: theme.palette.background.paper,
-                                            borderRadius: 8,
-                                            boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
-                                            border: 'none'
-                                        }}
-                                    />
+                                    <Tooltip contentStyle={{ backgroundColor: theme.palette.background.paper, borderRadius: 8, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)', border: 'none' }} />
                                     <Legend wrapperStyle={{ paddingTop: 20 }} />
                                     <Bar dataKey="reservas" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} name="Reservas" />
                                     <Bar dataKey="ingresos" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} name="Ingresos (€)" />
@@ -294,13 +286,13 @@ const PropertyDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    <Card elevation={0} sx={{
-                        borderRadius: 2,
-                        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
-                    }}>
+                    <Card elevation={3} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)' }}>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
+                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: theme.palette.text.primary }}>
                                 Distribución de Valoraciones
+                            </Typography>
+                            <Typography variant="body2" sx={{ mb: 2, color: theme.palette.text.secondary }}>
+                                Esta gráfica muestra la distribución de las valoraciones recibidas, proporcionando una visión clara de la satisfacción general.
                             </Typography>
                             <ResponsiveContainer width="100%" height={300}>
                                 <PieChart>
@@ -310,19 +302,14 @@ const PropertyDashboard = () => {
                                         nameKey="valoracion"
                                         cx="50%"
                                         cy="50%"
-                                        outerRadius={80}
-                                        label
+                                        outerRadius={100}
+                                        labelLine={false}
+                                        label={renderCustomizedLabel}
                                     >
                                         {datosValoraciones.map((entry, index) => (
                                             <Cell
                                                 key={`cell-${index}`}
-                                                fill={[
-                                                    theme.palette.error.light,
-                                                    theme.palette.warning.light,
-                                                    theme.palette.success.light,
-                                                    theme.palette.primary.light,
-                                                    theme.palette.secondary.light
-                                                ][index % 5]}
+                                                fill={COLORS[index % COLORS.length]}
                                                 stroke={theme.palette.background.paper}
                                                 strokeWidth={2}
                                             />
@@ -333,35 +320,96 @@ const PropertyDashboard = () => {
                                             backgroundColor: theme.palette.background.paper,
                                             borderRadius: 8,
                                             boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)',
-                                            border: 'none'
+                                            border: 'none',
+                                            padding: '10px',
                                         }}
+                                        formatter={(value, name) => [`${value} valoraciones`, name]}
                                     />
-                                    <Legend wrapperStyle={{ paddingTop: 20 }} />
+                                    <Legend
+                                        layout="vertical"
+                                        align="right"
+                                        verticalAlign="middle"
+                                        wrapperStyle={{ paddingLeft: 12 }}
+                                        formatter={(value) => <span style={{ color: theme.palette.text.primary }}>{value}</span>}
+                                    />
                                 </PieChart>
+                            </ResponsiveContainer>
+                            <Box sx={{ mt: 2, textAlign: 'center' }}>
+                                <Typography variant="body2" color="text.secondary">
+                                    Total de valoraciones: {valoraciones.length}
+                                </Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                </Box>
+
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 4 }}>
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                <TrendingUpIcon /> Tendencias de Ocupación
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={ocupacionTendencias}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="mes" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="ocupacion" stroke={theme.palette.primary.main} name="Ocupación (%)" />
+                                </LineChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                <EuroIcon /> Tendencias de Precios
+                            </Typography>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <LineChart data={precioTendencias}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis dataKey="mes" />
+                                    <YAxis />
+                                    <Tooltip />
+                                    <Legend />
+                                    <Line type="monotone" dataKey="precio" stroke={theme.palette.success.main} name="Precio (€)" />
+                                </LineChart>
                             </ResponsiveContainer>
                         </CardContent>
                     </Card>
                 </Box>
 
-                {/* Bottom Section - Using CSS Grid */}
-                <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                    gap: 3,
-                    mb: 4
-                }}>
-                    <Card elevation={0} sx={{
-                        borderRadius: 2,
-                        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
-                    }}>
+                <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
+                    <CardContent>
+                        <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                            <CompareIcon /> Comparación con Otras Propiedades
+                        </Typography>
+                        <FormControl fullWidth sx={{ mb: 2 }}>
+                            <InputLabel>Seleccionar Propiedad</InputLabel>
+                            <Select
+                                value={selectedPropertyCompare}
+                                onChange={(e) => setSelectedPropertyCompare(e.target.value)}
+                                label="Seleccionar Propiedad"
+                            >
+                                {propiedades.filter(p => p.id !== parseInt(propiedadId)).map(p => (
+                                    <MenuItem key={p.id} value={p.id}>{p.nombre}</MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        {selectedPropertyCompare && (
+                            <ComparacionPropiedades propiedadActual={propiedad} propiedadComparada={propiedades.find(p => p.id === parseInt(selectedPropertyCompare))} />
+                        )}
+                    </CardContent>
+                </Card>
+
+                {/* Bottom Section */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 4 }}>
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                fontWeight: 500
-                            }}>
-                                <CalendarTodayIcon fontSize="small" /> Calendario de Disponibilidad
+                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                <CalendarTodayIcon /> Calendario de Disponibilidad
                             </Typography>
                             <LocalizationProvider dateAdapter={AdapterDateFns}>
                                 <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
@@ -379,15 +427,7 @@ const PropertyDashboard = () => {
                                     />
                                 </Box>
                             </LocalizationProvider>
-                            <TableContainer
-                                component={Paper}
-                                sx={{
-                                    mt: 2,
-                                    borderRadius: 2,
-                                    boxShadow: 'none',
-                                    border: `1px solid ${theme.palette.divider}`
-                                }}
-                            >
+                            <TableContainer component={Paper} sx={{ mt: 2, borderRadius: 2, boxShadow: 'none', border: `1px solid ${theme.palette.divider}` }}>
                                 <Table>
                                     <TableHead>
                                         <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
@@ -398,9 +438,7 @@ const PropertyDashboard = () => {
                                     </TableHead>
                                     <TableBody>
                                         {eventosCalendario.length > 0 ? eventosCalendario.map((evento, index) => (
-                                            <TableRow key={index} sx={{
-                                                '&:hover': { backgroundColor: theme.palette.action.hover }
-                                            }}>
+                                            <TableRow key={index} sx={{ '&:hover': { backgroundColor: theme.palette.action.hover } }}>
                                                 <TableCell>
                                                     {evento.tipo === 'reserva'
                                                         ? `${evento.fecha_llegada} - ${evento.fecha_salida}`
@@ -416,15 +454,13 @@ const PropertyDashboard = () => {
                                                 </TableCell>
                                                 <TableCell>
                                                     {evento.tipo === 'reserva'
-                                                        ? `Reserva de ${evento.usuario} (${evento.estado})`
+                                                        ? `Reserva de ${evento.usuario} (${evento.estado}) - ${Math.ceil((new Date(evento.fecha_salida) - new Date(evento.fecha_llegada)) / (1000 * 60 * 60 * 24))} días`
                                                         : `Precio especial: €${evento.precio_especial}`}
                                                 </TableCell>
                                             </TableRow>
                                         )) : (
                                             <TableRow>
-                                                <TableCell colSpan={3} align="center">
-                                                    No hay eventos programados
-                                                </TableCell>
+                                                <TableCell colSpan={3} align="center">No hay eventos programados</TableCell>
                                             </TableRow>
                                         )}
                                     </TableBody>
@@ -433,10 +469,7 @@ const PropertyDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    <Card elevation={0} sx={{
-                        borderRadius: 2,
-                        boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)'
-                    }}>
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
                                 Últimas Valoraciones
@@ -449,47 +482,44 @@ const PropertyDashboard = () => {
                                         backgroundColor: theme.palette.grey[50],
                                         border: `1px solid ${theme.palette.divider}`,
                                         transition: 'transform 0.2s, box-shadow 0.2s',
-                                        '&:hover': {
-                                            transform: 'translateY(-2px)',
-                                            boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-                                        }
+                                        '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }
                                     }}>
-                                        <Box sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            mb: 1
-                                        }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
                                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                                 <StarRateIcon color="warning" />
-                                                <Typography variant="body1" sx={{ ml: 1, fontWeight: 600 }}>
-                                                    {valoracion.valoracion}/5
-                                                </Typography>
+                                                <Typography variant="body1" sx={{ ml: 1, fontWeight: 600 }}>{valoracion.valoracion}/5</Typography>
                                             </Box>
                                             <Typography variant="caption" color="text.secondary">
                                                 {new Date(valoracion.fecha || Date.now()).toLocaleDateString()}
                                             </Typography>
                                         </Box>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {valoracion.comentario}
-                                        </Typography>
+                                        <Typography variant="body2" color="text.secondary">{valoracion.comentario}</Typography>
                                     </Box>
                                 )) : (
-                                    <Box sx={{
-                                        p: 4,
-                                        borderRadius: 2,
-                                        backgroundColor: theme.palette.grey[50],
-                                        textAlign: 'center'
-                                    }}>
-                                        <Typography color="text.secondary">
-                                            No hay valoraciones disponibles
-                                        </Typography>
+                                    <Box sx={{ p: 4, borderRadius: 2, backgroundColor: theme.palette.grey[50], textAlign: 'center' }}>
+                                        <Typography color="text.secondary">No hay valoraciones disponibles</Typography>
                                     </Box>
                                 )}
                             </Stack>
                         </CardContent>
                     </Card>
                 </Box>
+
+                {/* Análisis de Competencia */}
+                {competenciaData && (
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
+                        <CardContent>
+                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
+                                Análisis de Competencia
+                            </Typography>
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <Typography>Precio Promedio: €{competenciaData.avgPrice}</Typography>
+                                <Typography>Ocupación Promedio: {competenciaData.avgOccupancy}%</Typography>
+                                <Typography>Valoración Promedio: {competenciaData.avgRating}</Typography>
+                            </Box>
+                        </CardContent>
+                    </Card>
+                )}
             </Container>
         </Box>
     );
@@ -518,29 +548,40 @@ const MetricCard = ({ icon, title, value, subtitle, color }) => (
     }}>
         <CardContent>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, position: 'relative', zIndex: 1 }}>
-                <Box sx={{
-                    backgroundColor: color + '15',
-                    p: 1.5,
-                    borderRadius: '12px',
-                    display: 'flex'
-                }}>
+                <Box sx={{ backgroundColor: color + '15', p: 1.5, borderRadius: '12px', display: 'flex' }}>
                     {React.cloneElement(icon, { sx: { color } })}
                 </Box>
                 <Box>
-                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-                        {value}
-                    </Typography>
-                    <Typography variant="subtitle2" sx={{ color: theme => theme.palette.text.primary, fontWeight: 500 }}>
-                        {title}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                        {subtitle}
-                    </Typography>
+                    <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>{value}</Typography>
+                    <Typography variant="subtitle2" sx={{ color: theme => theme.palette.text.primary, fontWeight: 500 }}>{title}</Typography>
+                    <Typography variant="caption" color="text.secondary">{subtitle}</Typography>
                 </Box>
             </Box>
         </CardContent>
     </Card>
 );
+
+const ComparacionPropiedades = ({ propiedadActual, propiedadComparada }) => {
+    const data = [
+        { metric: 'Reservas', actual: propiedadActual.reservas?.length || 0, comparada: propiedadComparada.reservas?.length || 0 },
+        { metric: 'Ingresos', actual: propiedadActual.reservas?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0, comparada: propiedadComparada.reservas?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0 },
+        { metric: 'Valoración', actual: propiedadActual.valoracion_promedio.toFixed(2) || 0, comparada: propiedadComparada.valoracion_promedio.toFixed(2) || 0 },
+    ];
+
+    return (
+        <ResponsiveContainer width="100%" height={300}>
+            <BarChart data={data}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="metric" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="actual" fill="#8884d8" name={propiedadActual.nombre} />
+                <Bar dataKey="comparada" fill="#82ca9d" name={propiedadComparada.nombre} />
+            </BarChart>
+        </ResponsiveContainer>
+    );
+};
 
 const procesarDatosReservas = (reservas) => {
     const meses = Array(12).fill(0).map((_, i) => ({
@@ -565,6 +606,30 @@ const procesarValoraciones = (valoraciones) => {
         valoracion: `${valoracion} estrellas`,
         cantidad
     }));
+};
+
+const generateICSContent = (eventos) => {
+    let icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//MyApp//Property Calendar//EN
+`;
+
+    eventos.forEach(evento => {
+        const startDate = evento.tipo === 'reserva' ? evento.fecha_llegada : evento.fecha_inicio;
+        const endDate = evento.tipo === 'reserva' ? evento.fecha_salida : evento.fecha_fin;
+        const summary = evento.tipo === 'reserva' ? `Reserva de ${evento.usuario}` : `Precio Especial: €${evento.precio_especial}`;
+
+        icsContent += `BEGIN:VEVENT
+UID:${Math.random().toString(36).substring(2)}@myapp.com
+DTSTART:${new Date(startDate).toISOString().replace(/-|:|\.\d\d\d/g, '')}Z
+DTEND:${new Date(endDate).toISOString().replace(/-|:|\.\d\d\d/g, '')}Z
+SUMMARY:${summary}
+END:VEVENT
+`;
+    });
+
+    icsContent += `END:VCALENDAR`;
+    return icsContent;
 };
 
 export default PropertyDashboard;
