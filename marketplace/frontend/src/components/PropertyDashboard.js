@@ -505,7 +505,6 @@ const PropertyDashboard = () => {
                     </Card>
                 </Box>
 
-                {/* Análisis de Competencia */}
                 {competenciaData && (
                     <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
                         <CardContent>
@@ -596,7 +595,11 @@ const procesarDatosReservas = (reservas) => {
         meses[mes].ingresos += parseFloat(reserva.precio_total);
     });
 
-    return meses;
+    return meses.map((mes, index) => ({
+        ...mes,
+        ingresos: parseFloat(mes.ingresos.toFixed(2)),
+    })
+    );
 };
 
 const procesarValoraciones = (valoraciones) => {
@@ -608,28 +611,6 @@ const procesarValoraciones = (valoraciones) => {
     }));
 };
 
-const generateICSContent = (eventos) => {
-    let icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//MyApp//Property Calendar//EN
-`;
 
-    eventos.forEach(evento => {
-        const startDate = evento.tipo === 'reserva' ? evento.fecha_llegada : evento.fecha_inicio;
-        const endDate = evento.tipo === 'reserva' ? evento.fecha_salida : evento.fecha_fin;
-        const summary = evento.tipo === 'reserva' ? `Reserva de ${evento.usuario}` : `Precio Especial: €${evento.precio_especial}`;
-
-        icsContent += `BEGIN:VEVENT
-UID:${Math.random().toString(36).substring(2)}@myapp.com
-DTSTART:${new Date(startDate).toISOString().replace(/-|:|\.\d\d\d/g, '')}Z
-DTEND:${new Date(endDate).toISOString().replace(/-|:|\.\d\d\d/g, '')}Z
-SUMMARY:${summary}
-END:VEVENT
-`;
-    });
-
-    icsContent += `END:VCALENDAR`;
-    return icsContent;
-};
 
 export default PropertyDashboard;
