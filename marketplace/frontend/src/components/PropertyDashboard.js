@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from 'react';
 import {
     Box,
     Container,
@@ -20,8 +20,10 @@ import {
     MenuItem,
     Select,
     FormControl,
-    InputLabel
+    InputLabel,
+    CardHeader
 } from '@mui/material';
+import { TrendingUp, Home, Star } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import {
     BarChart,
@@ -64,7 +66,6 @@ const PropertyDashboard = () => {
 
     const [ocupacionTendencias, setOcupacionTendencias] = useState([]);
     const [precioTendencias, setPrecioTendencias] = useState([]);
-    const [competenciaData, setCompetenciaData] = useState(null);
 
     const totalReservas = reservas.length;
     const promedioValoracion = propiedad?.valoracion_promedio || 0;
@@ -84,7 +85,6 @@ const PropertyDashboard = () => {
         fetchPropiedades();
         fetchOcupacionTendencias();
         fetchPrecioTendencias();
-        fetchCompetenciaData();
         fetchReservas();
         fetchValoraciones();
         fetchPreciosEspeciales();
@@ -201,22 +201,7 @@ const PropertyDashboard = () => {
         }
     };
 
-    const fetchCompetenciaData = async () => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/competencia/${propiedadId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
-            if (!response.ok) throw new Error('Error fetching datos de competencia');
-            const data = await response.json();
-            setCompetenciaData(data);
-        } catch (error) {
-            console.error(error);
-        }
-    };
+
 
     const COLORS = [
         theme.palette.error.main,
@@ -393,13 +378,14 @@ const PropertyDashboard = () => {
                                 onChange={(e) => setSelectedPropertyCompare(e.target.value)}
                                 label="Seleccionar Propiedad"
                             >
+                                <MenuItem value="" >Selecciona una propiedad</MenuItem>
                                 {propiedades.filter(p => p.id !== parseInt(propiedadId)).map(p => (
                                     <MenuItem key={p.id} value={p.id}>{p.nombre}</MenuItem>
                                 ))}
                             </Select>
                         </FormControl>
                         {selectedPropertyCompare && (
-                            <ComparacionPropiedades propiedadActual={propiedad} propiedadComparada={propiedades.find(p => p.id === parseInt(selectedPropertyCompare))} />
+                            <ComparacionPropiedades propiedadActual={propiedad} propiedadComparada={propiedades.find(p => p.id === parseInt(selectedPropertyCompare))} reservas={reservas} />
                         )}
                     </CardContent>
                 </Card>
@@ -505,20 +491,7 @@ const PropertyDashboard = () => {
                     </Card>
                 </Box>
 
-                {competenciaData && (
-                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
-                                Análisis de Competencia
-                            </Typography>
-                            <Box sx={{ display: 'flex', gap: 2 }}>
-                                <Typography>Precio Promedio: €{competenciaData.avgPrice}</Typography>
-                                <Typography>Ocupación Promedio: {competenciaData.avgOccupancy}%</Typography>
-                                <Typography>Valoración Promedio: {competenciaData.avgRating}</Typography>
-                            </Box>
-                        </CardContent>
-                    </Card>
-                )}
+
             </Container>
         </Box>
     );
@@ -560,25 +533,155 @@ const MetricCard = ({ icon, title, value, subtitle, color }) => (
     </Card>
 );
 
-const ComparacionPropiedades = ({ propiedadActual, propiedadComparada }) => {
-    const data = [
-        { metric: 'Reservas', actual: propiedadActual.reservas?.length || 0, comparada: propiedadComparada.reservas?.length || 0 },
-        { metric: 'Ingresos', actual: propiedadActual.reservas?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0, comparada: propiedadComparada.reservas?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0 },
-        { metric: 'Valoración', actual: propiedadActual.valoracion_promedio.toFixed(2) || 0, comparada: propiedadComparada.valoracion_promedio.toFixed(2) || 0 },
+const ComparacionPropiedades = ({ propiedadActual, propiedadComparada, reservas }) => {
+
+    const [reservasPropiedadComparada, setReservasPropiedadComparada] = useState([]);
+    const reservasActual = reservas?.length || 0;
+    const reservasComparada = reservasPropiedadComparada?.length || 0;
+
+    const ingresosActual = reservas?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0;
+    const ingresosComparada = reservasPropiedadComparada?.reduce((acc, curr) => acc + parseFloat(curr.precio_total), 0) || 0;
+
+    const valoracionActual = parseFloat(propiedadActual.valoracion_promedio.toFixed(2)) || 0;
+    const valoracionComparada = parseFloat(propiedadComparada.valoracion_promedio.toFixed(2)) || 0;
+
+    useEffect(() => {
+        if (propiedadComparada) {
+            fetchReservasComparada();
+        }
+    }, [propiedadComparada]);
+
+
+    const fetchReservasComparada = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadComparada.id}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching reservas comparada');
+            const data = await response.json();
+            console.log(data);
+            setReservasPropiedadComparada(data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const metricas = [
+        {
+            titulo: 'Reservas',
+            icono: <Home size={20} style={{ marginRight: 8 }} />,
+            data: [{ name: 'Reservas', actual: reservasActual, comparada: reservasComparada }],
+            formato: (valor) => valor
+        },
+        {
+            titulo: 'Ingresos',
+            icono: <TrendingUp size={20} style={{ marginRight: 8 }} />,
+            data: [{ name: 'Ingresos', actual: ingresosActual, comparada: ingresosComparada }],
+            formato: (valor) => `$${valor.toLocaleString()}`
+        },
+        {
+            titulo: 'Valoración',
+            icono: <Star size={20} style={{ marginRight: 8 }} />,
+            data: [{ name: 'Valoración', actual: valoracionActual, comparada: valoracionComparada }],
+            formato: (valor) => `${valor.toFixed(2)}/5`
+        }
     ];
 
+    const colorPropiedadActual = "#3f51b5";
+    const colorPropiedadComparada = "#00a152";
+
     return (
-        <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="metric" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="actual" fill="#8884d8" name={propiedadActual.nombre} />
-                <Bar dataKey="comparada" fill="#82ca9d" name={propiedadComparada.nombre} />
-            </BarChart>
-        </ResponsiveContainer>
+        <Paper elevation={3} sx={{ p: 3, borderRadius: 2 }}>
+            <Typography variant="h5" fontWeight="bold" color="primary" sx={{ pb: 2, borderBottom: '1px solid #e0e0e0', mb: 3 }}>
+                Comparativa de Propiedades
+            </Typography>
+
+            <Stack spacing={4} direction={{ xs: 'column', lg: 'row' }}>
+                {metricas.map((metrica, i) => (
+                    <Card key={i} variant="outlined" sx={{ flex: 1, bgcolor: 'background.default' }}>
+                        <CardHeader
+                            title={
+                                <Box display="flex" alignItems="center">
+                                    {metrica.icono}
+                                    <Typography variant="h6">{metrica.titulo}</Typography>
+                                </Box>
+                            }
+                            sx={{ pb: 0 }}
+                        />
+                        <CardContent>
+                            <Box height={220}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={metrica.data} margin={{ top: 10, right: 10, left: 10, bottom: 20 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                                        <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                                        <YAxis tick={{ fontSize: 12 }} />
+                                        <Tooltip
+                                            formatter={(value, name) => [metrica.formato(value), name]}
+                                            contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
+                                        />
+                                        <Legend
+                                            wrapperStyle={{ paddingTop: 10 }}
+                                            formatter={(value) => <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{value}</span>}
+                                        />
+                                        <Bar
+                                            dataKey="actual"
+                                            fill={colorPropiedadActual}
+                                            name={propiedadActual.nombre}
+                                            radius={[4, 4, 0, 0]}
+                                        />
+                                        <Bar
+                                            dataKey="comparada"
+                                            fill={colorPropiedadComparada}
+                                            name={propiedadComparada.nombre}
+                                            radius={[4, 4, 0, 0]}
+                                        />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Box>
+
+                            <Stack direction="row" justifyContent="space-between" sx={{ mt: 2 }}>
+                                <Box display="flex" alignItems="center">
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            width: 12,
+                                            height: 12,
+                                            borderRadius: '50%',
+                                            bgcolor: colorPropiedadActual,
+                                            display: 'inline-block',
+                                            mr: 1
+                                        }}
+                                    />
+                                    <Typography variant="body2">
+                                        <Box component="span" fontWeight="medium">{propiedadActual.nombre}:</Box> {metrica.formato(metrica.data[0].actual)}
+                                    </Typography>
+                                </Box>
+                                <Box display="flex" alignItems="center">
+                                    <Box
+                                        component="span"
+                                        sx={{
+                                            width: 12,
+                                            height: 12,
+                                            borderRadius: '50%',
+                                            bgcolor: colorPropiedadComparada,
+                                            display: 'inline-block',
+                                            mr: 1
+                                        }}
+                                    />
+                                    <Typography variant="body2">
+                                        <Box component="span" fontWeight="medium">{propiedadComparada.nombre}:</Box> {metrica.formato(metrica.data[0].comparada)}
+                                    </Typography>
+                                </Box>
+                            </Stack>
+                        </CardContent>
+                    </Card>
+                ))}
+            </Stack>
+        </Paper>
     );
 };
 
