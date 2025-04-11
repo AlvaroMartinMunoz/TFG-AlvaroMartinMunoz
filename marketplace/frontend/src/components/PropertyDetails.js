@@ -80,6 +80,7 @@ const PropertyDetails = () => {
     const [openMenuSpecialPrice, setOpenMenuSpecialPrice] = useState(false);
     const [openDeleteSpecialPrice, setOpenDeleteSpecialPrice] = useState(false);
     const [datesBetween, setDatesBetween] = useState([]);
+    const [openPrincipalMenu, setOpenPrincipalMenu] = useState(false);
 
 
     useEffect(() => {
@@ -600,8 +601,6 @@ const PropertyDetails = () => {
     };
 
 
-
-
     const handleClickOpen = (index) => {
         setSelectedFotoIndex(index);
         setOpen(true);
@@ -1109,7 +1108,7 @@ const PropertyDetails = () => {
                                         value={mediaValoraciones?.media || 0}
                                         readOnly
                                         precision={0.25}
-                                        size="large"
+                                        size="medium"
                                     />
                                     <Typography variant='body1' color='text.secondary'>
                                         {mediaValoraciones?.reseñas ? `${mediaValoraciones.media.toFixed(2)} (${mediaValoraciones.reseñas} valoraciones)` : '0 valoraciones'}
@@ -1125,8 +1124,8 @@ const PropertyDetails = () => {
                                     maxWidth="450px"
                                     mx="auto"
                                     mt={2}
-                                    mb={1}
                                 >
+
                                     <Button
                                         variant="contained"
                                         color="primary"
@@ -1142,11 +1141,10 @@ const PropertyDetails = () => {
                                             fontSize: "0.95rem",
                                             mb: 2
                                         }}
-                                        onClick={() => setOpenManageDates(true)}
+                                        onClick={() => setOpenPrincipalMenu(true)}
                                     >
-                                        Gestionar Fechas Disponibles
+                                        Gestionar Propiedad
                                     </Button>
-
                                     <Button
                                         variant="outlined"
                                         color="primary"
@@ -1164,9 +1162,9 @@ const PropertyDetails = () => {
                                                 borderWidth: 1.5
                                             }
                                         }}
-                                        onClick={() => setOpenMenuSpecialPrice(true)}
+                                        onClick={() => window.location.href = `/dashboard/${propiedadId}`}
                                     >
-                                        Gestionar Fechas Especiales
+                                        Estadísticas de la Propiedad
                                     </Button>
                                 </Box>
 
@@ -1683,6 +1681,121 @@ const PropertyDetails = () => {
                         </Button>
                     </DialogActions>
                 </Dialog>
+                <Dialog
+                    open={openPrincipalMenu}
+                    onClose={() => setOpenPrincipalMenu(false)}
+                    maxWidth="sm"
+                    fullWidth
+                    PaperProps={{
+                        elevation: 3,
+                        sx: {
+                            borderRadius: 1,
+                            overflow: 'hidden'
+                        }
+                    }}
+                >
+
+
+                    <Paper square sx={{ position: 'relative' }}>
+                        <DialogTitle sx={{
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            py: 2,
+                            pl: 3,
+                            pr: 6
+                        }}>
+                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
+                                Gestionar Propiedad
+                            </Typography>
+                            <IconButton
+                                aria-label="cerrar"
+                                onClick={() => setOpenPrincipalMenu(false)}
+                                sx={{
+                                    position: 'absolute',
+                                    right: 12,
+                                    top: 12,
+                                    color: 'primary.contrastText'
+                                }}
+                                size="small"
+                            >
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
+                        </DialogTitle>
+                    </Paper>
+
+                    <DialogContent sx={{ px: 0, py: 2 }}>
+                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
+                            Seleccione una acción para continuar
+                        </Typography>
+
+                        <List disablePadding>
+                            <ListItem
+                                button
+                                onClick={() => setOpenManageDates(true)}
+                                sx={{
+                                    py: 1.5,
+                                    '&:hover': {
+                                        bgcolor: 'primary.50'
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <AddCircleOutlineIcon color="primary" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Gestionar Fechas Disponibles"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+
+                            <Divider component="li" />
+
+                            <ListItem
+                                button
+                                onClick={() => setOpenMenuSpecialPrice(true)}
+                                sx={{
+                                    py: 1.5,
+                                    '&:hover': {
+                                        bgcolor: 'error.50'
+                                    }
+                                }}
+                            >
+                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
+                                    <DeleteOutlineIcon color="error" />
+                                </ListItemIcon>
+                                <ListItemText
+                                    primary="Gestionar Fechas Especiales"
+                                    primaryTypographyProps={{
+                                        fontSize: '0.9rem',
+                                        fontWeight: 400
+                                    }}
+                                />
+                            </ListItem>
+                        </List>
+                    </DialogContent>
+
+                    <Divider />
+
+                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
+                        <Button
+                            onClick={() => setOpenPrincipalMenu(false)}
+                            variant="contained"
+                            color="primary"
+                            disableElevation
+                            sx={{
+                                textTransform: 'none',
+                                borderRadius: 1,
+                                px: 3
+                            }}
+                        >
+                            Cerrar
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
                 <Modal
                     open={openDatePicker}
                     onClose={handleCloseDatePicker}

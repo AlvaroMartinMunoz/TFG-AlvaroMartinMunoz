@@ -21,8 +21,22 @@ import {
     Select,
     FormControl,
     InputLabel,
-    CardHeader
+    CardHeader,
+    IconButton,
+    InputAdornment
 } from '@mui/material';
+import { es } from 'date-fns/locale';
+
+import {
+    CalendarToday as CalendarTodayIcon,
+    Event as EventIcon,
+    DateRange as DateRangeIcon,
+    InfoOutlined as InfoOutlinedIcon,
+    Edit as EditIcon,
+    DeleteOutline as DeleteOutlineIcon,
+    Add as AddIcon,
+    Euro as EuroIcon
+} from '@mui/icons-material';
 import { TrendingUp, Home, Star } from 'lucide-react';
 import { useParams } from 'react-router-dom';
 import {
@@ -42,8 +56,6 @@ import {
 } from 'recharts';
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import EuroIcon from '@mui/icons-material/Euro';
 import StarRateIcon from '@mui/icons-material/StarRate';
 import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
@@ -61,8 +73,11 @@ const PropertyDashboard = () => {
     const [reservas, setReservas] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [dateRange, setDateRange] = useState([null, null]);
+    const [dateRangeInicio, setDateRangeInicio] = useState(null);
+    const [dateRangeFin, setDateRangeFin] = useState(null);
     const [selectedPropertyCompare, setSelectedPropertyCompare] = useState('');
+    const [usuariosValoraciones, setUsuariosValoraciones] = useState([]);
+    const [usuariosReservas, setUsuariosReservas] = useState([]);
 
     const [ocupacionTendencias, setOcupacionTendencias] = useState([]);
     const [precioTendencias, setPrecioTendencias] = useState([]);
@@ -79,7 +94,7 @@ const PropertyDashboard = () => {
 
     const datosReservasPorMes = procesarDatosReservas(reservas);
     const datosValoraciones = procesarValoraciones(valoraciones);
-    const eventosCalendario = [...reservas.map(r => ({ ...r, tipo: 'reserva' })), ...preciosEspeciales.map(p => ({ ...p, tipo: 'precio-especial' }))];
+    const eventosCalendario = [...reservas.map(r => ({ ...r, tipo: 'reserva' }))];
 
     useEffect(() => {
         fetchPropiedades();
@@ -90,6 +105,61 @@ const PropertyDashboard = () => {
         fetchPreciosEspeciales();
 
     }, [propiedadId]);
+
+    useEffect(() => {
+        if (valoraciones.length > 0) {
+            const usuarios = valoraciones.map(v => v.usuario)
+            const uniqueUsuarios = [...new Set(usuarios)];
+            uniqueUsuarios.forEach(usuario => {
+                fetchUsuarioValoraciones(usuario);
+            });
+        }
+    }, [valoraciones]);
+
+    useEffect(() => {
+        if (reservas.length > 0) {
+            const usuarios = reservas.map(r => r.usuario);
+            const uniqueUsuarios = [...new Set(usuarios)];
+            uniqueUsuarios.forEach(usuario => {
+                fetchUsuarioReservas(usuario);
+            });
+        }
+    }, [reservas]);
+
+    const fetchUsuarioReservas = async (usuarioId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching usuario reservas');
+            const data = await response.json();
+            setUsuariosReservas(prev => [...prev, data]);
+        } catch (error) {
+            console.error(error.message);
+        }
+    }
+
+    const fetchUsuarioValoraciones = async (usuarioId) => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (!response.ok) throw new Error('Error fetching usuario valoraciones');
+            const data = await response.json();
+            setUsuariosValoraciones(prev => [...prev, data]);
+        } catch (error) {
+            console.error(error.message);
+        }
+    }
+
 
     const fetchPropiedades = async () => {
         try {
@@ -390,103 +460,322 @@ const PropertyDashboard = () => {
                     </CardContent>
                 </Card>
 
-                {/* Bottom Section */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 4 }}>
-                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                                <CalendarTodayIcon /> Calendario de Disponibilidad
-                            </Typography>
-                            <LocalizationProvider dateAdapter={AdapterDateFns}>
-                                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                                    <DatePicker
-                                        value={dateRange[0]}
-                                        onChange={(newValue) => setDateRange([newValue, dateRange[1]])}
-                                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                                        label="Fecha inicio"
-                                    />
-                                    <DatePicker
-                                        value={dateRange[1]}
-                                        onChange={(newValue) => setDateRange([dateRange[0], newValue])}
-                                        slotProps={{ textField: { fullWidth: true, size: 'small' } }}
-                                        label="Fecha fin"
-                                    />
+                <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+                    gap: 2,
+                    mb: 3
+                }}>
+                    {/* CARD 1: CALENDARIO DE DISPONIBILIDAD */}
+                    <Card elevation={0} sx={{
+                        borderRadius: 2,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+                        overflow: 'hidden',
+                        border: '1px solid #f0f0f0',
+                        height: 'fit-content'
+                    }}>
+                        <CardHeader
+                            title={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <CalendarTodayIcon color="primary" fontSize="small" />
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                        Calendario de Disponibilidad
+                                    </Typography>
+                                </Box>
+                            }
+                            sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                borderBottom: '1px solid #f0f0f0',
+                                padding: { xs: 1.5, sm: 2 }
+                            }}
+                        />
+                        <CardContent sx={{ padding: { xs: 1.5, sm: 2 } }}>
+                            <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+                                <Box sx={{
+                                    display: 'flex',
+                                    flexDirection: { xs: 'column', sm: 'row' },
+                                    gap: 2,
+                                    mb: 2
+                                }}>
+                                    <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
+                                        <DatePicker
+                                            value={dateRangeInicio}
+                                            onChange={(newValue) => setDateRangeInicio([newValue])}
+                                            label="Inicio"
+                                            slotProps={{
+                                                textField: {
+                                                    size: "small",
+                                                    fullWidth: true,
+                                                    InputProps: {
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">
+                                                                <EventIcon fontSize="small" color="action" />
+                                                            </InputAdornment>
+                                                        )
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Box>
+                                    <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
+                                        <DatePicker
+                                            value={dateRangeFin}
+                                            onChange={(newValue) => setDateRangeFin([newValue])}
+                                            label="Fin"
+                                            slotProps={{
+                                                textField: {
+                                                    size: "small",
+                                                    fullWidth: true,
+                                                    InputProps: {
+                                                        startAdornment: (
+                                                            <InputAdornment position="start">
+                                                                <EventIcon fontSize="small" color="action" />
+                                                            </InputAdornment>
+                                                        )
+                                                    }
+                                                }
+                                            }}
+                                        />
+                                    </Box>
                                 </Box>
                             </LocalizationProvider>
-                            <TableContainer component={Paper} sx={{ mt: 2, borderRadius: 2, boxShadow: 'none', border: `1px solid ${theme.palette.divider}` }}>
-                                <Table>
-                                    <TableHead>
-                                        <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
-                                            <TableCell sx={{ fontWeight: 600 }}>Fecha</TableCell>
-                                            <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
-                                            <TableCell sx={{ fontWeight: 600 }}>Detalles</TableCell>
-                                        </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                        {eventosCalendario.length > 0 ? eventosCalendario.map((evento, index) => (
-                                            <TableRow key={index} sx={{ '&:hover': { backgroundColor: theme.palette.action.hover } }}>
-                                                <TableCell>
-                                                    {evento.tipo === 'reserva'
-                                                        ? `${evento.fecha_llegada} - ${evento.fecha_salida}`
-                                                        : `${evento.fecha_inicio} - ${evento.fecha_fin}`}
-                                                </TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        label={evento.tipo === 'reserva' ? 'Reserva' : 'Precio Especial'}
-                                                        color={evento.tipo === 'reserva' ? 'primary' : 'secondary'}
-                                                        size="small"
-                                                        variant="outlined"
-                                                    />
-                                                </TableCell>
-                                                <TableCell>
-                                                    {evento.tipo === 'reserva'
-                                                        ? `Reserva de ${evento.usuario} (${evento.estado}) - ${Math.ceil((new Date(evento.fecha_salida) - new Date(evento.fecha_llegada)) / (1000 * 60 * 60 * 24))} días`
-                                                        : `Precio especial: €${evento.precio_especial}`}
-                                                </TableCell>
-                                            </TableRow>
-                                        )) : (
-                                            <TableRow>
-                                                <TableCell colSpan={3} align="center">No hay eventos programados</TableCell>
-                                            </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            </TableContainer>
+
+                            <Box sx={{ mt: 1, position: 'relative' }}>
+                                <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <InfoOutlinedIcon fontSize="small" color="primary" />
+                                    Próximas reservas
+                                </Typography>
+
+                                {eventosCalendario.length > 0 ? (
+                                    <TableContainer
+                                        component={Paper}
+                                        sx={{
+                                            borderRadius: 1,
+                                            width: '100%',
+                                            boxShadow: 'none',
+                                            border: '1px solid rgba(224, 224, 224, 1)',
+                                            overflow: 'hidden'
+                                        }}
+                                    >
+                                        <Table size="small" sx={{ minWidth: 650, tableLayout: 'fixed' }}>
+                                            <TableHead>
+                                                <TableRow sx={{ backgroundColor: theme.palette.primary.main }}>
+                                                    <TableCell sx={{ fontWeight: 600, color: '#fff', py: 0.5, width: '35%' }}>Periodo</TableCell>
+                                                    <TableCell sx={{ fontWeight: 600, color: '#fff', py: 0.5, width: '65%' }}>Información</TableCell>
+                                                </TableRow>
+                                            </TableHead>
+                                            <TableBody>
+                                                {eventosCalendario
+                                                    .filter(evento => {
+                                                        if (!dateRangeInicio || !dateRangeFin) return true;
+
+                                                        const fechaEventoInicio = new Date(evento.fecha_llegada || evento.fecha_inicio);
+                                                        const fechaEventoFin = new Date(evento.fecha_salida || evento.fecha_fin);
+                                                        const filtroInicio = new Date(dateRangeInicio);
+                                                        const filtroFin = new Date(dateRangeFin);
+
+                                                        return (
+                                                            (fechaEventoInicio >= filtroInicio && fechaEventoInicio <= filtroFin) ||
+                                                            (fechaEventoFin >= filtroInicio && fechaEventoFin <= filtroFin) ||
+                                                            (fechaEventoInicio <= filtroInicio && fechaEventoFin >= filtroFin)
+                                                        );
+                                                    })
+                                                    .map((evento, index) => (
+                                                        <TableRow
+                                                            key={index}
+                                                            sx={{
+                                                                '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' },
+                                                                '&:nth-of-type(odd)': { backgroundColor: 'rgba(0, 0, 0, 0.02)' }
+                                                            }}
+                                                        >
+                                                            <TableCell sx={{ py: 0.5, pl: 1 }}>
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                                    <DateRangeIcon fontSize="small" color="action" />
+                                                                    <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                                                                        {evento.tipo === 'reserva'
+                                                                            ? `${evento.fecha_llegada} - ${evento.fecha_salida}`
+                                                                            : `${evento.fecha_inicio} - ${evento.fecha_fin}`}
+                                                                    </Typography>
+                                                                </Box>
+                                                            </TableCell>
+
+                                                            <TableCell sx={{ py: 0.5, pl: 1 }}>
+                                                                {evento.tipo === 'reserva' ? (
+                                                                    <Box>
+                                                                        <Typography variant="caption" sx={{ fontWeight: 500, display: 'block' }}>
+                                                                            Cliente: {usuariosReservas?.find(usuario => usuario.id = evento.usuario)?.usuario?.username}
+                                                                        </Typography>
+                                                                        <Typography variant="caption" color="text.secondary">
+                                                                            Estado: {evento.estado} • {Math.ceil((new Date(evento.fecha_salida) - new Date(evento.fecha_llegada)) / (1000 * 60 * 60 * 24))} días
+                                                                        </Typography>
+                                                                    </Box>
+                                                                ) : (
+                                                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                                        <EuroIcon fontSize="small" color="action" sx={{ mr: 0.5 }} />
+                                                                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                                                                            {evento.precio_especial}
+                                                                        </Typography>
+                                                                    </Box>
+                                                                )}
+                                                            </TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                            </TableBody>
+                                        </Table>
+                                    </TableContainer>
+                                ) : (
+                                    <Paper
+                                        sx={{
+                                            p: 2,
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            alignItems: 'center',
+                                            borderRadius: 1,
+                                            border: '1px dashed',
+                                            borderColor: 'divider',
+                                            backgroundColor: 'rgba(0, 0, 0, 0.01)'
+                                        }}
+                                    >
+                                        <CalendarTodayIcon color="disabled" sx={{ fontSize: 24, mb: 1 }} />
+                                        <Typography variant="body2" color="text.secondary" gutterBottom>
+                                            No hay eventos programados
+                                        </Typography>
+                                        <Typography variant="caption" color="text.secondary" align="center">
+                                            Seleccione fechas para ver o crear eventos
+                                        </Typography>
+                                        <Button
+                                            variant="outlined"
+                                            color="primary"
+                                            startIcon={<AddIcon />}
+                                            size="small"
+                                            sx={{ mt: 1, textTransform: 'none' }}
+                                        >
+                                            Crear evento
+                                        </Button>
+                                    </Paper>
+                                )}
+                            </Box>
                         </CardContent>
                     </Card>
 
-                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
-                                Últimas Valoraciones
-                            </Typography>
-                            <Stack spacing={2}>
-                                {valoraciones.length > 0 ? valoraciones.map((valoracion, index) => (
-                                    <Box key={index} sx={{
-                                        p: 2,
-                                        borderRadius: 2,
-                                        backgroundColor: theme.palette.grey[50],
-                                        border: `1px solid ${theme.palette.divider}`,
-                                        transition: 'transform 0.2s, box-shadow 0.2s',
-                                        '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 4px 10px rgba(0,0,0,0.05)' }
-                                    }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                <StarRateIcon color="warning" />
-                                                <Typography variant="body1" sx={{ ml: 1, fontWeight: 600 }}>{valoracion.valoracion}/5</Typography>
+                    {/* CARD 2: ÚLTIMAS VALORACIONES */}
+                    <Card elevation={0} sx={{
+                        borderRadius: 2,
+                        boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
+                        border: '1px solid #f0f0f0',
+                        height: 'fit-content'
+                    }}>
+                        <CardHeader
+                            title={
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <StarRateIcon color="warning" fontSize="small" />
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                                        Últimas Valoraciones
+                                    </Typography>
+                                </Box>
+                            }
+                            sx={{
+                                backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                                borderBottom: '1px solid #f0f0f0',
+                                padding: { xs: 1.5, sm: 2 }
+                            }}
+                        />
+                        <CardContent sx={{ padding: { xs: 1.5, sm: 2 } }}>
+                            {valoraciones.length > 0 ? (
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                    {valoraciones.map((valoracion, index) => (
+                                        <Box
+                                            key={index}
+                                            sx={{
+                                                p: 1.5,
+                                                borderRadius: 1,
+                                                backgroundColor: theme.palette.background.paper,
+                                                border: `1px solid ${theme.palette.divider}`,
+                                                boxShadow: '0 1px 4px rgba(0,0,0,0.03)',
+                                                transition: 'all 0.2s ease',
+                                                '&:hover': {
+                                                    transform: 'translateY(-1px)',
+                                                    boxShadow: '0 3px 8px rgba(0,0,0,0.05)'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'space-between',
+                                                mb: 0.5
+                                            }}>
+                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                                    <StarRateIcon sx={{ color: theme.palette.warning.main, fontSize: '1rem' }} />
+                                                    <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                            ml: 0.5,
+                                                            fontWeight: 600,
+                                                            color: theme.palette.text.primary
+                                                        }}
+                                                    >
+                                                        {valoracion.valoracion}/5
+                                                    </Typography>
+
+                                                    <Typography
+                                                        variant="caption"
+                                                        sx={{
+                                                            ml: 1,
+                                                            fontWeight: 600,
+                                                            color: theme.palette.text.primary
+                                                        }}
+                                                    >
+                                                        {usuariosValoraciones.find(usuario => usuario.id === valoracion.usuario)?.usuario?.username}
+                                                    </Typography>
+                                                </Box>
+                                                <Typography
+                                                    variant="caption"
+                                                    sx={{
+                                                        color: theme.palette.text.secondary,
+                                                        fontWeight: 500,
+                                                        fontSize: '0.7rem'
+                                                    }}
+                                                >
+                                                    {new Date(valoracion.fecha || Date.now()).toLocaleDateString()}
+                                                </Typography>
                                             </Box>
-                                            <Typography variant="caption" color="text.secondary">
-                                                {new Date(valoracion.fecha || Date.now()).toLocaleDateString()}
+                                            <Typography
+                                                variant="caption"
+                                                sx={{
+                                                    color: theme.palette.text.secondary,
+                                                    lineHeight: 1.4,
+                                                    display: 'block'
+                                                }}
+                                            >
+                                                {valoracion.comentario}
                                             </Typography>
                                         </Box>
-                                        <Typography variant="body2" color="text.secondary">{valoracion.comentario}</Typography>
-                                    </Box>
-                                )) : (
-                                    <Box sx={{ p: 4, borderRadius: 2, backgroundColor: theme.palette.grey[50], textAlign: 'center' }}>
-                                        <Typography color="text.secondary">No hay valoraciones disponibles</Typography>
-                                    </Box>
-                                )}
-                            </Stack>
+                                    ))}
+                                </Box>
+                            ) : (
+                                <Box
+                                    sx={{
+                                        p: 2,
+                                        borderRadius: 1,
+                                        backgroundColor: theme.palette.background.paper,
+                                        border: `1px solid ${theme.palette.divider}`,
+                                        textAlign: 'center',
+                                        minHeight: 80,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}
+                                >
+                                    <Typography
+                                        variant="body2"
+                                        color="text.secondary"
+                                        sx={{ fontWeight: 500 }}
+                                    >
+                                        No hay valoraciones disponibles
+                                    </Typography>
+                                </Box>
+                            )}
                         </CardContent>
                     </Card>
                 </Box>
