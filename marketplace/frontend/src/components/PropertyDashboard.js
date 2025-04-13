@@ -466,7 +466,6 @@ const PropertyDashboard = () => {
                     gap: 2,
                     mb: 3
                 }}>
-                    {/* CARD 1: CALENDARIO DE DISPONIBILIDAD */}
                     <Card elevation={0} sx={{
                         borderRadius: 2,
                         boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
@@ -481,6 +480,18 @@ const PropertyDashboard = () => {
                                     <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
                                         Calendario de Disponibilidad
                                     </Typography>
+                                    <Button
+                                        variant="outlined"
+                                        color="primary"
+                                        size="small"
+                                        sx={{ ml: 'auto', textTransform: 'none' }}
+                                        onClick={() => {
+                                            setDateRangeInicio(null);
+                                            setDateRangeFin(null);
+                                        }}
+                                    >
+                                        Limpiar filtros
+                                    </Button>
                                 </Box>
                             }
                             sx={{
@@ -500,7 +511,7 @@ const PropertyDashboard = () => {
                                     <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
                                         <DatePicker
                                             value={dateRangeInicio}
-                                            onChange={(newValue) => setDateRangeInicio([newValue])}
+                                            onChange={(newValue) => setDateRangeInicio(newValue)}
                                             label="Inicio"
                                             slotProps={{
                                                 textField: {
@@ -520,7 +531,7 @@ const PropertyDashboard = () => {
                                     <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
                                         <DatePicker
                                             value={dateRangeFin}
-                                            onChange={(newValue) => setDateRangeFin([newValue])}
+                                            onChange={(newValue) => setDateRangeFin(newValue)}
                                             label="Fin"
                                             slotProps={{
                                                 textField: {
@@ -571,6 +582,7 @@ const PropertyDashboard = () => {
 
                                                         const fechaEventoInicio = new Date(evento.fecha_llegada || evento.fecha_inicio);
                                                         const fechaEventoFin = new Date(evento.fecha_salida || evento.fecha_fin);
+
                                                         const filtroInicio = new Date(dateRangeInicio);
                                                         const filtroFin = new Date(dateRangeFin);
 
@@ -579,7 +591,8 @@ const PropertyDashboard = () => {
                                                             (fechaEventoFin >= filtroInicio && fechaEventoFin <= filtroFin) ||
                                                             (fechaEventoInicio <= filtroInicio && fechaEventoFin >= filtroFin)
                                                         );
-                                                    })
+                                                    }).sort((a, b) => new Date(b.fecha_llegada) - new Date(a.fecha_llegada))
+                                                    .slice(0, 10)
                                                     .map((evento, index) => (
                                                         <TableRow
                                                             key={index}
@@ -603,7 +616,7 @@ const PropertyDashboard = () => {
                                                                 {evento.tipo === 'reserva' ? (
                                                                     <Box>
                                                                         <Typography variant="caption" sx={{ fontWeight: 500, display: 'block' }}>
-                                                                            Cliente: {usuariosReservas?.find(usuario => usuario.id = evento.usuario)?.usuario?.username}
+                                                                            Cliente: {usuariosReservas?.find(usuario => usuario.id === evento.usuario)?.usuario?.username}
                                                                         </Typography>
                                                                         <Typography variant="caption" color="text.secondary">
                                                                             Estado: {evento.estado} • {Math.ceil((new Date(evento.fecha_salida) - new Date(evento.fecha_llegada)) / (1000 * 60 * 60 * 24))} días
@@ -658,7 +671,6 @@ const PropertyDashboard = () => {
                         </CardContent>
                     </Card>
 
-                    {/* CARD 2: ÚLTIMAS VALORACIONES */}
                     <Card elevation={0} sx={{
                         borderRadius: 2,
                         boxShadow: '0 4px 16px rgba(0,0,0,0.05)',
@@ -683,7 +695,7 @@ const PropertyDashboard = () => {
                         <CardContent sx={{ padding: { xs: 1.5, sm: 2 } }}>
                             {valoraciones.length > 0 ? (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                                    {valoraciones.map((valoracion, index) => (
+                                    {valoraciones?.sort((a, b) => b.id - a.id).slice(0, 10).map((valoracion, index) => (
                                         <Box
                                             key={index}
                                             sx={{
@@ -729,16 +741,7 @@ const PropertyDashboard = () => {
                                                         {usuariosValoraciones.find(usuario => usuario.id === valoracion.usuario)?.usuario?.username}
                                                     </Typography>
                                                 </Box>
-                                                <Typography
-                                                    variant="caption"
-                                                    sx={{
-                                                        color: theme.palette.text.secondary,
-                                                        fontWeight: 500,
-                                                        fontSize: '0.7rem'
-                                                    }}
-                                                >
-                                                    {new Date(valoracion.fecha || Date.now()).toLocaleDateString()}
-                                                </Typography>
+
                                             </Box>
                                             <Typography
                                                 variant="caption"
@@ -852,7 +855,6 @@ const ComparacionPropiedades = ({ propiedadActual, propiedadComparada, reservas 
             });
             if (!response.ok) throw new Error('Error fetching reservas comparada');
             const data = await response.json();
-            console.log(data);
             setReservasPropiedadComparada(data);
         } catch (error) {
             console.error(error);
@@ -908,10 +910,10 @@ const ComparacionPropiedades = ({ propiedadActual, propiedadComparada, reservas 
                                         <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                                         <XAxis dataKey="name" tick={{ fontSize: 12 }} />
                                         <YAxis tick={{ fontSize: 12 }} />
-                                        <Tooltip
+                                        {/* <Tooltip
                                             formatter={(value, name) => [metrica.formato(value), name]}
                                             contentStyle={{ borderRadius: '6px', border: 'none', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}
-                                        />
+                                        /> */}
                                         <Legend
                                             wrapperStyle={{ paddingTop: 10 }}
                                             formatter={(value) => <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{value}</span>}
