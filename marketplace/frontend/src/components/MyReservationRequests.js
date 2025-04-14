@@ -31,6 +31,7 @@ import CancelIcon from "@mui/icons-material/Cancel";
 import PendingIcon from "@mui/icons-material/Pending";
 import SortIcon from "@mui/icons-material/Sort";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import { useLocation } from "react-router-dom";
 
 const MyReservationRequests = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
@@ -44,12 +45,24 @@ const MyReservationRequests = () => {
     const [solicitudesFiltradas, setSolicitudesFiltradas] = useState([]);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const useQuery = () => new URLSearchParams(useLocation().search);
+    const query = useQuery();
+    const id = query.get("id");
 
     useEffect(() => {
         fetchSolicitudes();
         const intervalId = setInterval(fetchSolicitudes, 60000);
         return () => clearInterval(intervalId);
     }, []);
+
+    useEffect(() => {
+        if (id && propiedades.length > 0) {
+            const propiedadPorId = propiedades.find((p) => p.id.toString() === id.toString());
+            if (propiedadPorId) {
+                setPropiedadSeleccionada(propiedadPorId.nombre);
+            }
+        }
+    }, [id, propiedades]);
 
     useEffect(() => {
         if (solicitudes.length !== 0) {

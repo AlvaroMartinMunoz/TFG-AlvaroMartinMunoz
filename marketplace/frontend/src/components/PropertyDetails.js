@@ -27,6 +27,9 @@ import SaveIcon from '@mui/icons-material/Save';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import HomeWorkIcon from '@mui/icons-material/HomeWork';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 
 
@@ -1131,7 +1134,7 @@ const PropertyDetails = () => {
                                         color="primary"
                                         size="medium"
                                         fullWidth
-                                        startIcon={<AddIcon />}
+                                        startIcon={<HomeWorkIcon />}
                                         sx={{
                                             py: 1,
                                             fontWeight: 600,
@@ -1145,27 +1148,59 @@ const PropertyDetails = () => {
                                     >
                                         Gestionar Propiedad
                                     </Button>
-                                    <Button
-                                        variant="outlined"
-                                        color="primary"
-                                        size="medium"
-                                        fullWidth
-                                        startIcon={<AddIcon />}
-                                        sx={{
-                                            py: 1,
-                                            fontWeight: 600,
-                                            borderRadius: 2,
-                                            borderWidth: 1.5,
-                                            textTransform: "none",
-                                            fontSize: "0.95rem",
-                                            "&:hover": {
-                                                borderWidth: 1.5
-                                            }
-                                        }}
-                                        onClick={() => window.location.href = `/dashboard/${propiedadId}`}
-                                    >
-                                        Estadísticas de la Propiedad
-                                    </Button>
+                                    <Box sx={{ display: 'flex', gap: 2, flexDirection: 'row' }}>
+                                        <Button
+                                            variant="outlined"
+                                            color="primary"
+                                            size="medium"
+                                            fullWidth
+                                            startIcon={<CalendarTodayIcon />}
+                                            sx={{
+                                                py: 1,
+                                                fontWeight: 600,
+                                                borderRadius: 2,
+                                                borderWidth: 1.5,
+                                                textTransform: "none",
+                                                fontSize: "0.95rem",
+                                                "&:hover": {
+                                                    borderWidth: 1.5
+                                                }
+                                            }}
+                                            onClick={() => {
+                                                if (propiedadId) {
+                                                    window.location.href = `/solicitudes-de-reserva?id=${propiedadId}`;
+                                                } else {
+                                                    console.error('propiedadId is not defined');
+                                                }
+                                            }}
+                                        >
+                                            Ver reservas
+                                        </Button>
+                                        <Button
+                                            variant="outlined"
+                                            color="primary"
+                                            size="medium"
+                                            fullWidth
+                                            startIcon={<BarChartIcon />}
+                                            sx={{
+                                                py: 1,
+                                                fontWeight: 600,
+                                                borderRadius: 2,
+                                                borderWidth: 1.5,
+                                                textTransform: "none",
+                                                fontSize: "0.95rem",
+                                                "&:hover": {
+                                                    borderWidth: 1.5
+                                                }
+                                            }}
+                                            onClick={() => window.location.href = `/dashboard/${propiedadId}`}
+                                        >
+                                            Estadísticas
+                                        </Button>
+
+
+                                    </Box>
+
                                 </Box>
 
                             ) : isAuthenticated() ? (
@@ -1764,7 +1799,7 @@ const PropertyDetails = () => {
                                 }}
                             >
                                 <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <DeleteOutlineIcon color="error" />
+                                    <AttachMoneyIcon color='primary' />
                                 </ListItemIcon>
                                 <ListItemText
                                     primary="Gestionar Fechas Especiales"

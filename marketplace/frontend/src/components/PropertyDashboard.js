@@ -306,7 +306,7 @@ const PropertyDashboard = () => {
             <Container maxWidth="xl">
                 <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        <Typography variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.dark }}>
+                        <Typography component="a" href={`/detalles/${propiedad?.id}`} variant="h4" sx={{ fontWeight: 'bold', color: theme.palette.primary.dark, textDecoration: 'none' }}>
                             {propiedad?.nombre}
                         </Typography>
                         <Chip label={propiedad?.tipo_de_propiedad} color="secondary" variant="outlined" sx={{ fontWeight: 500 }} />
