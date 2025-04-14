@@ -108,7 +108,7 @@ const PropertyDetails = () => {
     const isSpecialPriceDate = (date) => {
         return specialPricesList.some(
             (price) =>
-                moment(date).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
+                moment(date).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]')
         );
     };
 
@@ -840,7 +840,7 @@ const PropertyDetails = () => {
 
         const subtotal = datesBetween.reduce((total, date) => {
             const specialPrice = specialPricesList.find(
-                (price) => moment(date).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
+                (price) => moment(date).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]')
             );
             return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
         }, 0);
