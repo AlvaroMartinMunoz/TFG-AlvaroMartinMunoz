@@ -2031,18 +2031,27 @@ const PropertyDetails = () => {
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            backgroundColor: isSpecial ? 'rgba(156, 39, 176, 0.1)' : 'transparent',
+                                            // Estilo profesional actualizado para precios especiales
+                                            background: isSpecial ? 'linear-gradient(to bottom, rgba(0, 123, 255, 0.05) 0%, rgba(0, 123, 255, 0.1) 100%)' : 'transparent',
                                             borderRadius: '50%',
-                                            color: isSpecial ? '#9c27b0' : 'inherit',
-                                            fontWeight: isSpecial ? 'bold' : 'normal'
+                                            color: isSpecial ? '#0056b3' : 'inherit',
+                                            fontWeight: isSpecial ? '600' : 'normal',
+                                            transition: 'all 0.2s ease'
                                         }}>
                                             {day.date()}
                                             {isSpecial && (
                                                 <div style={{
                                                     position: 'absolute',
-                                                    bottom: 2,
-                                                    fontSize: 10,
-                                                    color: '#9c27b0'
+                                                    bottom: 1,
+                                                    right: '50%',
+                                                    transform: 'translateX(50%)',
+                                                    fontSize: 9,
+                                                    color: '#0056b3',
+                                                    background: 'rgba(255, 255, 255, 0.7)',
+                                                    borderRadius: '2px',
+                                                    padding: '0 2px',
+                                                    lineHeight: '1',
+                                                    fontWeight: 'bold'
                                                 }}>
                                                     €
                                                 </div>
@@ -2181,7 +2190,6 @@ const PropertyDetails = () => {
                                     Resumen de precios
                                 </Typography>
 
-                                {/* Desglose diario */}
                                 <Box sx={{ mb: 3, pl: 0.5, pr: 0.5 }}>
                                     {datesBetween.map((date, index) => {
                                         const specialPrice = specialPricesList.find(
@@ -2199,8 +2207,9 @@ const PropertyDetails = () => {
                                                     mb: 1,
                                                     p: 1,
                                                     borderRadius: 1,
-                                                    backgroundColor: isSpecialPrice ? 'rgba(156, 39, 176, 0.04)' : 'transparent',
-                                                    transition: 'background-color 0.2s ease'
+                                                    backgroundColor: isSpecialPrice ? 'rgba(0, 123, 255, 0.05)' : 'transparent',
+                                                    transition: 'background-color 0.2s ease',
+                                                    border: isSpecialPrice ? '1px solid rgba(0, 123, 255, 0.12)' : 'none'
                                                 }}
                                             >
                                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -2215,17 +2224,17 @@ const PropertyDetails = () => {
                                                                 ml: 1,
                                                                 borderRadius: '4px',
                                                                 p: '2px 5px',
-                                                                backgroundColor: 'secondary.light',
+                                                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
                                                             }}>
-                                                                <EuroIcon sx={{ fontSize: 14, mr: 0.5, color: 'secondary.main' }} />
-                                                                <Typography variant="caption" sx={{ fontWeight: 600, color: 'secondary.main' }}>
+                                                                <EuroIcon sx={{ fontSize: 14, mr: 0.5, color: '#0056b3' }} />
+                                                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0056b3' }}>
                                                                     Tarifa Especial
                                                                 </Typography>
                                                             </Box>
                                                         </Tooltip>
                                                     )}
                                                 </Box>
-                                                <Typography variant="body2" fontWeight={600} sx={{ color: isSpecialPrice ? 'secondary.dark' : 'text.primary' }}>
+                                                <Typography variant="body2" fontWeight={600} sx={{ color: isSpecialPrice ? '#0056b3' : 'text.primary' }}>
                                                     {price} €
                                                 </Typography>
                                             </Box>
