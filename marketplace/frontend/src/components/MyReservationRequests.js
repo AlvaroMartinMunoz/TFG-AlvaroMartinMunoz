@@ -40,7 +40,7 @@ const MyReservationRequests = () => {
     const [loading, setLoading] = useState(true);
     const [urls, setUrls] = useState([]);
     const [estado, setEstado] = useState("");
-    const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
+    const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("cercanas");
     const [solicitudesFiltradas, setSolicitudesFiltradas] = useState([]);
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -56,13 +56,43 @@ const MyReservationRequests = () => {
             let filteredSolicitudes = solicitudes.filter((solicitud) => {
                 return (estado === "" || solicitud.estado === estado);
             });
-            filteredSolicitudes = filteredSolicitudes.sort((a, b) => {
-                if (ordenFechaLLegada === "asc") {
-                    return new Date(a.fecha_llegada) - new Date(b.fecha_llegada);
-                } else {
-                    return new Date(b.fecha_llegada) - new Date(a.fecha_llegada);
-                }
-            });
+
+            const currentDate = new Date();
+
+            if (ordenFechaLLegada === "cercanas") {
+
+                filteredSolicitudes = filteredSolicitudes.filter((solicitud) => {
+                    return new Date(solicitud.fecha_salida) >= currentDate;
+                });
+
+                filteredSolicitudes = filteredSolicitudes.sort((a, b) => {
+                    const diffA = Math.abs(new Date(a.fecha_salida) - currentDate);
+                    const diffB = Math.abs(new Date(b.fecha_salida) - currentDate);
+                    return diffA - diffB;
+                });
+            } else if (ordenFechaLLegada === "lejanas") {
+                filteredSolicitudes = filteredSolicitudes.filter((solicitud) => {
+                    return new Date(solicitud.fecha_salida) >= currentDate;
+                });
+                filteredSolicitudes = filteredSolicitudes.sort((a, b) => {
+                    const diffA = Math.abs(new Date(a.fecha_salida) - currentDate);
+                    const diffB = Math.abs(new Date(b.fecha_salida) - currentDate);
+                    return diffB - diffA;
+                });
+            } else if (ordenFechaLLegada === "pasadas") {
+                filteredSolicitudes = filteredSolicitudes
+                    .filter((solicitud) => {
+                        return new Date(solicitud.fecha_salida) < currentDate;
+                    })
+                    .sort((a, b) => {
+                        return new Date(b.fecha_salida) - new Date(a.fecha_salida);
+                    });
+            } else if (ordenFechaLLegada === "todas") {
+                filteredSolicitudes = filteredSolicitudes.sort((a, b) => {
+                    return new Date(a.fecha_salida) - new Date(b.fecha_salida);
+                });
+            }
+
             if (propiedadSeleccionada) {
                 filteredSolicitudes = filteredSolicitudes.filter((solicitud) => {
                     const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
@@ -71,7 +101,7 @@ const MyReservationRequests = () => {
             }
             setSolicitudesFiltradas(filteredSolicitudes);
         }
-    }, [estado, ordenFechaLLegada, solicitudes]);
+    }, [estado, ordenFechaLLegada, solicitudes, propiedadSeleccionada, propiedades]);
 
     const handleLogOut = () => {
         localStorage.removeItem("accessToken");
@@ -318,8 +348,10 @@ const MyReservationRequests = () => {
                                                 onChange={(e) => setOrdenFechaLLegada(e.target.value)}
                                                 startAdornment={<SortIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />}
                                             >
-                                                <MenuItem value="asc">Antiguas primero</MenuItem>
-                                                <MenuItem value="desc">Próximas Primero</MenuItem>
+                                                <MenuItem value="cercanas">Más cercanas</MenuItem>
+                                                <MenuItem value="lejanas">Más lejanas</MenuItem>
+                                                <MenuItem value="pasadas">Pasadas</MenuItem>
+                                                <MenuItem value="todas">Todas</MenuItem>
                                             </Select>
                                         </FormControl>
                                     </Stack>

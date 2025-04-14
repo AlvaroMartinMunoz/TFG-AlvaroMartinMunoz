@@ -32,7 +32,7 @@ const MyReserves = () => {
     const [loading, setLoading] = useState(true);
     const [misReservasFiltradas, setMisReservasFiltradas] = useState([]);
     const [estado, setEstado] = useState("");
-    const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("asc");
+    const [ordenFechaLLegada, setOrdenFechaLLegada] = useState("cercanas");
     const [notification, setNotification] = useState(null);
     const location = useLocation();
 
@@ -42,28 +42,56 @@ const MyReserves = () => {
                 return (!estado || reserva.estado === estado);
             });
 
-            filteredReserves = filteredReserves.sort((a, b) => {
-                const dateA = new Date(a.fecha_llegada);
-                const dateB = new Date(b.fecha_llegada);
-                if (isNaN(dateA) || isNaN(dateB)) {
-                    return 0;
-                }
-                if (ordenFechaLLegada === "asc") {
-                    return dateA - dateB;
-                } else {
-                    return dateB - dateA;
-                }
-            });
+            const currentDate = new Date();
 
-            if (propiedadSeleccionada) {
-                filteredReserves = filteredReserves.filter(
-                    (reserva) => propiedades[reserva.propiedad]?.nombre === propiedadSeleccionada
-                );
+            if (ordenFechaLLegada === "cercanas") {
+
+                filteredReserves = filteredReserves.filter((solicitud) => {
+                    return new Date(solicitud.fecha_salida) >= currentDate;
+                });
+
+                filteredReserves = filteredReserves.sort((a, b) => {
+                    const diffA = Math.abs(new Date(a.fecha_salida) - currentDate);
+                    const diffB = Math.abs(new Date(b.fecha_salida) - currentDate);
+                    return diffA - diffB;
+                });
+            } else if (ordenFechaLLegada === "lejanas") {
+                filteredReserves = filteredReserves.filter((solicitud) => {
+                    return new Date(solicitud.fecha_salida) >= currentDate;
+                });
+                filteredReserves = filteredReserves.sort((a, b) => {
+                    const diffA = Math.abs(new Date(a.fecha_salida) - currentDate);
+                    const diffB = Math.abs(new Date(b.fecha_salida) - currentDate);
+                    return diffB - diffA;
+                });
+            } else if (ordenFechaLLegada === "pasadas") {
+                filteredReserves = filteredReserves
+                    .filter((solicitud) => {
+                        return new Date(solicitud.fecha_salida) < currentDate;
+                    })
+                    .sort((a, b) => {
+                        return new Date(b.fecha_salida) - new Date(a.fecha_salida);
+                    });
+            } else if (ordenFechaLLegada === "todas") {
+                filteredReserves = filteredReserves.sort((a, b) => {
+                    return new Date(a.fecha_salida) - new Date(b.fecha_salida);
+                });
             }
 
+            if (propiedadSeleccionada) {
+                filteredReserves = filteredReserves.filter((solicitud) => {
+
+                    const propiedad = Object.values(propiedades).find((propiedad) => {
+                        return propiedad.id === solicitud.propiedad;
+                    });
+
+                    return propiedad && propiedad.nombre === propiedadSeleccionada;
+                });
+
+            }
             setMisReservasFiltradas(filteredReserves);
         }
-    }, [estado, misReservas, ordenFechaLLegada, propiedades, propiedadSeleccionada]);
+    }, [estado, ordenFechaLLegada, propiedadSeleccionada, propiedades, misReservas]);
 
     const handleEstadoChange = (e) => {
         setEstado(e.target.value);
@@ -466,23 +494,17 @@ const MyReserves = () => {
                                             <MenuItem value="Cancelada">Cancelada</MenuItem>
                                         </Select>
                                     </FormControl>
-                                    <FormControl
-                                        fullWidth
-                                        size="small"
-                                        sx={{
-                                            '& .MuiOutlinedInput-root': {
-                                                borderRadius: 2
-                                            }
-                                        }}
-                                    >
-                                        <InputLabel>Ordenar por fecha de llegada</InputLabel>
+                                    <FormControl fullWidth size="small">
+                                        <InputLabel>Ordenar por fecha</InputLabel>
                                         <Select
                                             value={ordenFechaLLegada}
-                                            label="Ordenar por fecha de llegada"
+                                            label="Ordenar por fecha"
                                             onChange={(e) => setOrdenFechaLLegada(e.target.value)}
                                         >
-                                            <MenuItem value="asc">Más próximas primero</MenuItem>
-                                            <MenuItem value="desc">Más lejanas primero</MenuItem>
+                                            <MenuItem value="cercanas">Más cercanas</MenuItem>
+                                            <MenuItem value="lejanas">Más lejanas</MenuItem>
+                                            <MenuItem value="pasadas">Pasadas</MenuItem>
+                                            <MenuItem value="todas">Todas</MenuItem>
                                         </Select>
                                     </FormControl>
                                 </Box>
