@@ -26,6 +26,7 @@ const MyReserves = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [misReservas, setMisReservas] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
+    const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
     const [url, setUrl] = useState([]);
     const [imageLoading, setImageLoading] = useState({});
     const [loading, setLoading] = useState(true);
@@ -37,10 +38,11 @@ const MyReserves = () => {
 
     useEffect(() => {
         if (misReservas.length !== 0) {
-            const filteredReserves = misReservas.filter((reserva) => {
+            let filteredReserves = misReservas.filter((reserva) => {
                 return (!estado || reserva.estado === estado);
             });
-            const sortedReserves = filteredReserves.sort((a, b) => {
+
+            filteredReserves = filteredReserves.sort((a, b) => {
                 const dateA = new Date(a.fecha_llegada);
                 const dateB = new Date(b.fecha_llegada);
                 if (isNaN(dateA) || isNaN(dateB)) {
@@ -52,13 +54,24 @@ const MyReserves = () => {
                     return dateB - dateA;
                 }
             });
-            setMisReservasFiltradas(sortedReserves);
+
+            if (propiedadSeleccionada) {
+                filteredReserves = filteredReserves.filter(
+                    (reserva) => propiedades[reserva.propiedad]?.nombre === propiedadSeleccionada
+                );
+            }
+
+            setMisReservasFiltradas(filteredReserves);
         }
-    }, [estado, misReservas, ordenFechaLLegada]);
+    }, [estado, misReservas, ordenFechaLLegada, propiedades, propiedadSeleccionada]);
 
     const handleEstadoChange = (e) => {
         setEstado(e.target.value);
     };
+
+    const handlePropiedadSeleccionadaChange = (e) => {
+        setPropiedadSeleccionada(e.target.value);
+    }
 
     useEffect(() => {
         const checkPayment = async () => {
@@ -405,6 +418,32 @@ const MyReserves = () => {
                                     flexDirection: { xs: 'column', sm: 'row' },
                                     gap: 2
                                 }}>
+                                    <FormControl
+                                        fullWidth
+                                        size="small"
+                                        sx={{
+                                            '& .MuiOutlinedInput-root': {
+                                                borderRadius: 2
+                                            }
+                                        }}
+                                    >
+                                        <InputLabel>Propiedad</InputLabel>
+                                        <Select
+                                            name="propiedad"
+                                            value={propiedadSeleccionada}
+                                            onChange={handlePropiedadSeleccionadaChange}
+                                            label="Propiedad"
+                                        >
+                                            <MenuItem value=""><em>Todos</em></MenuItem>
+
+                                            {Object.values(propiedades).map((propiedad, index) => (
+                                                <MenuItem key={index} value={propiedad.nombre}>
+                                                    {propiedad.nombre}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+
                                     <FormControl
                                         fullWidth
                                         size="small"

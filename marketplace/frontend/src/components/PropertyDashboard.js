@@ -554,7 +554,7 @@ const PropertyDashboard = () => {
                             <Box sx={{ mt: 1, position: 'relative' }}>
                                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                     <InfoOutlinedIcon fontSize="small" color="primary" />
-                                    Próximas reservas
+                                    Últimas Reservas
                                 </Typography>
 
                                 {eventosCalendario.length > 0 ? (

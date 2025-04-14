@@ -36,6 +36,7 @@ const MyReservationRequests = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [solicitudes, setSolicitudes] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
+    const [propiedadSeleccionada, setPropiedadSeleccionada] = useState(null);
     const [loading, setLoading] = useState(true);
     const [urls, setUrls] = useState([]);
     const [estado, setEstado] = useState("");
@@ -52,17 +53,23 @@ const MyReservationRequests = () => {
 
     useEffect(() => {
         if (solicitudes.length !== 0) {
-            const filteredSolicitudes = solicitudes.filter((solicitud) => {
+            let filteredSolicitudes = solicitudes.filter((solicitud) => {
                 return (estado === "" || solicitud.estado === estado);
             });
-            const sortedSolicitudes = filteredSolicitudes.sort((a, b) => {
+            filteredSolicitudes = filteredSolicitudes.sort((a, b) => {
                 if (ordenFechaLLegada === "asc") {
                     return new Date(a.fecha_llegada) - new Date(b.fecha_llegada);
                 } else {
                     return new Date(b.fecha_llegada) - new Date(a.fecha_llegada);
                 }
             });
-            setSolicitudesFiltradas(sortedSolicitudes);
+            if (propiedadSeleccionada) {
+                filteredSolicitudes = filteredSolicitudes.filter((solicitud) => {
+                    const propiedad = propiedades.find((propiedad) => propiedad.id === solicitud.propiedad);
+                    return propiedad && propiedad.nombre === propiedadSeleccionada;
+                });
+            }
+            setSolicitudesFiltradas(filteredSolicitudes);
         }
     }, [estado, ordenFechaLLegada, solicitudes]);
 
@@ -271,7 +278,25 @@ const MyReservationRequests = () => {
                                         direction={isMobile ? "column" : "row"}
                                         spacing={2}
                                         sx={{ width: "100%" }}
+                                        mt={2}
                                     >
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>Propiedad</InputLabel>
+                                            <Select
+                                                value={propiedadSeleccionada || ""}
+                                                label="Propiedad"
+                                                onChange={(e) => setPropiedadSeleccionada(e.target.value)}
+                                            >
+                                                <MenuItem value=""><em>Todos</em></MenuItem>
+                                                {propiedades?.map((propiedad) => (
+                                                    <MenuItem key={propiedad.id} value={propiedad.nombre}>
+                                                        {propiedad.nombre}
+                                                    </MenuItem>
+                                                ))}
+
+
+                                            </Select>
+                                        </FormControl>
                                         <FormControl fullWidth size="small">
                                             <InputLabel>Estado de la reserva</InputLabel>
                                             <Select
@@ -293,8 +318,8 @@ const MyReservationRequests = () => {
                                                 onChange={(e) => setOrdenFechaLLegada(e.target.value)}
                                                 startAdornment={<SortIcon sx={{ mr: 1, color: theme.palette.text.secondary }} />}
                                             >
-                                                <MenuItem value="asc">Próximas primero</MenuItem>
-                                                <MenuItem value="desc">Antiguas primero</MenuItem>
+                                                <MenuItem value="asc">Antiguas primero</MenuItem>
+                                                <MenuItem value="desc">Próximas Primero</MenuItem>
                                             </Select>
                                         </FormControl>
                                     </Stack>
