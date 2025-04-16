@@ -45,6 +45,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
+from .models.clickPropiedad import ClickPropiedad
 
 
 
@@ -281,6 +282,37 @@ class PropiedadViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'update', 'partial_update', 'destroy']:
             return [IsAuthenticated()]
         return [AllowAny()]
+    
+    def retrieve(self, request, *args, **kwargs):
+        propiedad = self.get_object()
+
+        if request.user.is_authenticated:
+            usuario = Usuario.objects.filter(usuario=request.user.id).first()
+            propiedades = Propiedad.objects.filter(anfitrion=usuario)
+            
+            if usuario and propiedad not in propiedades:
+                ahora = timezone.now()
+                hace_5s = ahora - timedelta(seconds=5)
+
+                # 🔍 Busca clicks recientes
+                clicks_recientes = ClickPropiedad.objects.filter(
+                    usuario=usuario,
+                    propiedad=propiedad,
+                    timestamp__gte=hace_5s
+                )
+
+                for click in clicks_recientes:
+                    print(f"🕒 Click anterior: {click.timestamp}")
+
+                if not clicks_recientes.exists():
+                    ClickPropiedad.objects.create(usuario=usuario, propiedad=propiedad)
+                    print("✅ Click creado")
+                else:
+                    print("🚫 Click duplicado ignorado")
+
+        serializer = self.get_serializer(propiedad)
+        return Response(serializer.data)
+
     
     def update(self, request, *args, **kwargs):
         propiedad = self.get_object()
@@ -704,6 +736,7 @@ class FavoritoViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
     
 # SISTEMA DE RECOMENDACIONES
+
 class RecommendationAPI(APIView):
     def get(self, request):
         user = request.user
@@ -711,59 +744,87 @@ class RecommendationAPI(APIView):
             return Response({"error": "Usuario no autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
-            usuario = Usuario.objects.get(usuario=user.id)
+            usuario = Usuario.objects.get(usuario=request.user) 
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         
+        # Obtener preferencias del usuario
         user_ciudades = list(usuario.reservas.values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades += list(usuario.favoritos.values_list('propiedad__ciudad', flat=True).distinct())
+        user_ciudades += list(ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades = list(set(user_ciudades))
         
         user_ratings = {
             v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
         }
         
+        # Inicializar recomendadores
         content_rec = ContentRecommender()
         collab_rec = CollaborativeRecommender()
+
+        content_rec.refresh_data()
+
+
+        # Registrar clicks históricos
+        clicked_properties = ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad', flat=True)
+        for prop_id in clicked_properties:
+            content_rec.record_click(usuario.id, prop_id)
         
-        collab_props = collab_rec.get_user_recommendations(user.id)
+        # Obtener recomendaciones colaborativas
+        collab_props = collab_rec.get_user_recommendations(usuario.id)
         scored_props = []
         
-        user_favoritos_ids = set(usuario.favoritos.values_list('propiedad__id', flat=True))
-        
+        # Calcular scores híbridos
         max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
+        user_favoritos_ids = set(usuario.favoritos.values_list('propiedad__id', flat=True))
 
         for prop in collab_props:
-            ciudad_score = 5 if prop.ciudad in user_ciudades else 0
+            similares = content_rec.get_similar(prop.id, top=5, user_id=usuario.id)  # Obtener similares
             
-            similares = content_rec.get_similar(prop.id, top=5)
-            
+            # Componente de valoraciones
             rating_scores = [
-                similarity * (user_ratings[pid] / 5.0)
+                similarity * (user_ratings[pid] / 5.0)  # Asegurar que user_ratings está definido
                 for pid, similarity, _ in similares if pid in user_ratings
             ]
             rating_score = np.mean(rating_scores) if rating_scores else 0
             
+            # Componente de favoritos
             fav_scores = [
                 similarity for pid, similarity, _ in similares if pid in user_favoritos_ids
             ]
             fav_score = np.mean(fav_scores) if fav_scores else 0
             
+            # Componentes combinados
+            # ciudad_score = 5 if prop.ciudad in user_ciudades else 0
+            ciudad_norm = 1 if prop.ciudad in user_ciudades else 0
+            componente_ciudad = 0.5 * ciudad_norm
+
+
             popularity = getattr(prop, 'popularity', 0)
             normalized_popularity = popularity / max_popularity if max_popularity > 0 else 0
             
             combined_score = (
-                0.5 * ciudad_score +  
-                0.2 * rating_score + 
-                0.2 * fav_score + 
-                0.1 * normalized_popularity
+                0.5 * componente_ciudad +  
+                0.3 * rating_score +  
+                0.15 * fav_score + 
+                0.05 * normalized_popularity
             )
             
-            percentage_score = round(combined_score * 100, 2)
-            scored_props.append({'propiedad': prop, 'score': percentage_score})
+            scored_props.append({
+                'propiedad': prop,
+                'score': round(combined_score * 100, 2),
+                'components': {
+                    'ciudad': componente_ciudad,
+                    'rating': rating_score,
+                    'favoritos': fav_score,
+                    'popularidad': normalized_popularity
+                }
+            })
         
+        # Ordenar y seleccionar top 10
         sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
         
+        # Serializar resultados
         serializer = PropiedadRecommendationSerializer(
             [item['propiedad'] for item in sorted_results],
             many=True,

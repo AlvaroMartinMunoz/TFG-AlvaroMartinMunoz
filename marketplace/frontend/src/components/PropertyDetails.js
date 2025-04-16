@@ -706,7 +706,20 @@ const PropertyDetails = () => {
 
     const fetchPropertyDetails = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`);
+            let response;
+            if (isAuthenticated()) {
+                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`, {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                });
+            }
+            else {
+                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`, {
+                    method: "GET",
+                });
+            }
             if (response.ok) {
                 const data = await response.json();
                 setPropiedad(data);
