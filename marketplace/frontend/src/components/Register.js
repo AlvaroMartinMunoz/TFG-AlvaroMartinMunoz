@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { DatePicker } from "@mui/x-date-pickers";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -396,46 +397,38 @@ const Register = () => {
                     }
                   }}
                 />
-                <TextField
-                  fullWidth
+                <DatePicker
                   label="Fecha de nacimiento"
-                  name="fecha_de_nacimiento"
-                  type="date"
-                  variant="outlined"
-                  margin="normal"
-                  onChange={handleChange}
-                  required
-                  size="small"
-                  error={!!errors.fecha_de_nacimiento}
-                  helperText={errors.fecha_de_nacimiento}
-                  InputLabelProps={{
-                    shrink: true,
+                  value={formData.fecha_de_nacimiento}
+                  onChange={(newValue) => {
+                    if (newValue) {
+                      // Formatea la fecha a 'YYYY-MM-DD' usando la fecha local
+                      const year = newValue.getFullYear();
+                      const month = String(newValue.getMonth() + 1).padStart(2, '0');
+                      const day = String(newValue.getDate()).padStart(2, '0');
+                      const formattedDate = `${year}-${month}-${day}`;
+                      setFormData({ ...formData, fecha_de_nacimiento: formattedDate });
+                    } else {
+                      setFormData({ ...formData, fecha_de_nacimiento: '' });
+                    }
                   }}
-                  sx={{
-                    mb: 1,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1.5,
+                  slotProps={{
+                    textField: {
+                      fullWidth: true,
+                      required: true,
+                      size: "small",
+                      margin: "normal",
+                      error: !!errors.fecha_de_nacimiento,
+                      helperText: errors.fecha_de_nacimiento,
+                      sx: {
+                        mb: 1,
+                        "& .MuiOutlinedInput-root": {
+                          borderRadius: 1.5,
+                        }
+                      }
                     }
                   }}
                 />
-                {/* <TextField
-                  fullWidth
-                  label="Foto de perfil"
-                  name="foto_de_perfil"
-                  type="file"
-                  variant="outlined"
-                  margin="normal"
-                  onChange={handleChange}
-                  InputLabelProps={{
-                    shrink: true,
-                  }}
-                  sx={{
-                    mb: 1,
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 1.5,
-                    }
-                  }}
-                /> */}
               </Box>
             </Box>
 

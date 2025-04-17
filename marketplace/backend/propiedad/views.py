@@ -748,7 +748,6 @@ class RecommendationAPI(APIView):
         except Usuario.DoesNotExist:
             return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
         
-        # Obtener preferencias del usuario
         user_ciudades = list(usuario.reservas.values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades += list(usuario.favoritos.values_list('propiedad__ciudad', flat=True).distinct())
         user_ciudades += list(ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad__ciudad', flat=True).distinct())
@@ -758,43 +757,36 @@ class RecommendationAPI(APIView):
             v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
         }
         
-        # Inicializar recomendadores
         content_rec = ContentRecommender()
         collab_rec = CollaborativeRecommender()
 
         content_rec.refresh_data()
 
 
-        # Registrar clicks históricos
         clicked_properties = ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad', flat=True)
         for prop_id in clicked_properties:
             content_rec.record_click(usuario.id, prop_id)
         
-        # Obtener recomendaciones colaborativas
         collab_props = collab_rec.get_user_recommendations(usuario.id)
         scored_props = []
         
-        # Calcular scores híbridos
         max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
         user_favoritos_ids = set(usuario.favoritos.values_list('propiedad__id', flat=True))
 
         for prop in collab_props:
-            similares = content_rec.get_similar(prop.id, top=5, user_id=usuario.id)  # Obtener similares
+            similares = content_rec.get_similar(prop.id, top=5, user_id=usuario.id) 
             
-            # Componente de valoraciones
             rating_scores = [
-                similarity * (user_ratings[pid] / 5.0)  # Asegurar que user_ratings está definido
+                similarity * (user_ratings[pid] / 5.0)  
                 for pid, similarity, _ in similares if pid in user_ratings
             ]
             rating_score = np.mean(rating_scores) if rating_scores else 0
             
-            # Componente de favoritos
             fav_scores = [
                 similarity for pid, similarity, _ in similares if pid in user_favoritos_ids
             ]
             fav_score = np.mean(fav_scores) if fav_scores else 0
             
-            # Componentes combinados
             # ciudad_score = 5 if prop.ciudad in user_ciudades else 0
             ciudad_norm = 1 if prop.ciudad in user_ciudades else 0
             componente_ciudad = 0.5 * ciudad_norm
@@ -821,10 +813,8 @@ class RecommendationAPI(APIView):
                 }
             })
         
-        # Ordenar y seleccionar top 10
         sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
         
-        # Serializar resultados
         serializer = PropiedadRecommendationSerializer(
             [item['propiedad'] for item in sorted_results],
             many=True,
