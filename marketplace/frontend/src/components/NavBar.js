@@ -335,7 +335,7 @@ const NavBar = () => {
                   display: { xs: 'none', sm: 'block' }
                 }}
               >
-                Marketplace
+                Hostsy
               </Typography>
             </Box>
 

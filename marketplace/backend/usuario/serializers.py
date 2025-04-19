@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models.usuario import Usuario
-from .models.valoracionUsuario import ValoracionUsuario
 from django.contrib.auth.models import User
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth.forms import PasswordResetForm
@@ -47,13 +46,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
     # def get_valoracion_promedio_usuario(self, obj):
     #     return obj.valoracion_promedio_usuario()
-    
-class ValoracionUsuarioSerializer(serializers.ModelSerializer):
-    usuario_valorador = serializers.StringRelatedField()
-    usuario_valorado = serializers.StringRelatedField()
-    class Meta:
-        model = ValoracionUsuario
-        fields = '__all__'
 
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()

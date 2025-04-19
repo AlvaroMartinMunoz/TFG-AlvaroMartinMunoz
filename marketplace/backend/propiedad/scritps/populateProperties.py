@@ -22,6 +22,72 @@ from io import BytesIO
 
 UNSPLASH_ACCESS_KEY = "SkcR0_hfyhVkevG3PwKqIps6v5wf_hqD8tURRsabjFs"
 
+ciudadesEspana = [
+    "Madrid",
+    "Barcelona",
+    "Valencia",
+    "Sevilla",
+    "Zaragoza",
+    "Málaga",
+    "Murcia",
+    "Palma",
+    "Bilbao",
+    "Alicante",
+    "Córdoba",
+    "Valladolid",
+    "Vigo",
+    "Gijón",
+    "Granada",
+    "Elche",
+    "Oviedo",
+    "Badalona",
+    "Cartagena",
+    "Terrassa",
+    "Jerez de la Frontera",
+    "Sabadell",
+    "Móstoles",
+    "Santa Cruz de Tenerife",
+    "Pamplona",
+    "Almería",
+    "Alcalá de Henares",
+    "San Sebastián",
+    "Donostia",
+    "Leganés",
+    "Santander",
+    "Burgos",
+    "Castellón de la Plana",
+    "Alcorcón",
+    "Albacete",
+    "Getafe",
+    "Salamanca",
+    "Logroño",
+    "Huelva",
+    "Badajoz",
+    "Tarragona",
+    "Lleida",
+    "Marbella",
+    "León",
+    "Cádiz",
+    "Jaén",
+    "Ourense",
+    "Lugo",
+    "Santiago de Compostela",
+    "Cáceres",
+    "Melilla",
+    "Ceuta",
+    "Ávila",
+    "Segovia",
+    "Guadalajara",
+    "Cuenca",
+    "Soria",
+    "Zamora",
+    "Palencia",
+    "Toledo",
+    "Ciudad Real",
+    "Huesca",
+  ];
+
+
 def obtener_imagen():
     url = f"https://api.unsplash.com/photos/random?query=apartment&client_id={UNSPLASH_ACCESS_KEY}"
 
@@ -54,11 +120,11 @@ def obtener_imagen():
 
     return None
 
-def generar_nombre_propiedad():
+def generar_nombre_propiedad(ciudad):
     """Genera un nombre de propiedad aleatorio como 'Apartamento Azul en Madrid'."""
     tipo = random.choice(["Apartamento", "Casa", "Villa"])
     adjetivos = ["Soleado", "Azul", "Elegante", "Moderno", "Rústico", "Tranquilo", "Encantador"]
-    nombre = f"{tipo} {random.choice(adjetivos)} en {fake.city()}"
+    nombre = f"{tipo} {random.choice(adjetivos) } en {ciudad}"
     return nombre
 
 
@@ -105,7 +171,7 @@ def poblar_propiedades(n=10):
         anfitrion = random.choice(usuarios)
 
         tipo_de_propiedad = random.choice(tipos_de_propiedad)
-        ciudad = fake.city()
+        ciudad = random.choice(ciudadesEspana)
         habitaciones = random.randint(1, 5)
         banos = random.randint(1, 3)
         camas = random.randint(1, 5)
@@ -119,7 +185,7 @@ def poblar_propiedades(n=10):
 
         propiedad = Propiedad.objects.create(
             anfitrion=anfitrion,
-            nombre=generar_nombre_propiedad(),  
+            nombre=generar_nombre_propiedad(ciudad),  
             descripcion=generar_descripcion(tipo_de_propiedad, ciudad, habitaciones, banos, camas, max_huespedes, wifi, aire_acondicionado, calefaccion, parking, mascotas, permitido_fumar),  # 🔹 Descripción dinámica
             direccion=fake.street_address(),
             ciudad=ciudad,
@@ -141,7 +207,7 @@ def poblar_propiedades(n=10):
             politica_de_cancelacion=random.choice(politicas_cancelacion),
         )
 
-        for i in range(random.randint(2, 5)): 
+        for i in range(random.randint(2, 3)): 
             imagen = obtener_imagen()
             if imagen:
                 FotoPropiedad.objects.create(

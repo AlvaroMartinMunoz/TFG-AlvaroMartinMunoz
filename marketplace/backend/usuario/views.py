@@ -1,8 +1,6 @@
 from rest_framework import viewsets
 from .models.usuario import Usuario
 from .serializers import UsuarioSerializer, UserSerializer
-from .models.valoracionUsuario import ValoracionUsuario
-from .serializers import ValoracionUsuarioSerializer
 from django.contrib.auth.models import User
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -94,9 +92,7 @@ class UsuarioViewSet(viewsets.ModelViewSet):
                           status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
 
-class ValoracionUsuarioViewSet(viewsets.ModelViewSet):
-    queryset = ValoracionUsuario.objects.all()
-    serializer_class = ValoracionUsuarioSerializer
+
 
 class UsuarioPerfilAPIView(APIView):
     def get(self, request, id_usuario=None):

@@ -1,6 +1,5 @@
 from django.db import models
 from django.contrib.auth.models import User
-from usuario.models.valoracionUsuario import ValoracionUsuario
 from django.core.validators import MinLengthValidator, MaxLengthValidator, RegexValidator, MaxValueValidator, MinValueValidator
 from datetime import timedelta, date
 from django.utils.timezone import now
@@ -23,7 +22,5 @@ class Usuario(models.Model):
 
     fecha_de_nacimiento = models.DateField(blank=False, validators=[MinValueValidator(date(1900,1,1)),MaxValueValidator(fecha_limite)], null=False, help_text='Introduzca su fecha de nacimiento.')
 
-
-    foto_de_perfil = models.ImageField(upload_to='fotos_de_perfil/', blank=True, null=True, default=None, help_text='Suba una foto de perfil.')
 
 
