@@ -627,6 +627,14 @@ const Explorer = () => {
                             borderColor: "#091630",
                           }
                         }}
+                        onClick={() => {
+                          setPrecioRango([0, 1000]);
+                          setTipoPropiedad("");
+                          setHabitaciones(0);
+                          setCamas(0);
+                          setOrdenPrecio("recomendaciones");
+                          setCiudad("");
+                        }}
                       >
                         Limpiar filtros
                       </Button>
@@ -946,7 +954,8 @@ const Explorer = () => {
                       setTipoPropiedad("");
                       setHabitaciones(0);
                       setCamas(0);
-                      setOrdenPrecio("asc");
+                      setOrdenPrecio("recomendaciones");
+                      setCiudad("");
                     }}
                   >
                     Limpiar filtros
