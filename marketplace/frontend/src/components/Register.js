@@ -13,6 +13,7 @@ import {
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
+import { parseISO } from "date-fns";
 import { DatePicker } from "@mui/x-date-pickers";
 
 const Register = () => {
@@ -28,6 +29,7 @@ const Register = () => {
     foto_de_perfil: null,
   });
   const [message, setMessage] = useState("");
+  const [message2, setMessage2] = useState("");
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -36,7 +38,7 @@ const Register = () => {
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (token) {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   }, [navigate]);
 
@@ -159,6 +161,8 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     setErrors({});
+    setMessage("");
+    setMessage2("");
 
     if (!(await validateForm())) {
       setMessage("Por favor, corrija los errores en el formulario");
@@ -176,15 +180,10 @@ const Register = () => {
       });
 
       if (response.ok) {
-        const responseData = await response.json();
-        const { access, refresh } = responseData;
-
-        localStorage.setItem("accessToken", access);
-        localStorage.setItem("refreshToken", refresh);
-
-        window.location.href = "/inicio-de-sesion";
-
-        setMessage("Registro exitoso");
+        setMessage2("Registro exitoso. Redirigiendo...");
+        setTimeout(() => {
+          navigate("/inicio-de-sesion");
+        }, 1500);
       } else {
         const errorData = await response.json();
         setMessage(errorData.detail || "Error al registrar");
@@ -239,6 +238,14 @@ const Register = () => {
               sx={{ mb: 2, borderRadius: 1 }}
             >
               {message}
+            </Alert>
+          )}
+          {message2 && (
+            <Alert
+              severity="success"
+              sx={{ mb: 2, borderRadius: 1 }}
+            >
+              {message2}
             </Alert>
           )}
 
@@ -399,19 +406,18 @@ const Register = () => {
                 />
                 <DatePicker
                   label="Fecha de nacimiento"
-                  value={formData.fecha_de_nacimiento}
+                  value={formData.fecha_de_nacimiento ? parseISO(formData.fecha_de_nacimiento) : null}
                   onChange={(newValue) => {
                     if (newValue) {
-                      // Formatea la fecha a 'YYYY-MM-DD' usando la fecha local
                       const year = newValue.getFullYear();
                       const month = String(newValue.getMonth() + 1).padStart(2, '0');
                       const day = String(newValue.getDate()).padStart(2, '0');
-                      const formattedDate = `${year}-${month}-${day}`;
-                      setFormData({ ...formData, fecha_de_nacimiento: formattedDate });
+                      setFormData({ ...formData, fecha_de_nacimiento: `${year}-${month}-${day}` });
                     } else {
                       setFormData({ ...formData, fecha_de_nacimiento: '' });
                     }
-                  }}
+                  }
+                  }
                   slotProps={{
                     textField: {
                       fullWidth: true,
