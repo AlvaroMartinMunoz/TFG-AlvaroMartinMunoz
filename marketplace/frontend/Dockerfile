@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Instala las dependencias de Node.js
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copia el resto del código de tu aplicación React
 COPY . .

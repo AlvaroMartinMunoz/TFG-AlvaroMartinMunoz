@@ -4,44 +4,52 @@ services:
   backend:
     build: ./backend
     command: python manage.py runserver 0.0.0.0:8000
+    env_file:
+      - ./backend/.env
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
-      - media_volume:/app/media 
+      - media_volume:/app/media  
     ports:
-      - "8000:8000"
-    env_file:
-      - ./backend/.env
-    environment:
-      DATABASE_HOST: db
+      - "8000:8000"  
     depends_on:
       - db
+    networks:
+      - marketplace_net
 
   frontend:
     build: ./frontend
     command: npm start
     volumes:
       - ./frontend:/app
-      - /app/node_modules 
+      - /app/node_modules
     ports:
       - "3000:3000"
     depends_on:
       - backend
     environment:
       - CHOKIDAR_USEPOLLING=true
+    networks:
+      - marketplace_net
 
   db:
     image: postgres:13
     volumes:
       - db_data:/var/lib/postgresql/data/
+    env_file: ./backend/.env  
     environment:
-      POSTGRES_USER: $DB_USER
-      POSTGRES_PASSWORD: $DB_PASSWORD
-      POSTGRES_DB: $DB_NAME
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: postgres 
+      POSTGRES_PASSWORD: postgres  
     ports:
-      - "$DB_PORT:5432" 
+      - "5432:5432"
+    networks:
+      - marketplace_net
 
 volumes:
   static_volume:
   media_volume:
   db_data:
+
+networks:
+  marketplace_net:

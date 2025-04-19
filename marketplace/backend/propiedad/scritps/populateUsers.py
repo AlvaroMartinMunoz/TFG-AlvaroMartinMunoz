@@ -61,7 +61,6 @@ def poblar_usuarios():
             direccion=direccion,
             biografia=biografia,
             fecha_de_nacimiento=fecha_de_nacimiento,
-            foto_de_perfil=None
         )
         print(f"Usuario creado: {user.username}, DNI: {dni}, Teléfono: {telefono}, Dirección: {direccion}, Biografía: {biografia}, Fecha de nacimiento: {fecha_de_nacimiento}")
 
