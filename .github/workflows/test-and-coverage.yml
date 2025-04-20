@@ -60,8 +60,8 @@ jobs:
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
-          curl -Ls https://coverage.codacy.com/get.sh | bash -s -- -v latest
-          # Ejecuta el reporter desde la ruta de caché
-          ~/.cache/codacy/coverage-reporter/latest/codacy-coverage-reporter report -l Python -r coverage.xml
+          curl -Ls https://coverage.codacy.com/get.sh | bash -s -- -v 14.1.0
+          # Usar la ruta exacta con la versión 14.1.0
+          ~/.cache/codacy/coverage-reporter/14.1.0/codacy-coverage-reporter report -l Python -r coverage.xml
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
