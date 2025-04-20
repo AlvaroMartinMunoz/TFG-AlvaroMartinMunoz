@@ -1039,7 +1039,7 @@ const procesarDatosReservas = (reservas) => {
         meses[mes].ingresos += parseFloat(reserva.precio_total);
     });
 
-    return meses.map((mes, index) => ({
+    return meses.map((mes) => ({
         ...mes,
         ingresos: parseFloat(mes.ingresos.toFixed(2)),
     })
