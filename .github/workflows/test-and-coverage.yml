@@ -51,7 +51,8 @@ jobs:
         run: |
           coverage run manage.py test
           coverage xml
-
+          # Corregir timestamp 
+          sed -i "s/timestamp=\"1745166290931\"/timestamp=\"$(date +%s000)\"/g" coverage.xml
       - name: Check for coverage.xml file
         run: |
           ls -la ./marketplace/backend/coverage.xml
@@ -59,15 +60,7 @@ jobs:
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
-          # Verificar el directorio actual y el archivo (para debug)
-          echo "Directorio actual: $(pwd)"
-          ls -la
-          echo "Contenido de coverage.xml (primeras líneas):"
-          head coverage.xml
-
-          # Descargar y ejecutar el reporter de Codacy
-          curl -Ls https://coverage.codacy.com/get.sh | bash
-          # Usar la ruta absoluta del archivo
-          codacy-coverage-reporter report -l Python -r $(pwd)/coverage.xml
+          curl -Ls https://coverage.codacy.com/get.sh | bash -s -- -v latest
+          codacy-coverage-reporter report -l Python -r coverage.xml
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
