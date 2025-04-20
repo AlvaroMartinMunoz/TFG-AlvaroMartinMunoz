@@ -1,34 +1,24 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Box,
-    Button,
     Container,
     Typography,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogContentText,
-    DialogTitle,
     CircularProgress,
     Card,
     CardMedia,
     CardContent,
-    CardActions,
     Divider,
-    Tooltip,
-    Fade,
     Chip
 } from "@mui/material";
-import { Edit as EditIcon, Delete as DeleteIcon, Home as HomeIcon, Add as AddIcon } from "@mui/icons-material";
 import refreshAccessToken from "./RefreshToken";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import IconButton from "@mui/material/IconButton";
+import { useFavoritos } from "../context/FavoritosContext";
 
 
 const Myfavorites = () => {
-    const [open, setOpen] = useState(false);
-    const [selectedProperty, setSelectedProperty] = useState(null);
+    const { actualizarFavoritosNavbar } = useFavoritos();
     const [url, setUrl] = useState([]);
     const [loading, setLoading] = useState(true);
     const [imageLoading, setImageLoading] = useState({});
@@ -106,6 +96,7 @@ const Myfavorites = () => {
             }
             fetchMyFavorites();
             window.location.reload();
+            actualizarFavoritosNavbar();
         } catch (error) {
             console.error("Error al añadir a favoritos:", error);
         }
@@ -341,7 +332,7 @@ const Myfavorites = () => {
                                             >
                                                 {propiedad.nombre}
                                             </Typography>
-                                            <Divider sx={{ my: 1.5 }} />
+                                            {/* <Divider sx={{ my: 1.5 }} /> */}
                                         </CardContent>
 
                                     </Card>

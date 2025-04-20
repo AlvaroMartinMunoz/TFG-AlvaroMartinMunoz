@@ -27,9 +27,12 @@ import {
 import refreshAccessToken from "./RefreshToken";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import { useFavoritos } from "../context/FavoritosContext";
+
 
 const Recommendations = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
+    const { actualizarFavoritosNavbar } = useFavoritos();
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -80,6 +83,7 @@ const Recommendations = () => {
             if (response.ok) {
                 const data = await response.json();
                 setFavorites(data);
+                actualizarFavoritosNavbar();
             } else {
                 throw new Error("Error al obtener los favoritos");
             }
@@ -166,6 +170,7 @@ const Recommendations = () => {
             }
 
             fetchFavorites();
+            actualizarFavoritosNavbar();
         } catch (error) {
             console.error("Error toggling favorite:", error);
         }
@@ -175,6 +180,7 @@ const Recommendations = () => {
         if (isAuthenticated()) {
             fetchRecommendations();
             fetchFavorites();
+            actualizarFavoritosNavbar();
         } else {
             setLoading(false);
         }

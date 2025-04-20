@@ -12,23 +12,16 @@ import {
   Select,
   Stack,
   Rating,
-  Badge,
   Chip,
   Button,
-  Divider,
   Tooltip,
   Skeleton,
-  useMediaQuery,
-  useTheme,
 } from "@mui/material";
-import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { es } from "date-fns/locale";
-import SearchIcon from "@mui/icons-material/Search";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import SortIcon from "@mui/icons-material/Sort";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import BedIcon from "@mui/icons-material/Bed";
@@ -39,16 +32,13 @@ import WifiIcon from "@mui/icons-material/Wifi";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import refreshAccessToken from "./RefreshToken";
+import { useFavoritos } from "../context/FavoritosContext";
 
 const Explorer = () => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
 
+  const { actualizarFavoritosNavbar } = useFavoritos();
   const usuarioId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
-  const [fechaLlegada, setFechaLlegada] = useState(null);
-  const [fechaSalida, setFechaSalida] = useState(null);
-  const [numPersonas, setNumPersonas] = useState(0);
+
   const [propiedades, setPropiedades] = useState([]);
   const [propiedadesFiltradas, setPropiedadesFiltradas] = useState([]);
   const [url, setUrl] = useState({});
@@ -63,10 +53,8 @@ const Explorer = () => {
   const [habitaciones, setHabitaciones] = useState(0);
   const [camas, setCamas] = useState(0);
   const [ordenPrecio, setOrdenPrecio] = useState("recomendaciones");
-  const [filtersOpen, setFiltersOpen] = useState(false);
   const [ciudad, setCiudad] = useState("");
   const [recomendaciones, setRecomendaciones] = useState([]);
-  const [error, setError] = useState(null);
 
   const ciudadesEspana = [
     "Madrid",
@@ -162,6 +150,7 @@ const Explorer = () => {
         }
 
         fetchFavoritos();
+        actualizarFavoritosNavbar();
       } catch (error) {
         console.error("Error al cargar datos iniciales:", error);
       }
@@ -220,6 +209,7 @@ const Explorer = () => {
   useEffect(() => {
     fetchAllProperties();
     fetchFavoritos();
+    actualizarFavoritosNavbar();
   }, []);
 
 
@@ -237,6 +227,7 @@ const Explorer = () => {
       if (response.ok) {
         const data = await response.json();
         setFavoritos(data);
+        actualizarFavoritosNavbar();
       } else {
         throw new Error("Error al obtener los favoritos");
       }
@@ -289,6 +280,7 @@ const Explorer = () => {
         }
       }
       fetchFavoritos();
+      actualizarFavoritosNavbar();
     } catch (error) {
       console.error("Error al añadir a favoritos:", error);
     }

@@ -16,7 +16,6 @@ import { Alert } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import { set } from 'date-fns';
 import PropertyValorations from './PropertyValorations';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
@@ -30,6 +29,8 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import BarChartIcon from '@mui/icons-material/BarChart';
+import { useFavoritos } from "../context/FavoritosContext";
+
 
 
 
@@ -38,6 +39,7 @@ import BarChartIcon from '@mui/icons-material/BarChart';
 
 const PropertyDetails = () => {
     const usuarioId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
+    const { actualizarFavoritosNavbar } = useFavoritos();
     const { propiedadId } = useParams();
     const [propiedad, setPropiedad] = useState(null);
     const [fotos, setFotos] = useState([]);
@@ -94,6 +96,7 @@ const PropertyDetails = () => {
             refreshAccessToken();
             checkIfFavorite();
             fetchSpecialPrices();
+            actualizarFavoritosNavbar();
         }
         fetchPropertyDetails();
         fetchPropertyPhotos(propiedadId);
@@ -286,9 +289,8 @@ const PropertyDetails = () => {
                 const propiedadID = parseInt(propiedadId);
                 const isFav = data.some((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID);
                 setIsFavorite(isFav);
-                console.log(isFav)
                 setFavoritoId(data.find((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID)?.id);
-                console.log(data.find((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID)?.id);
+                actualizarFavoritosNavbar();
             }
         } catch (error) {
             console.error(error);
@@ -365,6 +367,7 @@ const PropertyDetails = () => {
                 }
             }
             checkIfFavorite();
+            actualizarFavoritosNavbar();
             // window.location.reload();
         } catch (error) {
             console.error("Error al añadir a favoritos:", error);

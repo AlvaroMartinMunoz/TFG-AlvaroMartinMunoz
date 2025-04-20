@@ -34,6 +34,7 @@ import PrivacyPolicy from "./components/Footer/PrivacyPolicy";
 import AboutUs from "./components/Footer/AboutUs";
 import Recommendations from "./components/Recommendations";
 import PropertyDashboard from "./components/PropertyDashboard";
+import { FavoritosProvider } from "./context/FavoritosContext";
 
 const theme = createTheme({
   palette: {
@@ -44,45 +45,47 @@ const theme = createTheme({
 
 function App() {
   return (
-    <ThemeProvider theme={theme}>
-      <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-        <CssBaseline />
-        <Router>
-          <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-            <Navbar />
-            <Container sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Routes>
-                <Route path="/" element={<Explorer />} />
-                <Route path="/inicio-de-sesion" element={<Login />} />
-                <Route path="/registro" element={<Register />} />
-                <Route path="/explorar" element={<Explorer />} />
-                <Route path="/perfil" element={<PrivateRoute component={Profile} />} />
-                <Route path="/mis-propiedades" element={<PrivateRoute component={MyProperties} />} />
-                <Route path="/crear-propiedad" element={<PrivateRoute component={CreateProperty} />} />
-                <Route path="/detalles/:propiedadId" element={<PropertyDetails />} />
-                <Route path="/editar-propiedad/:propiedadId" element={<PrivateRoute component={EditProperty} />} />
-                <Route path="/mis-reservas" element={<PrivateRoute component={MyReserves} />} />
-                <Route path="/solicitudes-de-reserva" element={<PrivateRoute component={MyReservationRequests} />} />
-                <Route path="/eventos" element={<Events />} />
-                <Route path="/detalles-evento/:eventoId" element={<EventDetails />} />
-                <Route path="/pronostico-clima" element={<Weather />} />
-                <Route path="/favoritos" element={<PrivateRoute component={Myfavorites} />} />
-                <Route path="password-reset" element={<PasswordReset />} />
-                <Route path="/reset-password/:uid/:token" element={<ConfirmPasswordReset />} />
-                <Route path="/informacion-reserva/:reservaId" element={<ReservationDetail />} />
-                <Route path="/contacta-con-nosotros" element={<ContactUs />} />
-                <Route path="/terminos-y-condiciones" element={<TermsAndConditions />} />
-                <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
-                <Route path="/sobre-nosotros" element={<AboutUs />} />
-                <Route path="/recomendaciones" element={<PrivateRoute component={Recommendations} />} />
-                <Route path="/dashboard/:propiedadId" element={<PrivateRoute component={PropertyDashboard} />} />
-              </Routes>
-            </Container>
-            <Footer />
-          </Box>
-        </Router>
-      </LocalizationProvider>
-    </ThemeProvider>
+    <FavoritosProvider>
+      <ThemeProvider theme={theme}>
+        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
+          <CssBaseline />
+          <Router>
+            <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+              <Navbar />
+              <Container sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <Routes>
+                  <Route path="/" element={<Explorer />} />
+                  <Route path="/inicio-de-sesion" element={<Login />} />
+                  <Route path="/registro" element={<Register />} />
+                  <Route path="/explorar" element={<Explorer />} />
+                  <Route path="/perfil" element={<PrivateRoute component={Profile} />} />
+                  <Route path="/mis-propiedades" element={<PrivateRoute component={MyProperties} />} />
+                  <Route path="/crear-propiedad" element={<PrivateRoute component={CreateProperty} />} />
+                  <Route path="/detalles/:propiedadId" element={<PropertyDetails />} />
+                  <Route path="/editar-propiedad/:propiedadId" element={<PrivateRoute component={EditProperty} />} />
+                  <Route path="/mis-reservas" element={<PrivateRoute component={MyReserves} />} />
+                  <Route path="/solicitudes-de-reserva" element={<PrivateRoute component={MyReservationRequests} />} />
+                  <Route path="/eventos" element={<Events />} />
+                  <Route path="/detalles-evento/:eventoId" element={<EventDetails />} />
+                  <Route path="/pronostico-clima" element={<Weather />} />
+                  <Route path="/favoritos" element={<PrivateRoute component={Myfavorites} />} />
+                  <Route path="password-reset" element={<PasswordReset />} />
+                  <Route path="/reset-password/:uid/:token" element={<ConfirmPasswordReset />} />
+                  <Route path="/informacion-reserva/:reservaId" element={<ReservationDetail />} />
+                  <Route path="/contacta-con-nosotros" element={<ContactUs />} />
+                  <Route path="/terminos-y-condiciones" element={<TermsAndConditions />} />
+                  <Route path="/politica-de-privacidad" element={<PrivacyPolicy />} />
+                  <Route path="/sobre-nosotros" element={<AboutUs />} />
+                  <Route path="/recomendaciones" element={<PrivateRoute component={Recommendations} />} />
+                  <Route path="/dashboard/:propiedadId" element={<PrivateRoute component={PropertyDashboard} />} />
+                </Routes>
+              </Container>
+              <Footer />
+            </Box>
+          </Router>
+        </LocalizationProvider>
+      </ThemeProvider>
+    </FavoritosProvider>
   );
 }
 
