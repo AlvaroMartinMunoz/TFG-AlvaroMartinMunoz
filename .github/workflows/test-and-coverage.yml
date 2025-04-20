@@ -50,12 +50,16 @@ jobs:
           DB_PORT: 5432
         run: |
           coverage run manage.py test
-          coverage xml
+          coverage xml --output=coverage.xml
+
+      - name: Check for coverage.xml file
+        run: |
+          ls -la ./marketplace/backend/coverage.xml
 
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
           curl -Ls https://coverage.codacy.com/get.sh | bash
-          ./codacy-coverage-reporter report -l Python -r coverage.xml
+          ./codacy-coverage-reporter report -l Python -r ./marketplace/backend/coverage.xml
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
