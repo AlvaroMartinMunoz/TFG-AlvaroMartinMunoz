@@ -59,7 +59,15 @@ jobs:
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
+          # Verificar el directorio actual y el archivo (para debug)
+          echo "Directorio actual: $(pwd)"
+          ls -la
+          echo "Contenido de coverage.xml (primeras líneas):"
+          head coverage.xml
+
+          # Descargar y ejecutar el reporter de Codacy
           curl -Ls https://coverage.codacy.com/get.sh | bash
-          codacy-coverage-reporter report -l Python -r coverage.xml
+          # Usar la ruta absoluta del archivo
+          codacy-coverage-reporter report -l Python -r $(pwd)/coverage.xml
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
