@@ -1,0 +1,39 @@
+name: Django Tests & Codacy Coverage
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: |
+          pip install -r requirements.txt
+          pip install coverage
+
+      - name: Run tests with coverage
+        working-directory: ./backend
+        run: |
+          coverage run manage.py test
+          coverage xml
+
+      - name: Upload coverage report to Codacy
+        working-directory: ./backend
+        run: |
+          curl -Ls https://coverage.codacy.com/get.sh | sh
+          ./codacy-coverage-reporter report -l Python -r coverage.xml
+        env:
+          CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
