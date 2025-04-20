@@ -65,11 +65,8 @@ const PropertyDashboard = () => {
     const { propiedadId } = useParams();
     const [valoraciones, setValoraciones] = useState([]);
     const [propiedad, setPropiedad] = useState(null);
-    const [preciosEspeciales, setPreciosEspeciales] = useState([]);
     const [propiedades, setPropiedades] = useState([]);
     const [reservas, setReservas] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [dateRangeInicio, setDateRangeInicio] = useState(null);
     const [dateRangeFin, setDateRangeFin] = useState(null);
     const [selectedPropertyCompare, setSelectedPropertyCompare] = useState('');
@@ -100,7 +97,6 @@ const PropertyDashboard = () => {
         fetchPrecioTendencias();
         fetchReservas();
         fetchValoraciones();
-        fetchPreciosEspeciales();
 
     }, [propiedadId]);
 
@@ -174,32 +170,13 @@ const PropertyDashboard = () => {
             const selectedPropiedad = data.find((prop) => prop.id === parseInt(propiedadId));
             setPropiedad(selectedPropiedad);
             if (selectedPropiedad?.anfitrion !== usuarioId) {
-                setError('No tienes permiso para ver esta propiedad');
                 window.location.href = '/mis-propiedades';
             }
         } catch (error) {
-            setError(error.message);
-        } finally {
-            setLoading(false);
-        }
+            console.error(error.message);
+        };
     };
 
-    const fetchPreciosEspeciales = async () => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
-            if (!response.ok) throw new Error('Error fetching precios especiales');
-            const data = await response.json();
-            setPreciosEspeciales(data);
-        } catch (error) {
-            setError(error.message);
-        }
-    };
 
     const fetchReservas = async () => {
         try {
@@ -214,7 +191,7 @@ const PropertyDashboard = () => {
             const data = await response.json();
             setReservas(data);
         } catch (error) {
-            setError(error.message);
+            console.error(error.message);
         }
     };
 
@@ -231,7 +208,7 @@ const PropertyDashboard = () => {
             const data = await response.json();
             setValoraciones(data);
         } catch (error) {
-            setError(error.message);
+            console.error(error.message);
         }
     };
 
