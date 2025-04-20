@@ -29,7 +29,6 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 
 const NavBar = () => {
   const { favoritosNavbar } = useFavoritos();
-  const usuarioId = JSON.parse(localStorage.getItem("additionalInfo"))?.usuarioId;
   const [anchorEl, setAnchorEl] = useState(null);
   const [username, setUsername] = useState("");
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -56,43 +55,8 @@ const NavBar = () => {
       }
     }
 
-    // if (isAuthenticated()) {
-    //   const intervalId = setInterval(() => {
-    //     fetchFavoritosNavbar();
-    //   }, 2000);
-    //   return () => clearInterval(intervalId);
-    // }
   }, []);
 
-
-  // const fetchFavoritosNavbar = async (retried = false) => {
-  //   if (!isAuthenticated()) return;
-  //   try {
-  //     const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
-  //       method: "GET",
-  //       headers: {
-  //         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-  //       },
-  //     });
-
-  //     if (response.ok) {
-  //       const data = await response.json();
-  //       // const dataFiltered = data.filter((favorito) =>
-  //       //   favorito.usuario === JSON.parse(localStorage.getItem("additionalInfo")).usuarioId
-  //       // );
-  //       setFavoritosNavbar(data.length);
-  //     }
-  //     if (response.status === 401 && !retried) {
-  //       console.log("Token expirado");
-  //       const token = await refreshAccessToken();
-  //       if (token) {
-  //         fetchFavoritosNavbar(true);
-  //       }
-  //     }
-  //   } catch (error) {
-  //     console.error("Error al obtener los favoritos:", error);
-  //   }
-  // };
 
   const isAuthenticated = () => {
     return !!localStorage.getItem("accessToken");

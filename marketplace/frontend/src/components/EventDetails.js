@@ -13,7 +13,6 @@ import {
     Stack,
     Skeleton,
     Alert,
-    Avatar
 } from '@mui/material';
 import { useParams } from 'react-router-dom';
 import PlaceIcon from '@mui/icons-material/Place';

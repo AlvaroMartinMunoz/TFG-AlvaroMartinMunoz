@@ -19,7 +19,6 @@ import {
     Card,
     CardMedia,
     CardContent,
-    Stack
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import PhotoCamera from '@mui/icons-material/PhotoCamera';

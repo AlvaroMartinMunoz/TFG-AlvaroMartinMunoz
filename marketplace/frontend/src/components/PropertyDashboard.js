@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     Box,
     Container,
@@ -12,7 +12,6 @@ import {
     TableContainer,
     TableHead,
     TableRow,
-    LinearProgress,
     Chip,
     useTheme,
     Stack,
@@ -22,7 +21,6 @@ import {
     FormControl,
     InputLabel,
     CardHeader,
-    IconButton,
     InputAdornment
 } from '@mui/material';
 import { es } from 'date-fns/locale';
@@ -32,8 +30,6 @@ import {
     Event as EventIcon,
     DateRange as DateRangeIcon,
     InfoOutlined as InfoOutlinedIcon,
-    Edit as EditIcon,
-    DeleteOutline as DeleteOutlineIcon,
     Add as AddIcon,
     Euro as EuroIcon
 } from '@mui/icons-material';

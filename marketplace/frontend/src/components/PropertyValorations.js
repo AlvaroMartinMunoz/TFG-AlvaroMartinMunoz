@@ -1,7 +1,7 @@
-import { Box, Typography, Divider, Avatar, Card, CardContent, Skeleton, Alert, CircularProgress, Button } from "@mui/material";
+import { Box, Typography, Avatar, Card, CardContent, Alert, CircularProgress, Button } from "@mui/material";
 import { useEffect, useState, useMemo } from "react";
 import Rating from '@mui/material/Rating';
-import { Comment as CommentIcon, Person as PersonIcon, VisibilityOff as VisibilityOffIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { Comment as CommentIcon, VisibilityOff as VisibilityOffIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
 
 const PropertyValorations = ({ propiedadId }) => {
     const [valoraciones, setValoraciones] = useState([]);

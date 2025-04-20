@@ -1,6 +1,4 @@
 import React, { useEffect, useState } from "react";
-import NavBar from "./NavBar";
-import Footer from "./Footer";
 import {
     Box,
     Button,
@@ -11,14 +9,12 @@ import {
     DialogContent,
     DialogContentText,
     DialogTitle,
-    Paper,
     CircularProgress,
     Card,
     CardMedia,
     CardContent,
     CardActions,
     Divider,
-    IconButton,
     Tooltip,
     Fade,
     Chip
