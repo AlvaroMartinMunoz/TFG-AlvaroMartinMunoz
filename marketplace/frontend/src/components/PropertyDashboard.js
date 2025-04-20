@@ -61,6 +61,7 @@ import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CompareIcon from '@mui/icons-material/Compare';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import { set } from 'date-fns';
 
 const PropertyDashboard = () => {
     const theme = useTheme();
@@ -78,7 +79,8 @@ const PropertyDashboard = () => {
     const [selectedPropertyCompare, setSelectedPropertyCompare] = useState('');
     const [usuariosValoraciones, setUsuariosValoraciones] = useState([]);
     const [usuariosReservas, setUsuariosReservas] = useState([]);
-
+    const [errorDateRangeInicio, setErrorDateRangeInicio] = useState(null);
+    const [errorDateRangeFin, setErrorDateRangeFin] = useState(null);
     const [ocupacionTendencias, setOcupacionTendencias] = useState([]);
     const [precioTendencias, setPrecioTendencias] = useState([]);
 
@@ -271,6 +273,23 @@ const PropertyDashboard = () => {
         }
     };
 
+    const validateDateRanges = (inicio, fin) => {
+        if (inicio && fin) {
+            if (new Date(inicio) > new Date(fin)) {
+                setErrorDateRangeInicio("La fecha de inicio no puede ser posterior a la fecha de fin.");
+                setErrorDateRangeFin("La fecha de fin no puede ser anterior a la fecha de inicio.");
+                return false;
+            } else {
+                setErrorDateRangeInicio(null);
+                setErrorDateRangeFin(null);
+            }
+        } else {
+            setErrorDateRangeInicio(null);
+            setErrorDateRangeFin(null);
+        }
+    };
+
+
 
 
     const COLORS = [
@@ -436,7 +455,7 @@ const PropertyDashboard = () => {
                     </Card>
                 </Box>
 
-                <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
+                {propiedades.length > 1 && <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
                     <CardContent>
                         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
                             <CompareIcon /> Comparación con Otras Propiedades
@@ -458,7 +477,7 @@ const PropertyDashboard = () => {
                             <ComparacionPropiedades propiedadActual={propiedad} propiedadComparada={propiedades.find(p => p.id === parseInt(selectedPropertyCompare))} reservas={reservas} />
                         )}
                     </CardContent>
-                </Card>
+                </Card>}
 
                 <Box sx={{
                     display: 'grid',
@@ -488,6 +507,8 @@ const PropertyDashboard = () => {
                                         onClick={() => {
                                             setDateRangeInicio(null);
                                             setDateRangeFin(null);
+                                            setErrorDateRangeFin(null);
+                                            setErrorDateRangeInicio(null);
                                         }}
                                     >
                                         Limpiar filtros
@@ -511,12 +532,18 @@ const PropertyDashboard = () => {
                                     <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
                                         <DatePicker
                                             value={dateRangeInicio}
-                                            onChange={(newValue) => setDateRangeInicio(newValue)}
+                                            onChange={(newValue) => {
+                                                setDateRangeInicio(newValue);
+                                                validateDateRanges(newValue, dateRangeFin);
+                                            }}
                                             label="Inicio"
+
                                             slotProps={{
                                                 textField: {
                                                     size: "small",
                                                     fullWidth: true,
+                                                    error: !!errorDateRangeInicio,
+                                                    helperText: errorDateRangeInicio,
                                                     InputProps: {
                                                         startAdornment: (
                                                             <InputAdornment position="start">
@@ -531,12 +558,19 @@ const PropertyDashboard = () => {
                                     <Box sx={{ flexGrow: 1, width: { xs: '100%', sm: '50%' } }}>
                                         <DatePicker
                                             value={dateRangeFin}
-                                            onChange={(newValue) => setDateRangeFin(newValue)}
+                                            onChange={(newValue) => {
+                                                setDateRangeFin(newValue);
+                                                validateDateRanges(dateRangeInicio, newValue);
+
+                                            }
+                                            }
                                             label="Fin"
                                             slotProps={{
                                                 textField: {
                                                     size: "small",
                                                     fullWidth: true,
+                                                    error: !!errorDateRangeFin,
+                                                    helperText: errorDateRangeFin,
                                                     InputProps: {
                                                         startAdornment: (
                                                             <InputAdornment position="start">
@@ -578,20 +612,35 @@ const PropertyDashboard = () => {
                                             <TableBody>
                                                 {eventosCalendario
                                                     .filter(evento => {
-                                                        if (!dateRangeInicio || !dateRangeFin) return true;
 
                                                         const fechaEventoInicio = new Date(evento.fecha_llegada || evento.fecha_inicio);
                                                         const fechaEventoFin = new Date(evento.fecha_salida || evento.fecha_fin);
 
-                                                        const filtroInicio = new Date(dateRangeInicio);
-                                                        const filtroFin = new Date(dateRangeFin);
+                                                        if (!dateRangeInicio && !dateRangeFin) return true;
 
-                                                        return (
-                                                            (fechaEventoInicio >= filtroInicio && fechaEventoInicio <= filtroFin) ||
-                                                            (fechaEventoFin >= filtroInicio && fechaEventoFin <= filtroFin) ||
-                                                            (fechaEventoInicio <= filtroInicio && fechaEventoFin >= filtroFin)
-                                                        );
-                                                    }).sort((a, b) => new Date(b.fecha_llegada) - new Date(a.fecha_llegada))
+
+                                                        if (dateRangeInicio && !dateRangeFin) {
+                                                            const filtroInicio = new Date(dateRangeInicio);
+                                                            return fechaEventoInicio >= filtroInicio || fechaEventoFin >= filtroInicio;
+                                                        }
+
+                                                        if (!dateRangeInicio && dateRangeFin) {
+                                                            const filtroFin = new Date(dateRangeFin);
+                                                            return fechaEventoInicio <= filtroFin || fechaEventoFin <= filtroFin;
+                                                        }
+
+                                                        if (dateRangeInicio && dateRangeFin) {
+                                                            const filtroInicio = new Date(dateRangeInicio);
+                                                            const filtroFin = new Date(dateRangeFin);
+
+                                                            return (
+                                                                (fechaEventoInicio >= filtroInicio && fechaEventoInicio <= filtroFin) ||
+                                                                (fechaEventoFin >= filtroInicio && fechaEventoFin <= filtroFin) ||
+                                                                (fechaEventoInicio <= filtroInicio && fechaEventoFin >= filtroFin)
+                                                            );
+                                                        }
+                                                    })
+                                                    .sort((a, b) => new Date(b.fecha_llegada) - new Date(a.fecha_llegada))
                                                     .slice(0, 10)
                                                     .map((evento, index) => (
                                                         <TableRow
@@ -633,6 +682,7 @@ const PropertyDashboard = () => {
                                                             </TableCell>
                                                         </TableRow>
                                                     ))}
+
                                             </TableBody>
                                         </Table>
                                     </TableContainer>

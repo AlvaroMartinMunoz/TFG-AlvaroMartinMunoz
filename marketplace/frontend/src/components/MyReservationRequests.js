@@ -290,7 +290,7 @@ const MyReservationRequests = () => {
                             fontWeight: 600,
                             textAlign: "center",
                             color: theme.palette.text.primary,
-                            mb: 2
+                            mb: 3
                         }}>
                             Solicitudes de Reserva
                         </Typography>
