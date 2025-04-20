@@ -55,6 +55,7 @@ jobs:
       - name: Check for coverage.xml file
         run: |
           ls -la ./marketplace/backend/coverage.xml
+
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
