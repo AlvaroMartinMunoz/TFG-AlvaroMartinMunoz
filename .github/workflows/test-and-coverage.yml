@@ -55,7 +55,7 @@ jobs:
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
         run: |
-          curl -Ls https://coverage.codacy.com/get.sh | sh
+          curl -Ls https://coverage.codacy.com/get.sh | bash
           ./codacy-coverage-reporter report -l Python -r coverage.xml
         env:
           CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
