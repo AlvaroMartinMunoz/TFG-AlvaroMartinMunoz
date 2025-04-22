@@ -39,10 +39,12 @@ jobs:
           pip install -r requirements.txt
           pip install coverage
 
-      - name: Run tests with coverage
+            - name: Run tests with coverage
         working-directory: ./marketplace/backend
         env:
           DJANGO_SECRET_KEY: ${{ secrets.DJANGO_SECRET_KEY }}
+          DEBUG: "True"
+          JWT_SIGNING_KEY: "mi-contraseña-super-segura"
           DB_NAME: test_db
           DB_USER: postgres
           DB_PASSWORD: postgres
@@ -51,11 +53,7 @@ jobs:
         run: |
           coverage run manage.py test
           coverage xml
-          # Corregir timestamp 
           sed -i "s/timestamp=\"1745166290931\"/timestamp=\"$(date +%s000)\"/g" coverage.xml
-      - name: Check for coverage.xml file
-        run: |
-          ls -la ./marketplace/backend/coverage.xml
 
       - name: Upload coverage report to Codacy
         working-directory: ./marketplace/backend
