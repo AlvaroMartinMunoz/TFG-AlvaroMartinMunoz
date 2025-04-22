@@ -38,7 +38,7 @@ router.register(r'precios-especiales', PrecioEspecialViewSet)
 urlpatterns = [
     path('', include(router.urls)),
     path('fotos-propiedades/upload_photos/', FotoPropiedadViewSet.as_view({'post': 'upload_photos'})),
-    path('create-checkout-session/', create_checkout_session),
+    path('create-checkout-session/', create_checkout_session, name='create_checkout_session'),
     path('confirmar-pago/<str:session_id>', confirmar_pago),
     path('create-checkout-paypal/', create_payment),
     path('confirmar-pago-paypal/', confirmar_pago_paypal),
