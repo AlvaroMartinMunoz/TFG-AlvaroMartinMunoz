@@ -1,7 +1,7 @@
 from django.test import TestCase
 from django.utils import timezone
 from ..models.clickPropiedad import ClickPropiedad
-from ..models.propiedad import Propiedad
+from ..models.propiedad import Propiedad, FechaBloqueada
 from usuario.models.usuario import Usuario
 from django.contrib.auth.models import User
 from datetime import date
@@ -12,6 +12,7 @@ from django.core.exceptions import ValidationError
 from ..models.precioEspecial import PrecioEspecial
 from datetime import timedelta
 from django.utils.timezone import now
+from ..models.valoracionPropiedad import ValoracionPropiedad
 
 
 class ClickPropiedadModelTest(TestCase):
@@ -311,5 +312,188 @@ class PrecioEspecialModelTest(TestCase):
             precio_especial=120
         )
         self.assertIn("Precio especial de 120", str(precio))
+
+
+class PropiedadModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.usuario = Usuario.objects.create(
+            usuario=self.user,
+            dni='12345678Z',
+            telefono='600000001',
+            direccion='Calle Falsa 123',
+            biografia='Usuario test',
+            fecha_de_nacimiento=date(1990, 5, 20)
+        )
+
+    def test_creacion_propiedad_valida(self):
+        propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario,
+            nombre='Villa Test',
+            descripcion='Una villa de prueba',
+            direccion='Calle Prueba 1',
+            ciudad='Madrid',
+            pais='España',
+            codigo_postal='28001',
+            tipo_de_propiedad='Villa',
+            precio_por_noche=250.00,
+            maximo_huespedes=6,
+            numero_de_habitaciones=3,
+            numero_de_banos=2,
+            numero_de_camas=3,
+            tamano=120,
+            wifi=True,
+            aire_acondicionado=True,
+            calefaccion=True,
+            parking=True,
+            mascotas=True,
+            permitido_fumar=False,
+            politica_de_cancelacion='Moderada'
+        )
+        self.assertEqual(propiedad.nombre, 'Villa Test')
+        self.assertTrue(propiedad.wifi)
+
+    def test_str_repr(self):
+        propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario,
+            nombre='Apartamento Test',
+            descripcion='Descripción',
+            direccion='Calle Test 5',
+            ciudad='Valencia',
+            pais='España',
+            codigo_postal='46000',
+            tipo_de_propiedad='Apartamento',
+            precio_por_noche=100,
+            maximo_huespedes=2,
+            numero_de_habitaciones=1,
+            numero_de_banos=1,
+            numero_de_camas=1,
+            tamano=60,
+            wifi=False,
+            aire_acondicionado=False,
+            calefaccion=True,
+            parking=False,
+            mascotas=False,
+            permitido_fumar=True,
+            politica_de_cancelacion='Flexible'
+        )
+        self.assertEqual(str(propiedad), 'Apartamento Test')
+
+    def test_valoracion_promedio(self):
+        propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario,
+            nombre='Casa Valorada',
+            descripcion='Casa para test de valoración',
+            direccion='Calle X',
+            ciudad='Sevilla',
+            pais='España',
+            codigo_postal='41001',
+            tipo_de_propiedad='Casa',
+            precio_por_noche=200,
+            maximo_huespedes=4,
+            numero_de_habitaciones=2,
+            numero_de_banos=1,
+            numero_de_camas=2,
+            tamano=80,
+            wifi=True,
+            aire_acondicionado=False,
+            calefaccion=True,
+            parking=False,
+            mascotas=True,
+            permitido_fumar=False,
+            politica_de_cancelacion='Estricta'
+        )
+
+        # Crear el primer usuario
+        user_val1 = User.objects.create_user(username='val_user_1', password='password123')
+        usuario_val1 = Usuario.objects.create(
+            usuario=user_val1,
+            dni='11223344A',
+            telefono='600000003',
+            direccion='Calle Valorador',
+            biografia='Usuario que valora',
+            fecha_de_nacimiento=date(1992, 1, 1)
+        )
+
+        # Crear un segundo usuario
+        user_val2 = User.objects.create_user(username='val_user_2', password='password123')
+        usuario_val2 = Usuario.objects.create(
+            usuario=user_val2,
+            dni='22334455B',
+            telefono='600000004',
+            direccion='Calle Valorador 2',
+            biografia='Usuario diferente',
+            fecha_de_nacimiento=date(1993, 2, 2)
+        )
+
+        # Crear las valoraciones
+        ValoracionPropiedad.objects.create(propiedad=propiedad, valoracion=4, usuario=usuario_val1)
+        ValoracionPropiedad.objects.create(propiedad=propiedad, valoracion=5, usuario=usuario_val2)
+
+        # Verificar que el promedio es correcto
+        self.assertEqual(propiedad.valoracion_promedio_propiedad(), 4.5)
+
+
+
+class FechaBloqueadaModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser2', password='password')
+        self.usuario = Usuario.objects.create(
+            usuario=self.user,
+            dni='87654321B',
+            telefono='600000002',
+            direccion='Calle Bloqueo',
+            biografia='Bloqueador de fechas',
+            fecha_de_nacimiento=date(1985, 7, 10)
+        )
+        self.propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario,
+            nombre='Casa con Fechas',
+            descripcion='Casa con fechas bloqueadas',
+            direccion='Calle Y',
+            ciudad='Barcelona',
+            pais='España',
+            codigo_postal='08001',
+            tipo_de_propiedad='Casa',
+            precio_por_noche=180,
+            maximo_huespedes=5,
+            numero_de_habitaciones=2,
+            numero_de_banos=2,
+            numero_de_camas=2,
+            tamano=90,
+            wifi=True,
+            aire_acondicionado=True,
+            calefaccion=False,
+            parking=False,
+            mascotas=True,
+            permitido_fumar=True,
+            politica_de_cancelacion='Moderada'
+        )
+
+    def test_fecha_bloqueada_valida(self):
+        bloqueada = FechaBloqueada.objects.create(
+            propiedad=self.propiedad,
+            fecha=date.today() + timedelta(days=3)
+        )
+        self.assertEqual(str(bloqueada), f'{self.propiedad.nombre} - {bloqueada.fecha}')
+
+    def test_fecha_bloqueada_pasada_invalida(self):
+        bloqueada = FechaBloqueada(
+            propiedad=self.propiedad,
+            fecha=date.today() - timedelta(days=1)
+        )
+        with self.assertRaises(ValidationError):
+            bloqueada.clean()
+
+    def test_unique_fecha_bloqueada(self):
+        FechaBloqueada.objects.create(
+            propiedad=self.propiedad,
+            fecha=date.today() + timedelta(days=5)
+        )
+        with self.assertRaises(Exception):  # Puede ser IntegrityError o similar
+            FechaBloqueada.objects.create(
+                propiedad=self.propiedad,
+                fecha=date.today() + timedelta(days=5)
+            )
 
 
