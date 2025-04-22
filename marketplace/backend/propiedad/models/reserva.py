@@ -1,7 +1,9 @@
 from django.db import models
 from .propiedad import Propiedad
 from django.core.exceptions import ValidationError
+from datetime import datetime
 from usuario.models.usuario import Usuario
+
 
 
 class Reserva(models.Model):
@@ -41,6 +43,9 @@ class Reserva(models.Model):
         ordering = ['fecha_llegada']
 
     def clean(self):
+
+        if not self.fecha_creacion:
+            self.fecha_creacion = datetime.now()
 
         if self.fecha_salida <= self.fecha_llegada:
             raise ValidationError('La fecha de salida debe ser posterior a la fecha de llegada.')

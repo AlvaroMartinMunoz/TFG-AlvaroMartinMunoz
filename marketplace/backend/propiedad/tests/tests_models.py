@@ -9,10 +9,13 @@ from ..models.favorito import Favorito
 from ..models.fotoPropiedad import FotoPropiedad
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError
 from ..models.precioEspecial import PrecioEspecial
 from datetime import timedelta
 from django.utils.timezone import now
 from ..models.valoracionPropiedad import ValoracionPropiedad
+from ..models.reserva import Reserva
+
 
 
 class ClickPropiedadModelTest(TestCase):
@@ -497,3 +500,153 @@ class FechaBloqueadaModelTest(TestCase):
             )
 
 
+
+class ReservaModelTest(TestCase):
+
+    def setUp(self):
+        # Crear un usuario para el anfitrión
+        self.usuario_anfitrion = Usuario.objects.create(
+            usuario=User.objects.create_user(username='anfitrion1', password='password123'),
+            dni='12345678A',
+            telefono='600000001',
+            direccion='Calle Anfitrión',
+            biografia='Anfitrión de prueba',
+            fecha_de_nacimiento=date(1980, 1, 1)
+        )
+        
+        # Crear un usuario para el usuario que realiza la reserva
+        self.usuario_reservante = Usuario.objects.create(
+            usuario=User.objects.create_user(username='usuario1', password='password123'),
+            dni='87654321B',
+            telefono='600000002',
+            direccion='Calle Usuario',
+            biografia='Usuario de prueba',
+            fecha_de_nacimiento=date(1990, 1, 1)
+        )
+
+        # Crear una propiedad para reservar
+        self.propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario_anfitrion,
+            nombre='Casa de prueba',
+            descripcion='Una casa para probar reservas',
+            direccion='Calle Propiedad',
+            ciudad='Madrid',
+            pais='España',
+            codigo_postal='28001',
+            tipo_de_propiedad='Casa',
+            precio_por_noche=100,
+            maximo_huespedes=4,
+            numero_de_habitaciones=2,
+            numero_de_banos=1,
+            numero_de_camas=2,
+            tamano=80,
+            wifi=True,
+            aire_acondicionado=False,
+            calefaccion=True,
+            parking=False,
+            mascotas=True,
+            permitido_fumar=False,
+            politica_de_cancelacion='Estricta'
+        )
+
+    def test_crear_reserva_valida(self):
+        # Crear una reserva válida
+        reserva = Reserva.objects.create(
+            propiedad=self.propiedad,
+            anfitrion=self.usuario_anfitrion,
+            usuario=self.usuario_reservante,
+            fecha_llegada=date(2025, 5, 1),
+            fecha_salida=date(2025, 5, 7),
+            numero_personas=2,
+            precio_por_noche=100,
+            precio_total=600,
+            estado='Pendiente',
+            metodo_pago='Tarjeta de crédito'
+        )
+
+        # Verificar que la reserva se ha creado correctamente
+        self.assertEqual(reserva.propiedad, self.propiedad)
+        self.assertEqual(reserva.usuario, self.usuario_reservante)
+        self.assertEqual(reserva.precio_total, 600)
+        self.assertEqual(reserva.estado, 'Pendiente')
+
+    def test_reserva_fecha_salida_anterior_a_llegada(self):
+        # Intentar crear una reserva con fecha de salida anterior a la llegada
+        with self.assertRaises(ValidationError):
+            reserva_invalida = Reserva(
+                propiedad=self.propiedad,
+                anfitrion=self.usuario_anfitrion,
+                usuario=self.usuario_reservante,
+                fecha_llegada=date(2025, 5, 1),
+                fecha_salida=date(2025, 4, 30),
+                numero_personas=2,
+                precio_por_noche=100,
+                precio_total=600,
+                estado='Pendiente',
+                metodo_pago='Tarjeta de crédito'
+            )
+            reserva_invalida.clean()
+
+    def test_reserva_con_fecha_pasada(self):
+        # Intentar crear una reserva con fecha de llegada pasada
+        with self.assertRaises(ValidationError):
+            reserva_invalida = Reserva(
+                propiedad=self.propiedad,
+                anfitrion=self.usuario_anfitrion,
+                usuario=self.usuario_reservante,
+                fecha_llegada=date(2023, 5, 1),
+                fecha_salida=date(2023, 5, 7),
+                numero_personas=2,
+                precio_por_noche=100,
+                precio_total=600,
+                estado='Pendiente',
+                metodo_pago='Tarjeta de crédito'
+            )
+            reserva_invalida.clean()
+
+    def test_reserva_con_precio_negativo(self):
+        # Intentar crear una reserva con precio negativo
+        with self.assertRaises(ValidationError):
+            reserva_invalida = Reserva(
+                propiedad=self.propiedad,
+                anfitrion=self.usuario_anfitrion,
+                usuario=self.usuario_reservante,
+                fecha_llegada=date(2025, 5, 1),
+                fecha_salida=date(2025, 5, 7),
+                numero_personas=2,
+                precio_por_noche=-100,  # Precio negativo
+                precio_total=-600,  # Precio total negativo
+                estado='Pendiente',
+                metodo_pago='Tarjeta de crédito'
+            )
+            reserva_invalida.clean()
+
+    def test_reserva_unica_por_propiedad_y_fechas(self):
+        # Crear una primera reserva
+        reserva_1 = Reserva.objects.create(
+            propiedad=self.propiedad,
+            anfitrion=self.usuario_anfitrion,
+            usuario=self.usuario_reservante,
+            fecha_llegada=date(2025, 5, 1),
+            fecha_salida=date(2025, 5, 7),
+            numero_personas=2,
+            precio_por_noche=100,
+            precio_total=600,
+            estado='Pendiente',
+            metodo_pago='Tarjeta de crédito'
+        )
+
+        # Intentar crear una segunda reserva con las mismas fechas para la misma propiedad
+        with self.assertRaises(IntegrityError):
+            reserva_2 = Reserva.objects.create(
+                propiedad=self.propiedad,
+                anfitrion=self.usuario_anfitrion,
+                usuario=self.usuario_reservante,
+                fecha_llegada=date(2025, 5, 1),
+                fecha_salida=date(2025, 5, 7),
+                numero_personas=2,
+                precio_por_noche=100,
+                precio_total=600,
+                estado='Pendiente',
+                metodo_pago='PayPal'
+            )
