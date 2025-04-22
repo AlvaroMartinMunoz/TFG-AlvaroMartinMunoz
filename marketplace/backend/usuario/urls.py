@@ -6,11 +6,11 @@ from .views import PasswordResetView
 from .views import PasswordResetConfirmView
 
 router = DefaultRouter()
-router.register(r'', UsuarioViewSet)
+router.register(r'', UsuarioViewSet, basename='usuario')
 
 urlpatterns = [
     path('', include(router.urls)),
     path('<int:userId>/', UsuarioPerfilAPIView.as_view()),
-    path('password/reset/', PasswordResetView.as_view({'post': 'post'})),
-    path('password-reset-confirm/<uidb64>/<token>/',PasswordResetConfirmView.as_view({'post': 'post'})),
+    path('password/reset/', PasswordResetView.as_view({'post': 'post'}), name='password-reset'),
+    path('password-reset-confirm/<uidb64>/<token>/',PasswordResetConfirmView.as_view({'post': 'post'}), name='password-reset-confirm'),
 ]
