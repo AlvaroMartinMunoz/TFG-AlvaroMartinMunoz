@@ -650,3 +650,113 @@ class ReservaModelTest(TestCase):
                 estado='Pendiente',
                 metodo_pago='PayPal'
             )
+
+
+
+
+class ValoracionPropiedadModelTest(TestCase):
+
+    def setUp(self):
+        # Crear usuarios base
+        user1 = User.objects.create_user(username='user1', email='user1@example.com', password='pass1234')
+        user2 = User.objects.create_user(username='user2', email='user2@example.com', password='pass5678')
+
+        # Crear perfiles de Usuario
+        self.usuario1 = Usuario.objects.create(
+            usuario=user1,
+            dni='12345678A',
+            telefono='600000001',
+            direccion='Calle Falsa 123',
+            fecha_de_nacimiento=date(1990, 5, 10)
+        )
+
+        self.usuario2 = Usuario.objects.create(
+            usuario=user2,
+            dni='87654321B',
+            telefono='699999999',
+            direccion='Avenida Siempre Viva 742',
+            fecha_de_nacimiento=date(1995, 6, 15)
+        )
+
+        # Crear propiedad
+        self.propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario1,
+            nombre='Villa Tranquila',
+            descripcion='Hermosa villa con vistas al mar.',
+            direccion='Calle Playa 12',
+            ciudad='Valencia',
+            pais='España',
+            codigo_postal='46001',
+            tipo_de_propiedad='Villa',
+            precio_por_noche=150.00,
+            maximo_huespedes=6,
+            numero_de_habitaciones=3,
+            numero_de_banos=2,
+            numero_de_camas=4,
+            tamano=120,
+            wifi=True,
+            aire_acondicionado=True,
+            calefaccion=True,
+            parking=True,
+            mascotas=True,
+            permitido_fumar=False,
+            politica_de_cancelacion='Flexible'
+        )
+
+    def test_valoracion_valida(self):
+        valoracion = ValoracionPropiedad.objects.create(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=4.5,
+            comentario='Una experiencia increíble.'
+        )
+        self.assertEqual(valoracion.valoracion, 4.5)
+        self.assertEqual(valoracion.comentario, 'Una experiencia increíble.')
+
+    def test_valoracion_fuera_de_rango_inferior(self):
+        valoracion = ValoracionPropiedad(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=0.5,
+            comentario='Muy mala.'
+        )
+        with self.assertRaises(ValidationError):
+            valoracion.full_clean()
+
+    def test_valoracion_fuera_de_rango_superior(self):
+        valoracion = ValoracionPropiedad(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=5.5,
+            comentario='Demasiado buena para ser real.'
+        )
+        with self.assertRaises(ValidationError):
+            valoracion.full_clean()
+
+    def test_valoracion_sin_comentario(self):
+        valoracion = ValoracionPropiedad(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=4.0,
+            comentario=''  # Campo obligatorio
+        )
+        with self.assertRaises(ValidationError):
+            valoracion.full_clean()
+
+    def test_valoracion_duplicada(self):
+        ValoracionPropiedad.objects.create(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=4.0,
+            comentario='Muy bien todo.'
+        )
+
+        duplicada = ValoracionPropiedad(
+            propiedad=self.propiedad,
+            usuario=self.usuario2,
+            valoracion=3.0,
+            comentario='Cambiaría algunas cosas.'
+        )
+
+        with self.assertRaises(ValidationError):
+            duplicada.full_clean()
