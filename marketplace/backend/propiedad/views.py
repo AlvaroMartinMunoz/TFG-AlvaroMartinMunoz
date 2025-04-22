@@ -410,7 +410,7 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
             return Response({'error': 'No tienes permiso para eliminar esta valoración'}, status=status.HTTP_403_FORBIDDEN)
         return super().destroy(request, *args, **kwargs)
     
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], url_path='media-valoraciones')
     def media_valoraciones(self, request, pk=None):
         try:
             propiedad = Propiedad.objects.get(id=pk)
