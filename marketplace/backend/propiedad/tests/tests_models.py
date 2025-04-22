@@ -9,7 +9,9 @@ from ..models.favorito import Favorito
 from ..models.fotoPropiedad import FotoPropiedad
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.exceptions import ValidationError
-
+from ..models.precioEspecial import PrecioEspecial
+from datetime import timedelta
+from django.utils.timezone import now
 
 
 class ClickPropiedadModelTest(TestCase):
@@ -216,4 +218,98 @@ class FotoPropiedadModelTest(TestCase):
             es_portada=False
         )
         self.assertIn('Casa con Fotos', str(foto))
+
+
+class PrecioEspecialModelTest(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='password')
+        self.usuario = Usuario.objects.create(
+            usuario=self.user,
+            dni='12345678A',
+            telefono='612345678',
+            direccion='Calle Falsa 123',
+            biografia='Bio test',
+            fecha_de_nacimiento=date(2000, 1, 1)
+        )
+
+        self.propiedad = Propiedad.objects.create(
+            anfitrion=self.usuario,
+            nombre='Casa Precio Especial',
+            descripcion='Descripción prueba',
+            direccion='Calle Prueba 456',
+            ciudad='Sevilla',
+            pais='España',
+            codigo_postal='41001',
+            tipo_de_propiedad='Casa',
+            precio_por_noche=150,
+            maximo_huespedes=4,
+            numero_de_habitaciones=2,
+            numero_de_banos=1,
+            numero_de_camas=2,
+            tamano=80,
+            wifi=True,
+            aire_acondicionado=False,
+            calefaccion=True,
+            parking=False,
+            mascotas=True,
+            permitido_fumar=False,
+            politica_de_cancelacion='Flexible'
+        )
+
+    def test_creacion_precio_especial_valido(self):
+        precio = PrecioEspecial.objects.create(
+            propiedad=self.propiedad,
+            fecha_inicio=now().date() + timedelta(days=1),
+            fecha_fin=now().date() + timedelta(days=5),
+            precio_especial=99.99
+        )
+        self.assertEqual(precio.propiedad, self.propiedad)
+        self.assertEqual(precio.precio_especial, 99.99)
+
+    def test_fecha_inicio_mayor_que_fecha_fin(self):
+        precio = PrecioEspecial(
+            propiedad=self.propiedad,
+            fecha_inicio=now().date() + timedelta(days=5),
+            fecha_fin=now().date() + timedelta(days=1),
+            precio_especial=99.99
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            precio.clean()
+        self.assertIn('inicio no puede ser posterior', str(ctx.exception))
+
+    def test_fecha_inicio_pasada(self):
+        precio = PrecioEspecial(
+            propiedad=self.propiedad,
+            fecha_inicio=now().date() - timedelta(days=1),
+            fecha_fin=now().date() + timedelta(days=2),
+            precio_especial=50
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            precio.clean()
+        self.assertIn('inicio no puede ser anterior', str(ctx.exception))
+
+    def test_unique_together(self):
+        PrecioEspecial.objects.create(
+            propiedad=self.propiedad,
+            fecha_inicio=date.today() + timedelta(days=1),
+            fecha_fin=date.today() + timedelta(days=3),
+            precio_especial=90
+        )
+        with self.assertRaises(Exception):  # IntegrityError OR ValidationError
+            PrecioEspecial.objects.create(
+                propiedad=self.propiedad,
+                fecha_inicio=date.today() + timedelta(days=1),
+                fecha_fin=date.today() + timedelta(days=3),
+                precio_especial=95
+            )
+
+    def test_str_repr(self):
+        precio = PrecioEspecial.objects.create(
+            propiedad=self.propiedad,
+            fecha_inicio=date.today() + timedelta(days=1),
+            fecha_fin=date.today() + timedelta(days=2),
+            precio_especial=120
+        )
+        self.assertIn("Precio especial de 120", str(precio))
+
 
