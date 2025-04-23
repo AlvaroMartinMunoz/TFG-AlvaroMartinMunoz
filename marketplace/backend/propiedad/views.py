@@ -125,7 +125,6 @@ def confirmar_pago(request, session_id):
         
         if session.payment_status == 'paid':
             metadata = session.metadata
-            print("Metadata:", metadata)
             
             reserva = Reserva.objects.create(
                 propiedad_id=metadata['propiedad_id'],
@@ -212,7 +211,6 @@ def create_payment(request):
         return JsonResponse({"approval_url": approval_url, "orderID": response.result.id})
 
     except Exception as e:
-        print(f"Error PayPal: {str(e)}")
         return JsonResponse({"error": str(e)}, status=400)
 
 @require_POST
@@ -247,7 +245,6 @@ def confirmar_pago_paypal(request):
                 metodo_pago='PayPal',
                 payment_id=order_id ,
             )
-            print("✅ Reserva creada ID:", reserva.id)
 
             subject = 'Confirmacion de reserva'
             message = (
@@ -269,7 +266,6 @@ def confirmar_pago_paypal(request):
             return JsonResponse({'error': 'Pago no completado'}, status=400)
 
     except Exception as e:
-        print(f"Error en confirmación: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
 
     
@@ -434,7 +430,6 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
     
     def create(self, request, *args, **kwargs):
         propiedad_id = request.data.get('propiedadId')
-        print(f"propiedad_id recibido: {propiedad_id}")
         try:
             propiedad = Propiedad.objects.get(id=propiedad_id)
         except Propiedad.DoesNotExist:
@@ -493,7 +488,6 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
             return Response({'error': 'No tienes permiso para subir fotos a esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
         es_portada_list = request.data.getlist('es_portada')
-        print(f"es_portada_list recibido: {es_portada_list}")
 
 
         for index, file in enumerate(request.FILES.getlist('fotos')):
