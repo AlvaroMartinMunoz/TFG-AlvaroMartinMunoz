@@ -555,9 +555,9 @@ class ReservaViewSet(viewsets.ModelViewSet):
         propiedad = request.data.get('propiedad')
         fecha_inicio_str = request.data.get('fecha_llegada')
         fecha_fin_str = request.data.get('fecha_salida')
-        cantidad_personas = request.data.get('numero_personas')
+        numero_personas = request.data.get('numero_personas')
 
-        if not propiedad or not fecha_inicio_str or not fecha_fin_str or not cantidad_personas:
+        if not propiedad or not fecha_inicio_str or not fecha_fin_str or  numero_personas is None:
             return Response({'error': 'Todos los campos son obligatorios'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
@@ -567,8 +567,8 @@ class ReservaViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Formato de fecha inválido (debe ser YYYY-MM-DD)'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            cantidad_personas = int(cantidad_personas)
-            if cantidad_personas <= 0:
+            numero_personas = int(numero_personas)
+            if numero_personas <= 0:
                 return Response({'error': 'La cantidad de personas debe ser mayor a 0'}, status=status.HTTP_400_BAD_REQUEST)
         except ValueError:
             return Response({'error': 'Número de personas inválido'}, status=status.HTTP_400_BAD_REQUEST)
@@ -599,7 +599,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         if reservas_existentes.exists():
             return Response({'error': 'Propiedad ocupada en esas fechas'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if cantidad_personas > propiedad.maximo_huespedes:
+        if numero_personas > propiedad.maximo_huespedes:
             return Response({'error': 'Cantidad de personas excede el límite'}, status=status.HTTP_400_BAD_REQUEST)
 
         return super().create(request, *args, **kwargs)
@@ -640,8 +640,7 @@ class ReservaViewSet(viewsets.ModelViewSet):
         usuarioId = usuario.id
         reserva = self.get_object()
 
-        print(reserva.anfitrion.id, usuarioId)
-        print(reserva.usuario.id, usuarioId)
+        
         if reserva.anfitrion.id != usuarioId and reserva.usuario.id != usuarioId:
             return Response({'error': 'No tienes permiso para editar esta reserva'}, status=status.HTTP_403_FORBIDDEN)  
         
