@@ -444,7 +444,9 @@ class FotoPropiedadViewSet(viewsets.ModelViewSet):
              return Response({'error': 'No tienes permiso para subir fotos a esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
         foto = request.data.get('foto')
-        es_portada = request.data.get('es_portada', False)
+        es_portada_str = request.data.get('es_portada', 'false')
+        es_portada = str(es_portada_str).lower() == 'true'
+
         FotoPropiedad.objects.create(propiedad=propiedad, foto=foto, es_portada=es_portada)
         return Response({'status': 'foto subida'}, status=status.HTTP_201_CREATED)
     
