@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError
 from ..models.clickPropiedad import ClickPropiedad
-from rest_framework.test import APITestCase
+from rest_framework.test import APITestCase, APIClient
 from ..models.fotoPropiedad import FotoPropiedad
 from datetime import date, timedelta
 from decimal import Decimal
@@ -16,6 +16,9 @@ from ..models.propiedad import FechaBloqueada
 from ..models.reserva import Reserva
 from ..models.favorito import Favorito
 from ..models.precioEspecial import PrecioEspecial
+from dateutil.relativedelta import relativedelta
+
+
 
 
 
@@ -1830,4 +1833,402 @@ class PrecioEspecialViewSetTests(APITestCase):
         """DELETE eliminar precio inexistente falla (404)."""
         self.client.force_authenticate(user=self.anfitrion_user)
         resp = self.client.delete(self.detail_url(9999)) # ID inválido
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
+
+# Asumiendo que esta función auxiliar existe o la defines aquí
+def create_test_image(name='test_image.jpg', content_type='image/jpeg', size=1024):
+    """Crea un SimpleUploadedFile simulando una imagen para tests."""
+    return SimpleUploadedFile(name, b'0' * size, content_type=content_type)
+
+class FunctionBasedViewTests(APITestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        """Usamos setUpTestData para crear datos una vez por clase."""
+        # Usuarios
+        cls.anfitrion1_user = User.objects.create_user('anfitrion_fbv', 'afbv@test.com', 'password123')
+        cls.huesped1_user = User.objects.create_user('huesped1_fbv', 'h1fbv@test.com', 'password123')
+        cls.huesped2_user = User.objects.create_user('huesped2_fbv', 'h2fbv@test.com', 'password123')
+
+        # Perfiles
+        # Usar una fecha válida que no cause problemas con MaxValueValidator
+        cls.fecha_nacimiento_valida = date(1990, 1, 1)
+        cls.anfitrion1 = Usuario.objects.create(usuario=cls.anfitrion1_user, dni='11122244A', telefono='611222444', direccion='C/ Func 1', fecha_de_nacimiento=cls.fecha_nacimiento_valida)
+        cls.huesped1 = Usuario.objects.create(usuario=cls.huesped1_user, dni='55566677B', telefono='655666777', direccion='C/ Func 2', fecha_de_nacimiento=cls.fecha_nacimiento_valida)
+        cls.huesped2 = Usuario.objects.create(usuario=cls.huesped2_user, dni='88899900C', telefono='688999000', direccion='C/ Func 3', fecha_de_nacimiento=cls.fecha_nacimiento_valida)
+
+        # Propiedades
+        cls.prop1 = Propiedad.objects.create(
+            anfitrion=cls.anfitrion1, nombre='Casa Func Test 1', descripcion='Desc Func 1',
+            direccion='Dir Func 1', ciudad='TestCityFunc', pais='TestCountryFunc', codigo_postal='11111',
+            tipo_de_propiedad='Casa', precio_por_noche=Decimal('100.00'), maximo_huespedes=4,
+            numero_de_habitaciones=2, numero_de_banos=1, numero_de_camas=3, tamano=90, politica_de_cancelacion='Flexible'
+        )
+        cls.prop2 = Propiedad.objects.create(
+            anfitrion=cls.anfitrion1, nombre='Apto Func Test 2', descripcion='Desc Func 2',
+            direccion='Dir Func 2', ciudad='OtherCityFunc', pais='TestCountryFunc', codigo_postal='22222',
+            tipo_de_propiedad='Apartamento', precio_por_noche=Decimal('80.00'), maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=1, tamano=50, politica_de_cancelacion='Estricta'
+        )
+
+        # Fechas
+        cls.hoy = timezone.now().date()
+
+        # Reservas (con estados y fechas variadas para tendencias)
+        cls.reserva_pasado = Reserva.objects.create(
+            propiedad=cls.prop1, anfitrion=cls.anfitrion1, usuario=cls.huesped1,
+            fecha_llegada=cls.hoy - relativedelta(months=2) + timedelta(days=5), # Mes -2
+            fecha_salida=cls.hoy - relativedelta(months=2) + timedelta(days=10),
+            numero_personas=2, precio_por_noche=cls.prop1.precio_por_noche, precio_total=cls.prop1.precio_por_noche*5,
+            estado='Aceptada', metodo_pago='Tarjeta de crédito'
+        )
+        cls.reserva_actual = Reserva.objects.create(
+            propiedad=cls.prop1, anfitrion=cls.anfitrion1, usuario=cls.huesped2,
+            fecha_llegada=cls.hoy + timedelta(days=5), fecha_salida=cls.hoy + timedelta(days=15), # 10 noches
+            numero_personas=1, precio_por_noche=cls.prop1.precio_por_noche, precio_total=cls.prop1.precio_por_noche*10,
+            estado='Aceptada', metodo_pago='PayPal'
+        )
+        cls.reserva_pendiente = Reserva.objects.create(
+            propiedad=cls.prop2, anfitrion=cls.anfitrion1, usuario=cls.huesped1,
+            fecha_llegada=cls.hoy + timedelta(days=20), fecha_salida=cls.hoy + timedelta(days=25),
+            numero_personas=1, precio_por_noche=cls.prop2.precio_por_noche, precio_total=cls.prop2.precio_por_noche*5,
+            estado='Pendiente', metodo_pago='Tarjeta de crédito'
+        )
+
+        # Favoritos
+        cls.fav1 = Favorito.objects.create(usuario=cls.huesped1, propiedad=cls.prop1)
+        cls.fav2 = Favorito.objects.create(usuario=cls.huesped1, propiedad=cls.prop2)
+        cls.fav3 = Favorito.objects.create(usuario=cls.huesped2, propiedad=cls.prop1)
+
+        # Valoraciones
+        cls.val1 = ValoracionPropiedad.objects.create(propiedad=cls.prop1, usuario=cls.huesped1, valoracion=5, comentario='Excelente!')
+        cls.val2 = ValoracionPropiedad.objects.create(propiedad=cls.prop1, usuario=cls.huesped2, valoracion=4, comentario='Muy bueno')
+
+        # Fotos
+        cls.foto1_p1 = FotoPropiedad.objects.create(propiedad=cls.prop1, foto=create_test_image('f1p1.jpg', 'image/jpeg', 10), es_portada=True)
+        cls.foto2_p1 = FotoPropiedad.objects.create(propiedad=cls.prop1, foto=create_test_image('f2p1.jpg', 'image/jpeg', 10), es_portada=False)
+        cls.foto1_p2 = FotoPropiedad.objects.create(propiedad=cls.prop2, foto=create_test_image('f1p2.jpg', 'image/jpeg', 10), es_portada=True)
+
+        # Fechas Bloqueadas
+        cls.fb1 = FechaBloqueada.objects.create(propiedad=cls.prop1, fecha=cls.hoy + timedelta(days=50))
+        cls.fb2 = FechaBloqueada.objects.create(propiedad=cls.prop1, fecha=cls.hoy + timedelta(days=51))
+
+        # Precios Especiales
+        cls.pe_actual = PrecioEspecial.objects.create(propiedad=cls.prop1, fecha_inicio=cls.hoy+timedelta(days=6), fecha_fin=cls.hoy+timedelta(days=9), precio_especial=Decimal('90.00')) # Dentro reserva_actual
+        cls.pe_pasado = PrecioEspecial.objects.create(propiedad=cls.prop1, fecha_inicio=cls.hoy-relativedelta(months=2)+timedelta(days=6), fecha_fin=cls.hoy-relativedelta(months=2)+timedelta(days=9), precio_especial=Decimal('110.00')) # Dentro reserva_pasado
+
+        # Cliente API
+        cls.client = APIClient()
+
+    # --- Helper para construir URLs (asumiendo que no están bajo /api/) ---
+    def _get_url(self, path_template, **kwargs):
+        # !!! Prefijo confirmado desde tu urls.py principal !!!
+        URL_PREFIX = '/api/propiedades/' # <--- CORREGIDO
+
+        # Construye la ruta relativa
+        relative_path = path_template.format(**kwargs)
+        # Asegura que no empiece con '/' para evitar dobles barras
+        if relative_path.startswith('/'):
+            relative_path = relative_path[1:]
+
+        # Combina prefijo y ruta
+        # Asegura que el prefijo termine en '/' y no haya doble barra
+        prefix = URL_PREFIX.rstrip('/') + '/' if URL_PREFIX else ''
+        full_url = prefix + relative_path
+
+        # Asegura que la URL final empieza con '/' si no está vacía
+        if full_url and not full_url.startswith('/'):
+             full_url = '/' + full_url
+        elif not full_url:
+             full_url = '/' # Devolver al menos la raíz si todo está vacío
+
+        return full_url
+
+    # --- Tests para propiedades_por_usuario ---
+
+    def test_propiedades_por_usuario_unauthenticated(self):
+        url = self._get_url('propiedades-por-usuario/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_propiedades_por_usuario_owner_success(self):
+        self.client.force_authenticate(user=self.anfitrion1_user)
+        url = self._get_url('propiedades-por-usuario/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2)
+        ids_props = {p['id'] for p in resp.data}
+        self.assertIn(self.prop1.id, ids_props)
+        self.assertIn(self.prop2.id, ids_props)
+
+    def test_propiedades_por_usuario_other_user_forbidden(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('propiedades-por-usuario/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No tienes permiso para ver estas propiedades')
+
+    def test_propiedades_por_usuario_owner_no_props_success(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('propiedades-por-usuario/{usuario_id}/', usuario_id=self.huesped1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 0)
+
+    # --- Tests para valoraciones_por_propiedad ---
+
+    def test_valoraciones_por_propiedad_success(self):
+        url = self._get_url('valoraciones-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2)
+        ids_vals = {v['id'] for v in resp.data}
+        self.assertIn(self.val1.id, ids_vals)
+        self.assertIn(self.val2.id, ids_vals)
+
+    def test_valoraciones_por_propiedad_not_found(self):
+        url = self._get_url('valoraciones-por-propiedad/{propiedad_id}/', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para reservas_por_propiedad ---
+
+    def test_reservas_por_propiedad_unauthenticated(self):
+        url = self._get_url('reservas-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_reservas_por_propiedad_authenticated_success(self):
+        self.client.force_authenticate(user=self.huesped1_user) # Cualquiera autenticado
+        url = self._get_url('reservas-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2) # reserva_pasado y reserva_actual
+        ids_reservas = {r['id'] for r in resp.data}
+        self.assertIn(self.reserva_pasado.id, ids_reservas)
+        self.assertIn(self.reserva_actual.id, ids_reservas)
+
+    def test_reservas_por_propiedad_not_found(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('reservas-por-propiedad/{propiedad_id}/', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para precios_especiales_por_propiedad ---
+
+    def test_precios_especiales_por_propiedad_success(self):
+        url = self._get_url('precios-especiales-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2) # pe_actual y pe_pasado
+        ids_precios = {p['id'] for p in resp.data}
+        self.assertIn(self.pe_actual.id, ids_precios)
+        self.assertIn(self.pe_pasado.id, ids_precios)
+
+    def test_precios_especiales_por_propiedad_not_found(self):
+        url = self._get_url('precios-especiales-por-propiedad/{propiedad_id}/', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para favoritos_por_usuario ---
+
+    def test_favoritos_por_usuario_unauthenticated(self):
+        url = self._get_url('favoritos-por-usuario/{usuario_id}/', usuario_id=self.huesped1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_favoritos_por_usuario_owner_success(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('favoritos-por-usuario/{usuario_id}/', usuario_id=self.huesped1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2) # fav1 y fav2
+        ids_favs = {f['id'] for f in resp.data}
+        self.assertIn(self.fav1.id, ids_favs)
+        self.assertIn(self.fav2.id, ids_favs)
+
+    def test_favoritos_por_usuario_other_user_forbidden(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('favoritos-por-usuario/{usuario_id}/', usuario_id=self.huesped2.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    # --- Tests para fotos_por_propiedad ---
+
+    def test_fotos_por_propiedad_success(self):
+        url = self._get_url('fotos-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2) # foto1_p1 y foto2_p1
+        ids_fotos = {f['id'] for f in resp.data}
+        self.assertIn(self.foto1_p1.id, ids_fotos)
+        self.assertIn(self.foto2_p1.id, ids_fotos)
+
+    def test_fotos_por_propiedad_not_found(self):
+        url = self._get_url('fotos-por-propiedad/{propiedad_id}/', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para solicitudes_de_reserva_anfitrion ---
+
+    def test_solicitudes_anfitrion_unauthenticated(self):
+        url = self._get_url('solicitudes-reserva-anfitrion/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_solicitudes_anfitrion_owner_success(self):
+        self.client.force_authenticate(user=self.anfitrion1_user)
+        url = self._get_url('solicitudes-reserva-anfitrion/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        # Anfitrion1 es anfitrión de reserva_pasado, reserva_actual, reserva_pendiente
+        self.assertEqual(len(resp.data), 3)
+        ids_reservas = {r['id'] for r in resp.data}
+        self.assertIn(self.reserva_pasado.id, ids_reservas)
+        self.assertIn(self.reserva_actual.id, ids_reservas)
+        self.assertIn(self.reserva_pendiente.id, ids_reservas)
+
+    def test_solicitudes_anfitrion_other_user_forbidden(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('solicitudes-reserva-anfitrion/{usuario_id}/', usuario_id=self.anfitrion1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    # --- Tests para solicitudes_de_reserva_usuario ---
+
+    def test_solicitudes_usuario_unauthenticated(self):
+        url = self._get_url('solicitudes-reserva-usuario/{usuario_id}/', usuario_id=self.huesped1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_solicitudes_usuario_owner_success(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('solicitudes-reserva-usuario/{usuario_id}/', usuario_id=self.huesped1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        # Huesped1 hizo reserva_pasado y reserva_pendiente
+        self.assertEqual(len(resp.data), 2)
+        ids_reservas = {r['id'] for r in resp.data}
+        self.assertIn(self.reserva_pasado.id, ids_reservas)
+        self.assertIn(self.reserva_pendiente.id, ids_reservas)
+
+    def test_solicitudes_usuario_other_user_forbidden(self):
+        self.client.force_authenticate(user=self.huesped1_user)
+        url = self._get_url('solicitudes-reserva-usuario/{usuario_id}/', usuario_id=self.huesped2.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+
+    # --- Tests para fechas_bloqueadas_por_propiedad ---
+
+    def test_fechas_bloqueadas_por_propiedad_success(self):
+        url = self._get_url('fechas-bloqueadas-por-propiedad/{propiedad_id}/', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        self.assertEqual(len(resp.data), 2) # fb1 y fb2
+        ids_fb = {f['id'] for f in resp.data}
+        self.assertIn(self.fb1.id, ids_fb)
+        self.assertIn(self.fb2.id, ids_fb)
+
+    def test_fechas_bloqueadas_por_propiedad_not_found(self):
+        url = self._get_url('fechas-bloqueadas-por-propiedad/{propiedad_id}/', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para ocupacion_tendencia_por_propiedad ---
+
+    def test_ocupacion_tendencia_unauthenticated(self):
+        url = self._get_url('ocupacion-tendencias/{propiedad_id}', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_ocupacion_tendencia_success(self):
+        self.client.force_authenticate(user=self.anfitrion1_user) # O cualquier usuario autenticado
+        url = self._get_url('ocupacion-tendencias/{propiedad_id}', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        # Debería haber 12 meses en la respuesta
+        self.assertEqual(len(resp.data), 12)
+        # Verificamos estructura del primer elemento
+        self.assertIn('mes', resp.data[0])
+        self.assertIn('ocupacion', resp.data[0])
+        self.assertIsInstance(resp.data[0]['ocupacion'], float)
+        # Opcional: verificar un cálculo específico si es estable
+        # mes_actual_str = self.hoy.strftime('%Y-%m')
+        # mes_pasado_str = (self.hoy - relativedelta(months=1)).strftime('%Y-%m') # Ojo si es mes -2
+        # mes_pasado2_str = (self.hoy - relativedelta(months=2)).strftime('%Y-%m')
+        # for item in resp.data:
+        #     if item['mes'] == mes_actual_str:
+        #         # Calcular ocupación esperada para mes actual (10 días / días_del_mes * 100)
+        #         # ... cálculo ...
+        #         # self.assertAlmostEqual(item['ocupacion'], ocupacion_esperada, places=2)
+        #         pass
+        #     elif item['mes'] == mes_pasado2_str:
+        #         # Calcular ocupación esperada para mes -2 (5 días / días_del_mes * 100)
+        #         # ... cálculo ...
+        #         # self.assertAlmostEqual(item['ocupacion'], ocupacion_esperada, places=2)
+        #         pass
+
+    def test_ocupacion_tendencia_propiedad_not_found(self):
+        self.client.force_authenticate(user=self.anfitrion1_user)
+        url = self._get_url('ocupacion-tendencias/{propiedad_id}', propiedad_id=9999)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+    # --- Tests para precio_tendencia_por_propiedad ---
+
+    def test_precio_tendencia_unauthenticated(self):
+        url = self._get_url('precio-tendencias/{propiedad_id}', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_precio_tendencia_success(self):
+        self.client.force_authenticate(user=self.anfitrion1_user)
+        url = self._get_url('precio-tendencias/{propiedad_id}', propiedad_id=self.prop1.id)
+        resp = self.client.get(url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertIsInstance(resp.data, list)
+        # Debería haber 12 meses
+        self.assertEqual(len(resp.data), 12)
+         # Verificamos estructura del primer elemento
+        self.assertIn('mes', resp.data[0])
+        self.assertIn('precio', resp.data[0])
+        # El precio debería ser un número (float o string representando Decimal)
+        try: float(resp.data[0]['precio'])
+        except (ValueError, TypeError): self.fail("El precio no es numérico")
+
+        # Opcional: verificar cálculo para un mes específico
+        # mes_actual_str = self.hoy.strftime('%Y-%m')
+        # mes_pasado2_str = (self.hoy - relativedelta(months=2)).strftime('%Y-%m')
+        # precio_base = float(self.prop1.precio_por_noche)
+        # precio_esp_actual = float(self.pe_actual.precio_especial)
+        # precio_esp_pasado = float(self.pe_pasado.precio_especial)
+        # for item in resp.data:
+        #      if item['mes'] == mes_actual_str:
+        #         # Calcular promedio esperado con pe_actual
+        #         # ... cálculo ...
+        #         # self.assertAlmostEqual(float(item['precio']), promedio_esperado, places=2)
+        #         pass
+        #      elif item['mes'] == mes_pasado2_str:
+        #          # Calcular promedio esperado con pe_pasado
+        #          # ... cálculo ...
+        #          # self.assertAlmostEqual(float(item['precio']), promedio_esperado, places=2)
+        #          pass
+
+    def test_precio_tendencia_propiedad_not_found(self):
+        self.client.force_authenticate(user=self.anfitrion1_user)
+        url = self._get_url('precio-tendencias/{propiedad_id}', propiedad_id=9999)
+        resp = self.client.get(url)
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
