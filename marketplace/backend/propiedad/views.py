@@ -19,6 +19,7 @@ from datetime import timedelta, datetime
 from django.db import IntegrityError
 from django.db.models import Avg
 import stripe
+from collections import defaultdict
 from django.db.models import Q
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
@@ -737,89 +738,147 @@ class FavoritoViewSet(viewsets.ModelViewSet):
 # SISTEMA DE RECOMENDACIONES
 
 class RecommendationAPI(APIView):
+
     def get(self, request):
+        # 1. Autenticación y obtención del perfil de usuario
         user = request.user
         if not user.is_authenticated:
             return Response({"error": "Usuario no autenticado"}, status=status.HTTP_401_UNAUTHORIZED)
 
         try:
-            usuario = Usuario.objects.get(usuario=request.user) 
+            usuario = Usuario.objects.get(usuario=request.user)
         except Usuario.DoesNotExist:
-            return Response({"error": "Usuario no encontrado"}, status=status.HTTP_404_NOT_FOUND)
-        
-        user_ciudades = list(usuario.reservas.values_list('propiedad__ciudad', flat=True).distinct())
-        user_ciudades += list(usuario.favoritos.values_list('propiedad__ciudad', flat=True).distinct())
-        user_ciudades += list(ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad__ciudad', flat=True).distinct())
-        user_ciudades = list(set(user_ciudades))
-        
-        user_ratings = {
-            v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
-        }
-        
+             return Response({"error": "Perfil de Usuario no encontrado para el usuario autenticado."}, status=status.HTTP_404_NOT_FOUND)
+
+        # 2. Inicializar los sistemas de recomendación
         content_rec = ContentRecommender()
         collab_rec = CollaborativeRecommender()
 
+       
         content_rec.refresh_data()
 
+        # 3. Calcular Puntuación Ponderada de Interacción por Ciudad
+        interaction_counts_per_city = defaultdict(float)
 
-        clicked_properties = ClickPropiedad.objects.filter(usuario=usuario).values_list('propiedad', flat=True)
-        for prop_id in clicked_properties:
-            content_rec.record_click(usuario.id, prop_id)
-        
+        # --- INICIO: Procesamiento de Clics (UNA VEZ por propiedad única) ---
+        processed_click_prop_ids = set() # Para no contar la misma propiedad dos veces
+
+        clicked_properties_qs = ClickPropiedad.objects.filter(usuario=usuario).select_related('propiedad')
+        for click in clicked_properties_qs:
+            prop_id = click.propiedad.id
+
+            # Comprobar si YA hemos procesado esta propiedad_id en esta solicitud
+            if prop_id not in processed_click_prop_ids:
+                try:
+                    prop_features = next(f for f in content_rec.features if f['id'] == prop_id)
+                    ciudad = prop_features['ciudad']
+
+                    # Añadir peso del clic a la ciudad SOLO la primera vez
+                    interaction_counts_per_city[ciudad] += 0.5 # <-- Peso clic
+
+                    # Registrar clic en ContentRecommender SOLO la primera vez
+                    content_rec.record_click(usuario.id, prop_id)
+
+                    # Marcar esta propiedad como procesada
+                    processed_click_prop_ids.add(prop_id)
+                except StopIteration:
+                    # print(f"Advertencia: Propiedad clickeada {prop_id} no encontrada.")
+                    pass
+            # else: Si ya se procesó, ignorar este clic para la puntuación.
+        # --- FIN: Procesamiento de Clics ---
+
+        # 3b. Procesar Favoritos (peso medio)
+        fav_cities = usuario.favoritos.values_list('propiedad__ciudad', flat=True)
+        for city in fav_cities:
+            interaction_counts_per_city[city] += 1.0 # <-- Peso favorito 
+
+        # 3c. Procesar Reservas (peso alto)
+        res_cities = usuario.reservas.values_list('propiedad__ciudad', flat=True)
+        for city in res_cities:
+            interaction_counts_per_city[city] += 1.5 # <-- Peso reserva 
+
+        # 3d. Encontrar el puntaje máximo de ciudad para normalizar
+        max_city_score = max(interaction_counts_per_city.values()) if interaction_counts_per_city else 1.0
+        if max_city_score == 0: max_city_score = 1.0 # Evitar división por cero
+
+
+        # 4. Obtener candidatos iniciales del Recomendador Colaborativo
         collab_props = collab_rec.get_user_recommendations(usuario.id)
-        scored_props = []
-        
-        max_popularity = max([getattr(prop, 'popularity', 0) for prop in collab_props]) if collab_props else 1
+        if not collab_props:
+             return Response([], status=status.HTTP_200_OK) # O devolver populares globales
+
+
+        # 5. Obtener datos adicionales del usuario para re-ranking
+        user_ratings = {
+            v.propiedad.id: v.valoracion for v in ValoracionPropiedad.objects.filter(usuario=usuario)
+        }
         user_favoritos_ids = set(usuario.favoritos.values_list('propiedad__id', flat=True))
 
+        # Calcular max_popularity del conjunto actual de candidatos
+        valid_popularities = [getattr(prop, 'popularity', 0) for prop in collab_props if hasattr(prop, 'popularity')]
+        max_popularity = max(valid_popularities) if valid_popularities else 1.0
+        if max_popularity == 0: max_popularity = 1.0
+
+
+        # 6. Bucle de Re-ranking Híbrido
+        scored_props = []
         for prop in collab_props:
-            similares = content_rec.get_similar(prop.id, top=5, user_id=usuario.id) 
-            
+            # 6a. Calcular similitud de contenido y puntuaciones derivadas
+            similares = content_rec.get_similar(prop.id, top=5, user_id=usuario.id)
             rating_scores = [
-                similarity * (user_ratings[pid] / 5.0)  
+                similarity * (user_ratings[pid] / 5.0)
                 for pid, similarity, _ in similares if pid in user_ratings
             ]
-            rating_score = np.mean(rating_scores) if rating_scores else 0
-            
+            rating_score = np.nan_to_num(np.nanmean(rating_scores))
             fav_scores = [
                 similarity for pid, similarity, _ in similares if pid in user_favoritos_ids
             ]
-            fav_score = np.mean(fav_scores) if fav_scores else 0
-            
-            # ciudad_score = 5 if prop.ciudad in user_ciudades else 0
-            ciudad_norm = 1 if prop.ciudad in user_ciudades else 0
-            componente_ciudad = 0.5 * ciudad_norm
+            fav_score = np.nan_to_num(np.nanmean(fav_scores))
 
-
+            # 6b. Normalizar popularidad colaborativa
             popularity = getattr(prop, 'popularity', 0)
-            normalized_popularity = popularity / max_popularity if max_popularity > 0 else 0
-            
+            normalized_popularity = popularity / max_popularity
+
+            # 6c. Calcular Componente de Ciudad (Normalizado)
+            #    Usa los interaction_counts_per_city calculados en el paso 3
+            prop_ciudad = prop.ciudad
+            current_city_score = interaction_counts_per_city.get(prop_ciudad, 0)
+            # Normalización Lineal (0 a 1)
+            normalized_city_component = current_city_score / max_city_score
+            # Alternativa: Normalización Logarítmica
+            # normalized_city_component = math.log1p(current_city_score) / math.log1p(max_city_score) if max_city_score > 0 else 0
+
+            # 6d. Calcular Puntuación Combinada Final (Ajustar pesos si es necesario)
             combined_score = (
-                0.5 * componente_ciudad +  
-                0.3 * rating_score +  
-                0.15 * fav_score + 
-                0.05 * normalized_popularity
+                0.50 * normalized_city_component +  # Preferencia de ciudad
+                0.30 * rating_score +             # Similitud con valorados
+                0.15 * fav_score +                # Similitud con favoritos
+                0.05 * normalized_popularity      # Popularidad colaborativa
             )
-            
+
+            # Añadir a la lista para ordenar
             scored_props.append({
                 'propiedad': prop,
                 'score': round(combined_score * 100, 2),
-                'components': {
-                    'ciudad': componente_ciudad,
-                    'rating': rating_score,
-                    'favoritos': fav_score,
-                    'popularidad': normalized_popularity
-                }
+                'components': { # Para depuración
+                    'ciudad_score_norm': round(normalized_city_component, 4),
+                    'rating_score_comp': round(0.30 * rating_score, 4),
+                    'fav_score_comp': round(0.15 * fav_score, 4),
+                    'pop_score_comp': round(0.05 * normalized_popularity, 4)
+                 }
             })
-        
+
+        # 7. Ordenar resultados finales y obtener los Top N (ej: 10)
         sorted_results = sorted(scored_props, key=lambda x: x['score'], reverse=True)[:10]
-        
+
+        # 8. Serializar y devolver la respuesta
         serializer = PropiedadRecommendationSerializer(
             [item['propiedad'] for item in sorted_results],
             many=True,
-            context={'scores': sorted_results} 
+            context={'scores': sorted_results} # Pasar scores/componentes al serializer
         )
         return Response(serializer.data)
+
     
 class PrecioEspecialViewSet(viewsets.ModelViewSet):
     queryset = PrecioEspecial.objects.all()
