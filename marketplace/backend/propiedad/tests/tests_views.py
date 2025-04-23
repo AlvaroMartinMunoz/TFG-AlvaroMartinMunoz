@@ -15,6 +15,7 @@ from ..models.valoracionPropiedad import ValoracionPropiedad
 from ..models.propiedad import FechaBloqueada
 from ..models.reserva import Reserva
 from ..models.favorito import Favorito
+from ..models.precioEspecial import PrecioEspecial
 
 
 
@@ -1555,5 +1556,278 @@ class FavoritoViewSetTests(APITestCase):
     def test_destroy_favorito_not_found(self):
         """DELETE eliminar favorito inexistente falla (404)."""
         self.client.force_authenticate(user=self.user1)
+        resp = self.client.delete(self.detail_url(9999)) # ID inválido
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+
+
+class PrecioEspecialViewSetTests(APITestCase):
+
+    def setUp(self):
+        """Configura los datos necesarios antes de cada test."""
+        # Usuarios de Django
+        self.anfitrion_user = User.objects.create_user('anfitrionprecio', 'anfitrionp@test.com', 'password123')
+        self.otro_user = User.objects.create_user('otroprecio', 'otrop@test.com', 'password123')
+
+        # Perfiles de Usuario
+        fecha_nacimiento_valida = timezone.now().date() - timedelta(days=365*30)
+        self.anfitrion = Usuario.objects.create(usuario=self.anfitrion_user, dni='11133355A', telefono='611333555', direccion='C/ Anfitrion Precio 1', fecha_de_nacimiento=fecha_nacimiento_valida)
+        self.otro = Usuario.objects.create(usuario=self.otro_user, dni='22244466B', telefono='622444666', direccion='C/ Otro Precio 2', fecha_de_nacimiento=fecha_nacimiento_valida)
+
+        # Propiedad del anfitrión
+        self.propiedad = Propiedad.objects.create(
+            anfitrion=self.anfitrion, nombre='Apartamento Precios', descripcion='Apto para testear precios',
+            direccion='Av Precios 123', ciudad='TestPriceCity', pais='TestPriceCountry', codigo_postal='98765',
+            tipo_de_propiedad='Apartamento', precio_por_noche=Decimal('80.00'), maximo_huespedes=3,
+            numero_de_habitaciones=2, numero_de_banos=1, numero_de_camas=2, tamano=55,
+            politica_de_cancelacion='Moderada'
+        )
+
+        # Precio Especial Inicial (próximo mes)
+        self.hoy = timezone.now().date()
+        self.fecha_inicio_inicial = self.hoy + timedelta(days=30)
+        self.fecha_fin_inicial = self.hoy + timedelta(days=40) # Periodo de 10 días
+        self.precio_inicial_valor = Decimal('70.00')
+
+        self.precio_especial_inicial = PrecioEspecial.objects.create(
+            propiedad=self.propiedad,
+            fecha_inicio=self.fecha_inicio_inicial,
+            fecha_fin=self.fecha_fin_inicial,
+            precio_especial=self.precio_inicial_valor
+        )
+
+        # URLs (usando basename='precioespecial' derivado del modelo)
+        basename = 'precioespecial'
+        self.list_url = reverse(f'{basename}-list')
+        self.detail_url = lambda pk: reverse(f'{basename}-detail', args=[pk])
+
+    # --- Tests Públicos / Acciones Deshabilitadas ---
+
+    def test_list_precios_unauthenticated(self):
+        """GET lista precios no requiere auth (AllowAny)."""
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        # Verificamos si el precio inicial está (considerando paginación)
+        items_list = resp.data.get('results') if isinstance(resp.data, dict) and 'results' in resp.data else resp.data
+        self.assertIsInstance(items_list, list)
+        self.assertTrue(any(item.get('id') == self.precio_especial_inicial.id for item in items_list),
+                        f"ID {self.precio_especial_inicial.id} no encontrado en {items_list}")
+
+    def test_retrieve_precio_unauthenticated(self):
+        """GET detalle precio no requiere auth (AllowAny)."""
+        resp = self.client.get(self.detail_url(self.precio_especial_inicial.id))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get('id'), self.precio_especial_inicial.id)
+        # DRF serializa Decimal como string por defecto
+        self.assertEqual(resp.data.get('precio_especial'), f"{self.precio_inicial_valor:.2f}")
+
+    def test_update_precio_forbidden(self):
+        """PUT actualizar precio está prohibido (403)."""
+        data = {'precio_especial': '60.00'}
+        # Probamos sin autenticar
+        resp_unauth = self.client.put(self.detail_url(self.precio_especial_inicial.id), data, format='json')
+        self.assertEqual(resp_unauth.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Probamos autenticados como anfitrión
+        self.client.force_authenticate(user=self.anfitrion_user)
+        resp_auth = self.client.put(self.detail_url(self.precio_especial_inicial.id), data, format='json')
+        self.assertEqual(resp_unauth.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(resp_auth.data.get('error'), 'No puedes actualizar precios especiales')
+
+    def test_partial_update_precio_forbidden(self):
+        """PATCH actualizar precio está prohibido (403)."""
+        data = {'precio_especial': '60.00'}
+         # Probamos sin autenticar
+        resp_unauth = self.client.patch(self.detail_url(self.precio_especial_inicial.id), data, format='json')
+        self.assertEqual(resp_unauth.status_code, status.HTTP_401_UNAUTHORIZED)
+        # Probamos autenticados como anfitrión
+        self.client.force_authenticate(user=self.anfitrion_user)
+        resp_auth = self.client.patch(self.detail_url(self.precio_especial_inicial.id), data, format='json')
+        self.assertEqual(resp_unauth.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(resp_auth.data.get('error'), 'No puedes actualizar precios especiales')
+
+    # --- Tests de Create ---
+
+    def test_create_precio_unauthenticated(self):
+        """POST crear precio requiere auth (IsAuthenticated)."""
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': '50.00'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_create_precio_not_owner(self):
+        """POST crear precio como usuario no anfitrión falla (403)."""
+        self.client.force_authenticate(user=self.otro_user) # Autenticado como otro usuario
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': '50.00'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No tienes permiso para establecer precios especiales en esta propiedad')
+
+    def test_create_precio_owner_success(self):
+        """POST crear precio como anfitrión funciona (201)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        initial_count = PrecioEspecial.objects.count()
+        fecha_inicio = self.hoy + timedelta(days=50)
+        fecha_fin = self.hoy + timedelta(days=60)
+        precio_nuevo = Decimal('55.50')
+        data = {
+            'propiedad': self.propiedad.id,
+            'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': fecha_fin.strftime('%Y-%m-%d'),
+            'precio_especial': f"{precio_nuevo:.2f}" # Enviar como string
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, f"Error: {resp.data}")
+        self.assertEqual(resp.data.get('status'), 'precio especial creado')
+        self.assertEqual(PrecioEspecial.objects.count(), initial_count + 1)
+        # Verificamos creación
+        self.assertTrue(PrecioEspecial.objects.filter(
+            propiedad=self.propiedad, fecha_inicio=fecha_inicio, fecha_fin=fecha_fin, precio_especial=precio_nuevo
+        ).exists())
+
+    def test_create_precio_campos_faltantes(self):
+        """POST crear precio faltando campos falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        # Faltando precio_especial
+        data_no_precio = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin}
+        resp_no_precio = self.client.post(self.list_url, data_no_precio, format='json')
+        self.assertEqual(resp_no_precio.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp_no_precio.data.get('error'), 'Todos los campos son obligatorios')
+
+    def test_create_precio_formato_fecha_invalido(self):
+        """POST crear precio con formato fecha inválido falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': '50-12-2025', 'fecha_fin': '60-12-2025', 'precio_especial': '50.00'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Formato de fecha inválido (debe ser YYYY-MM-DD)')
+
+    def test_create_precio_valor_invalido_cero(self):
+        """POST crear precio con valor 0 falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': '0'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'El precio especial debe ser mayor a 0')
+
+    def test_create_precio_valor_invalido_negativo(self):
+        """POST crear precio con valor negativo falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': '-10.00'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'El precio especial debe ser mayor a 0')
+
+    def test_create_precio_valor_invalido_no_numerico(self):
+        """POST crear precio con valor no numérico falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': 'abc'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Precio especial inválido')
+
+    def test_create_precio_propiedad_inexistente(self):
+        """POST crear precio para propiedad inexistente falla (404)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = (self.hoy + timedelta(days=50)).strftime('%Y-%m-%d')
+        fecha_fin = (self.hoy + timedelta(days=60)).strftime('%Y-%m-%d')
+        data = {'propiedad': 9999, 'fecha_inicio': fecha_inicio, 'fecha_fin': fecha_fin, 'precio_especial': '50.00'}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(resp.data.get('error'), 'Propiedad no encontrada')
+
+    def test_create_precio_fecha_fin_igual_inicio(self):
+        """POST crear precio con fecha fin == fecha inicio falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = self.hoy + timedelta(days=50)
+        data = {
+            'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': fecha_inicio.strftime('%Y-%m-%d'), 'precio_especial': '50.00'
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Fecha de inicio debe ser anterior a fecha de fin')
+
+    def test_create_precio_fecha_fin_antes_inicio(self):
+        """POST crear precio con fecha fin < fecha inicio falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = self.hoy + timedelta(days=50)
+        fecha_fin = fecha_inicio - timedelta(days=1) # Fecha fin anterior a inicio
+        data = {
+            'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': fecha_fin.strftime('%Y-%m-%d'), 'precio_especial': '50.00'
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Fecha de inicio debe ser anterior a fecha de fin')
+
+    def test_create_precio_fecha_inicio_pasada(self):
+        """POST crear precio con fecha inicio en el pasado falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        fecha_inicio = self.hoy - timedelta(days=1)
+        fecha_fin = fecha_inicio + timedelta(days=5)
+        data = {
+            'propiedad': self.propiedad.id, 'fecha_inicio': fecha_inicio.strftime('%Y-%m-%d'),
+            'fecha_fin': fecha_fin.strftime('%Y-%m-%d'), 'precio_especial': '50.00'
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Fecha de inicio debe ser posterior a la fecha actual')
+
+    def test_create_precio_duplicado_exacto(self):
+        """POST crear precio duplicado exacto falla (400)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        # Usamos las fechas y propiedad del precio_especial_inicial creado en setUp
+        data = {
+            'propiedad': self.propiedad.id,
+            'fecha_inicio': self.fecha_inicio_inicial.strftime('%Y-%m-%d'),
+            'fecha_fin': self.fecha_fin_inicial.strftime('%Y-%m-%d'),
+            'precio_especial': '60.00' # Precio diferente, pero mismo rango/propiedad
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        # Esperamos 400 por el bloque except IntegrityError de la vista
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp.data.get('error'), 'Ya existe un precio especial para estas fechas')
+
+
+    # --- Tests de Destroy ---
+
+    def test_destroy_precio_unauthenticated(self):
+        """DELETE eliminar precio requiere auth."""
+        resp = self.client.delete(self.detail_url(self.precio_especial_inicial.id))
+        self.assertIn(resp.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN])
+
+    def test_destroy_precio_not_owner(self):
+        """DELETE eliminar precio como usuario no anfitrión falla (403)."""
+        self.client.force_authenticate(user=self.otro_user) # Autenticado como otro
+        resp = self.client.delete(self.detail_url(self.precio_especial_inicial.id))
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No tienes permiso para eliminar este precio especial')
+
+    def test_destroy_precio_owner_success(self):
+        """DELETE eliminar precio como anfitrión funciona (204)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
+        initial_count = PrecioEspecial.objects.count()
+        precio_id = self.precio_especial_inicial.id # Guardamos ID
+
+        resp = self.client.delete(self.detail_url(precio_id))
+
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(PrecioEspecial.objects.count(), initial_count - 1)
+        with self.assertRaises(PrecioEspecial.DoesNotExist):
+            PrecioEspecial.objects.get(id=precio_id)
+
+    def test_destroy_precio_not_found(self):
+        """DELETE eliminar precio inexistente falla (404)."""
+        self.client.force_authenticate(user=self.anfitrion_user)
         resp = self.client.delete(self.detail_url(9999)) # ID inválido
         self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

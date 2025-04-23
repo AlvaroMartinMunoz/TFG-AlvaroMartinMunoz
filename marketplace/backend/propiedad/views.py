@@ -884,7 +884,7 @@ class PrecioEspecialViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return Response({'error': 'No puedes actualizar precios especiales'}, status=status.HTTP_403_FORBIDDEN)
     
-    def delete(self, request, *args, **kwargs):
+    def destroy(self, request, *args, **kwargs):
         precio_especial = self.get_object()
         propiedad = precio_especial.propiedad
         
