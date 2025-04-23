@@ -2165,21 +2165,7 @@ class FunctionBasedViewTests(APITestCase):
         self.assertIn('mes', resp.data[0])
         self.assertIn('ocupacion', resp.data[0])
         self.assertIsInstance(resp.data[0]['ocupacion'], float)
-        # Opcional: verificar un cálculo específico si es estable
-        # mes_actual_str = self.hoy.strftime('%Y-%m')
-        # mes_pasado_str = (self.hoy - relativedelta(months=1)).strftime('%Y-%m') # Ojo si es mes -2
-        # mes_pasado2_str = (self.hoy - relativedelta(months=2)).strftime('%Y-%m')
-        # for item in resp.data:
-        #     if item['mes'] == mes_actual_str:
-        #         # Calcular ocupación esperada para mes actual (10 días / días_del_mes * 100)
-        #         # ... cálculo ...
-        #         # self.assertAlmostEqual(item['ocupacion'], ocupacion_esperada, places=2)
-        #         pass
-        #     elif item['mes'] == mes_pasado2_str:
-        #         # Calcular ocupación esperada para mes -2 (5 días / días_del_mes * 100)
-        #         # ... cálculo ...
-        #         # self.assertAlmostEqual(item['ocupacion'], ocupacion_esperada, places=2)
-        #         pass
+      
 
     def test_ocupacion_tendencia_propiedad_not_found(self):
         self.client.force_authenticate(user=self.anfitrion1_user)
@@ -2209,24 +2195,7 @@ class FunctionBasedViewTests(APITestCase):
         try: float(resp.data[0]['precio'])
         except (ValueError, TypeError): self.fail("El precio no es numérico")
 
-        # Opcional: verificar cálculo para un mes específico
-        # mes_actual_str = self.hoy.strftime('%Y-%m')
-        # mes_pasado2_str = (self.hoy - relativedelta(months=2)).strftime('%Y-%m')
-        # precio_base = float(self.prop1.precio_por_noche)
-        # precio_esp_actual = float(self.pe_actual.precio_especial)
-        # precio_esp_pasado = float(self.pe_pasado.precio_especial)
-        # for item in resp.data:
-        #      if item['mes'] == mes_actual_str:
-        #         # Calcular promedio esperado con pe_actual
-        #         # ... cálculo ...
-        #         # self.assertAlmostEqual(float(item['precio']), promedio_esperado, places=2)
-        #         pass
-        #      elif item['mes'] == mes_pasado2_str:
-        #          # Calcular promedio esperado con pe_pasado
-        #          # ... cálculo ...
-        #          # self.assertAlmostEqual(float(item['precio']), promedio_esperado, places=2)
-        #          pass
-
+    
     def test_precio_tendencia_propiedad_not_found(self):
         self.client.force_authenticate(user=self.anfitrion1_user)
         url = self._get_url('precio-tendencias/{propiedad_id}', propiedad_id=9999)

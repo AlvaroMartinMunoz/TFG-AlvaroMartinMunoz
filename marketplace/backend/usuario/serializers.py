@@ -43,6 +43,20 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
         print(usuario_data)
         return usuario_data 
+    
+    def validate_username(self, value):
+        """Comprueba si el username ya está en uso durante la validación."""
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError(_("Ya existe un usuario con ese nombre de usuario."))
+        return value
+
+    def validate_email(self, value):
+        """Comprueba si el email ya está en uso durante la validación."""
+        # Nota: Esta validación simple asume creación. Si permitieras actualizar
+        # email vía este serializer, necesitarías lógica más compleja aquí.
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError(_("Esta dirección de correo electrónico ya está en uso."))
+        return value
 
     # def get_valoracion_promedio_usuario(self, obj):
     #     return obj.valoracion_promedio_usuario()
@@ -50,11 +64,20 @@ class UsuarioSerializer(serializers.ModelSerializer):
 class PasswordResetSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+    # def validate_email(self, value):
+    #     self.reset_password = PasswordResetForm(data=self.initial_data)
+    #     if not self.reset_password.is_valid():
+    #         raise serializers.ValidationError(self.reset_password.errors)
+    #     return value
+    
     def validate_email(self, value):
-        self.reset_password = PasswordResetForm(data=self.initial_data)
-        if not self.reset_password.is_valid():
-            raise serializers.ValidationError(self.reset_password.errors)
+        # El EmailField ya valida el formato.
+        # Ahora validamos explícitamente la existencia del usuario activo.
+        if not User.objects.filter(email=value, is_active=True).exists():
+            raise serializers.ValidationError(_("No existe un usuario activo con esa dirección de correo."))
+        # Si existe, el email es válido para iniciar el reseteo.
         return value
+
     
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
