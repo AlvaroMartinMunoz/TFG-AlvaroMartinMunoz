@@ -14,6 +14,7 @@ from decimal import Decimal
 from ..models.valoracionPropiedad import ValoracionPropiedad
 from ..models.propiedad import FechaBloqueada
 from ..models.reserva import Reserva
+from ..models.favorito import Favorito
 
 
 
@@ -1327,3 +1328,232 @@ class ReservaViewSetTests(APITestCase):
         resp_anfitrion = self.client.delete(self.detail_url(self.reserva_inicial.id))
         self.assertEqual(resp_anfitrion.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(resp_anfitrion.data.get('error'), 'No puedes eliminar reservas')
+
+
+class FavoritoViewSetTests(APITestCase):
+
+    def setUp(self):
+        """Configura los datos necesarios antes de cada test."""
+        # Usuarios de Django
+        self.user1 = User.objects.create_user('user1fav', 'user1f@test.com', 'password123')
+        self.user2 = User.objects.create_user('user2fav', 'user2f@test.com', 'password123')
+        # Necesitamos un anfitrión para crear propiedades
+        self.anfitrion_user = User.objects.create_user('anfitrionfav', 'anfitrionfav@test.com', 'password123')
+
+        # Perfiles de Usuario
+        fecha_nacimiento_valida = timezone.now().date() - timedelta(days=365*30)
+        self.usuario1 = Usuario.objects.create(usuario=self.user1, dni='11122233A', telefono='611222333', direccion='C/ Fav 1', fecha_de_nacimiento=fecha_nacimiento_valida)
+        self.usuario2 = Usuario.objects.create(usuario=self.user2, dni='44455566B', telefono='644555666', direccion='C/ Fav 2', fecha_de_nacimiento=fecha_nacimiento_valida)
+        self.anfitrion = Usuario.objects.create(usuario=self.anfitrion_user, dni='77788899C', telefono='677888999', direccion='C/ Anfitrion Fav 3', fecha_de_nacimiento=fecha_nacimiento_valida)
+
+        # Propiedades creadas por el anfitrión
+        self.propiedad1 = Propiedad.objects.create(
+            anfitrion=self.anfitrion, nombre='Casa Favorita 1', descripcion='Desc Fav 1',
+            direccion='Dir Fav 1', ciudad='FavCity', pais='FavCountry', codigo_postal='11111',
+            tipo_de_propiedad='Casa', precio_por_noche=50.00, maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=1, tamano=40,
+            politica_de_cancelacion='Flexible'
+        )
+        self.propiedad2 = Propiedad.objects.create(
+            anfitrion=self.anfitrion, nombre='Apartamento Favorito 2', descripcion='Desc Fav 2',
+            direccion='Dir Fav 2', ciudad='FavCity', pais='FavCountry', codigo_postal='22222',
+            tipo_de_propiedad='Apartamento', precio_por_noche=75.00, maximo_huespedes=3,
+            numero_de_habitaciones=2, numero_de_banos=1, numero_de_camas=2, tamano=60,
+            politica_de_cancelacion='Moderada'
+        )
+
+        # Favorito Inicial: usuario1 marca propiedad1 como favorita
+        self.favorito_inicial = Favorito.objects.create(
+            usuario=self.usuario1,
+            propiedad=self.propiedad1
+        )
+
+        # URLs (usando basename='favorito' derivado del modelo)
+        basename = 'favorito'
+        self.list_url = reverse(f'{basename}-list')
+        self.detail_url = lambda pk: reverse(f'{basename}-detail', args=[pk])
+
+    # --- Tests de Permisos ---
+
+    def test_acciones_favorito_requieren_autenticacion(self):
+        """Verifica que todas las acciones de Favorito requieren autenticación."""
+        urls_metodos = [
+            ('GET', self.list_url),
+            ('POST', self.list_url),
+            ('GET', self.detail_url(self.favorito_inicial.id)),
+            ('PUT', self.detail_url(self.favorito_inicial.id)),
+            ('PATCH', self.detail_url(self.favorito_inicial.id)),
+            ('DELETE', self.detail_url(self.favorito_inicial.id)),
+        ]
+        for method, url in urls_metodos:
+            response = self.client.generic(method, url)
+            # Como todas requieren IsAuthenticated, esperamos 401 o 403
+            self.assertIn(response.status_code, [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+                          f"Fallo en {method} {url}")
+
+    def test_update_favorito_forbidden(self):
+        """PUT actualizar favorito está prohibido (403)."""
+        self.client.force_authenticate(user=self.user1)
+        data = {'propiedad': self.propiedad2.id} # Dato de ejemplo
+        resp = self.client.put(self.detail_url(self.favorito_inicial.id), data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No puedes actualizar favoritos')
+
+    def test_partial_update_favorito_forbidden(self):
+        """PATCH actualizar favorito está prohibido (403)."""
+        self.client.force_authenticate(user=self.user1)
+        data = {'propiedad': self.propiedad2.id} # Dato de ejemplo
+        resp = self.client.patch(self.detail_url(self.favorito_inicial.id), data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No puedes actualizar favoritos')
+
+    # --- Tests de List ---
+
+    def test_list_favoritos_success(self):
+        """GET lista favoritos devuelve solo los del usuario autenticado."""
+        self.client.force_authenticate(user=self.user1)
+        # Creamos otro favorito para otro usuario para asegurar el filtro
+        Favorito.objects.create(usuario=self.usuario2, propiedad=self.propiedad1)
+
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        items_list = resp.data.get('results') if isinstance(resp.data, dict) and 'results' in resp.data else resp.data
+        self.assertIsInstance(items_list, list)
+
+        # Verificamos que solo hay 1 favorito (el inicial de usuario1)
+        self.assertEqual(len(items_list), 1)
+        # Verificamos que el ID es el correcto
+        self.assertEqual(items_list[0].get('id'), self.favorito_inicial.id)
+        # Verificamos que el usuario es el correcto (comparando IDs)
+        self.assertEqual(items_list[0].get('usuario'), self.usuario1.id)
+
+    def test_list_favoritos_otro_usuario_vacio(self):
+        """GET lista favoritos para un usuario sin favoritos está vacía."""
+        self.client.force_authenticate(user=self.user2) # user2 no tiene favoritos aún
+        resp = self.client.get(self.list_url)
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+
+        items_list = resp.data.get('results') if isinstance(resp.data, dict) and 'results' in resp.data else resp.data
+        self.assertIsInstance(items_list, list)
+        # La lista debe estar vacía
+        self.assertEqual(len(items_list), 0)
+
+    # --- Tests de Retrieve ---
+
+    def test_retrieve_favorito_owner_success(self):
+        """GET detalle favorito por su dueño funciona (200)."""
+        self.client.force_authenticate(user=self.user1)
+        resp = self.client.get(self.detail_url(self.favorito_inicial.id))
+        self.assertEqual(resp.status_code, status.HTTP_200_OK)
+        self.assertEqual(resp.data.get('id'), self.favorito_inicial.id)
+        self.assertEqual(resp.data.get('usuario'), self.usuario1.id) # Verifica el dueño
+
+    def test_retrieve_favorito_other_user_forbidden(self):
+        """GET detalle favorito por otro usuario falla (403)."""
+        self.client.force_authenticate(user=self.user2) # user2 intenta ver favorito de user1
+        resp = self.client.get(self.detail_url(self.favorito_inicial.id))
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No tienes permiso para ver este favorito')
+
+    # --- Tests de Create ---
+
+    def test_create_favorito_success(self):
+        """POST crear favorito para el usuario autenticado funciona (201)."""
+        self.client.force_authenticate(user=self.user1)
+        initial_count = Favorito.objects.count()
+        # user1 marca propiedad2 como favorita
+        data = {
+            "propiedad": self.propiedad2.id,
+            # Enviamos el ID del usuario autenticado (aunque la vista podría ignorarlo)
+            "usuario": self.usuario1.id
+        }
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, f"Error: {resp.data}")
+        self.assertEqual(resp.data.get('status'), 'favorito creado')
+        self.assertEqual(Favorito.objects.count(), initial_count + 1)
+        # Verificamos que se creó correctamente
+        self.assertTrue(Favorito.objects.filter(usuario=self.usuario1, propiedad=self.propiedad2).exists())
+
+    def test_create_favorito_campos_faltantes(self):
+        """POST crear favorito faltando propiedad o usuario falla (400)."""
+        self.client.force_authenticate(user=self.user1)
+        # Faltando propiedad
+        data_no_prop = {"usuario": self.usuario1.id}
+        resp_no_prop = self.client.post(self.list_url, data_no_prop, format='json')
+        self.assertEqual(resp_no_prop.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(resp_no_prop.data.get('error'), 'Propiedad es requerida')
+       
+
+    def test_create_favorito_propiedad_inexistente(self):
+        """POST crear favorito con propiedad inexistente falla (404)."""
+        self.client.force_authenticate(user=self.user1)
+        data = {"propiedad": 9999, "usuario": self.usuario1.id}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(resp.data.get('error'), 'Propiedad no encontrada')
+
+    def test_create_favorito_duplicado(self):
+        """POST crear favorito duplicado falla (400)."""
+        self.client.force_authenticate(user=self.user1)
+        # usuario1 ya tiene propiedad1 como favorita (self.favorito_inicial)
+        data = {"propiedad": self.propiedad1.id, "usuario": self.usuario1.id}
+        resp = self.client.post(self.list_url, data, format='json')
+        self.assertEqual(resp.status_code, status.HTTP_400_BAD_REQUEST)
+        # Verificamos el mensaje específico del bloque except IntegrityError
+        self.assertEqual(resp.data.get('error'), 'Ya has marcado esta propiedad como favorita')
+
+    def test_create_favorito_para_otro_usuario(self):
+        """POST crear favorito ignora el usuario_id enviado y usa el request.user."""
+        self.client.force_authenticate(user=self.user1) # user1 está autenticado
+        initial_count = Favorito.objects.count()
+        initial_count_user1 = Favorito.objects.filter(usuario=self.usuario1).count()
+        initial_count_user2 = Favorito.objects.filter(usuario=self.usuario2).count()
+
+        # user1 intenta crear un favorito para user2, enviando el ID de user2
+        # La vista modificada debería ignorar "usuario": self.usuario2.id
+        data = {"propiedad": self.propiedad2.id, "usuario": self.usuario2.id}
+        resp = self.client.post(self.list_url, data, format='json')
+
+        # Verificamos que la creación fue exitosa (201)
+        self.assertEqual(resp.status_code, status.HTTP_201_CREATED, f"Error: {resp.data}")
+        self.assertEqual(Favorito.objects.count(), initial_count + 1)
+
+        # VERIFICAMOS QUE SE CREÓ PARA USER1 (el autenticado), NO PARA USER2
+        self.assertTrue(Favorito.objects.filter(usuario=self.usuario1, propiedad=self.propiedad2).exists(),
+                        "El favorito no se creó para el usuario autenticado (user1).")
+        self.assertFalse(Favorito.objects.filter(usuario=self.usuario2, propiedad=self.propiedad2).exists(),
+                        "El favorito se creó incorrectamente para user2.")
+        # Verificamos contadores
+        self.assertEqual(Favorito.objects.filter(usuario=self.usuario1).count(), initial_count_user1 + 1)
+        self.assertEqual(Favorito.objects.filter(usuario=self.usuario2).count(), initial_count_user2) # No debe aumentar
+       
+     # --- Tests de Destroy ---
+
+    def test_destroy_favorito_owner_success(self):
+        """DELETE eliminar favorito por su dueño funciona (204)."""
+        self.client.force_authenticate(user=self.user1)
+        initial_count = Favorito.objects.count()
+        favorito_id = self.favorito_inicial.id # Guardamos ID antes de borrar
+
+        resp = self.client.delete(self.detail_url(favorito_id))
+
+        self.assertEqual(resp.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Favorito.objects.count(), initial_count - 1)
+        with self.assertRaises(Favorito.DoesNotExist):
+            Favorito.objects.get(id=favorito_id)
+
+    def test_destroy_favorito_other_user_forbidden(self):
+        """DELETE eliminar favorito por otro usuario falla (403)."""
+        self.client.force_authenticate(user=self.user2) # user2 intenta borrar favorito de user1
+        initial_count = Favorito.objects.count()
+        resp = self.client.delete(self.detail_url(self.favorito_inicial.id))
+        self.assertEqual(resp.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(resp.data.get('error'), 'No tienes permiso para eliminar este favorito')
+        self.assertEqual(Favorito.objects.count(), initial_count) # No se borró nada
+
+    def test_destroy_favorito_not_found(self):
+        """DELETE eliminar favorito inexistente falla (404)."""
+        self.client.force_authenticate(user=self.user1)
+        resp = self.client.delete(self.detail_url(9999)) # ID inválido
+        self.assertEqual(resp.status_code, status.HTTP_404_NOT_FOUND)

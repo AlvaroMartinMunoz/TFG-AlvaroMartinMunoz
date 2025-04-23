@@ -674,27 +674,31 @@ class FavoritoViewSet(viewsets.ModelViewSet):
     
     
 
+    # En views.py -> FavoritoViewSet -> create()
     def create(self, request, *args, **kwargs):
         propiedad_id = request.data.get('propiedad')
-        usuario_id = request.data.get('usuario')
+        # usuario_id = request.data.get('usuario') # Ya no lees el usuario del request
 
-        if not propiedad_id or not usuario_id:
-            return Response({'error': 'Propiedad y usuario son requeridos'}, status=status.HTTP_400_BAD_REQUEST)
-        
+        if not propiedad_id: # Solo validas propiedad
+            return Response({'error': 'Propiedad es requerida'}, status=status.HTTP_400_BAD_REQUEST)
+
         try:
             propiedad = Propiedad.objects.get(id=propiedad_id)
         except Propiedad.DoesNotExist:
             return Response({'error': 'Propiedad no encontrada'}, status=status.HTTP_404_NOT_FOUND)
-        
-        usuario = Usuario.objects.filter(id=usuario_id).first()
-        if not usuario:
-            return Response({'error': 'Usuario no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-        
+
+        # Obtienes el perfil Usuario del usuario autenticado
+        usuario_perfil = Usuario.objects.filter(usuario=request.user).first()
+        if not usuario_perfil:
+            # Manejar caso raro de usuario autenticado sin perfil
+            return Response({'error': 'Perfil de usuario no encontrado'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
         try:
-            Favorito.objects.create(propiedad=propiedad, usuario=usuario)
+            # Creas el favorito para el usuario autenticado
+            Favorito.objects.create(propiedad=propiedad, usuario=usuario_perfil)
         except IntegrityError:
             return Response({'error': 'Ya has marcado esta propiedad como favorita'}, status=status.HTTP_400_BAD_REQUEST)
-        
+
         return Response({'status': 'favorito creado'}, status=status.HTTP_201_CREATED)
     
     def destroy(self, request, *args, **kwargs):
