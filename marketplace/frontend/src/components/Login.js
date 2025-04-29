@@ -91,7 +91,10 @@ const Login = () => {
       if (redirectUrl) {
         navigate(redirectUrl);
       } else {
-        navigate("/");
+        navigate("/", {
+          replace: true,
+          state: { fromLogin: true }
+        });
       }
       window.location.reload();
     } catch (error) {
