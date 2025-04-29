@@ -222,7 +222,7 @@ const ReservationDetail = () => {
 
     const fetchMediaValoraciones = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`, {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",

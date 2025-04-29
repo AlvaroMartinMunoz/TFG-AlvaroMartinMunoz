@@ -289,7 +289,7 @@ const Explorer = () => {
 
   const fetchMediaValoraciones = async (propiedadId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media_valoraciones/`);
+      const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`);
       if (response.ok) {
         const data = await response.json();
         setMediaValoraciones((prev) => ({ ...prev, [propiedadId]: data.media }));

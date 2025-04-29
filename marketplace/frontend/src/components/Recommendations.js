@@ -113,7 +113,7 @@ const Recommendations = () => {
     const fetchPropertyRatings = useCallback(async (propertyId) => {
         try {
             const response = await fetch(
-                `http://localhost:8000/api/propiedades/valoraciones-propiedades/${propertyId}/media_valoraciones/`
+                `http://localhost:8000/api/propiedades/valoraciones-propiedades/${propertyId}/media-valoraciones/`
             );
             if (response.ok) {
                 const data = await response.json();
