@@ -32,7 +32,10 @@ class ContentRecommender:
     def _load_data(self):
         propiedades = Propiedad.objects.all().values(
             'id', 'tipo_de_propiedad', 'wifi', 'precio_por_noche', 
-            'ciudad', 'numero_de_habitaciones'
+            'ciudad', 'numero_de_habitaciones','tamano', 'numero_de_banos',
+            'numero_de_camas', 'politica_de_cancelacion', 'calefaccion',
+            'aire_acondicionado', 'parking', 'mascotas', 'permitido_fumar'
+            
         )
         self.features = list(propiedades)
 

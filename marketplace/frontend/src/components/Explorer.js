@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   Box,
   Container,
@@ -125,6 +126,58 @@ const Explorer = () => {
   const isAuthenticated = () => {
     return !!localStorage.getItem("accessToken");
   };
+
+  // const location = useLocation();
+  // const RELOAD_FLAG_KEY = 'hasReloadedAfterLogin';
+
+
+
+  // useEffect(() => {
+  //   // 1. Primero, comprueba si la navegación actual tiene el estado del login.
+  //   //    Esto puede ser true si acabas de llegar del login O si usaste "Atrás"
+  //   //    y volviste a la entrada del historial que SÍ tenía el estado.
+  //   if (location.state?.fromLogin === true) {
+
+  //     // 2. --- ¡ESTA ES LA CLAVE PARA HACERLO SOLO UNA VEZ! ---
+  //     //    Ahora, mira en sessionStorage si YA hemos hecho la recarga antes
+  //     //    en esta sesión del navegador.
+  //     if (!sessionStorage.getItem(RELOAD_FLAG_KEY)) {
+  //       // 3. SI NO hay bandera en sessionStorage:
+  //       //    - Es la primera vez que llegamos aquí desde el login en esta sesión.
+  //       //    - Ejecuta la lógica que SÓLO quieres hacer una vez.
+
+  //       console.log("Llegada desde Login Y SIN bandera previa. Ejecutando lógica de recarga UNA SOLA VEZ.");
+
+  //       // a) Pon la bandera para no volver a entrar aquí en esta sesión.
+  //       sessionStorage.setItem(RELOAD_FLAG_KEY, 'true');
+
+  //       // b) Programa la recarga (tu lógica original).
+  //       const timerId = setTimeout(() => {
+  //         console.log("¡2 segundos pasados! Recargando la página...");
+  //         window.location.reload();
+  //       }, 5000);
+
+  //       // Función de limpieza para el temporizador
+  //       return () => {
+  //         clearTimeout(timerId);
+  //       };
+
+  //     } else {
+  //       // 4. SI SÍ hay bandera en sessionStorage:
+  //       //    - Aunque location.state.fromLogin sea true (ej: por usar "Atrás"),
+  //       //      la bandera nos dice que la acción de recarga ya se hizo/programó.
+  //       //    - Por lo tanto, NO HACEMOS NADA MÁS AQUÍ.
+  //       console.log("Llegada desde Login, PERO la bandera de recarga ya existe. No se hace nada.");
+  //     }
+
+  //   } else {
+  //     // 5. Si no vienes del login (location.state.fromLogin no es true)
+  //     console.log("Cargando Explorer normalmente.");
+  //     // No se hace nada relacionado con la recarga.
+  //   }
+
+  //   // Ejecutar solo una vez al montar el componente
+  // }, []);
 
   useEffect(() => {
     const fetchInitialData = async () => {
