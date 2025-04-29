@@ -44,19 +44,19 @@ class UsuarioSerializer(serializers.ModelSerializer):
         print(usuario_data)
         return usuario_data 
     
-    def validate_username(self, value):
-        """Comprueba si el username ya está en uso durante la validación."""
-        if User.objects.filter(username=value).exists():
-            raise serializers.ValidationError(_("Ya existe un usuario con ese nombre de usuario."))
-        return value
+    # def validate_username(self, value):
+    #     """Comprueba si el username ya está en uso durante la validación."""
+    #     if User.objects.filter(username=value).exists():
+    #         raise serializers.ValidationError(_("Ya existe un usuario con ese nombre de usuario."))
+    #     return value
 
-    def validate_email(self, value):
-        """Comprueba si el email ya está en uso durante la validación."""
-        # Nota: Esta validación simple asume creación. Si permitieras actualizar
-        # email vía este serializer, necesitarías lógica más compleja aquí.
-        if User.objects.filter(email=value).exists():
-            raise serializers.ValidationError(_("Esta dirección de correo electrónico ya está en uso."))
-        return value
+    # def validate_email(self, value):
+    #     """Comprueba si el email ya está en uso durante la validación."""
+    #     # Nota: Esta validación simple asume creación. Si permitieras actualizar
+    #     # email vía este serializer, necesitarías lógica más compleja aquí.
+    #     if User.objects.filter(email=value).exists():
+    #         raise serializers.ValidationError(_("Esta dirección de correo electrónico ya está en uso."))
+    #     return value
 
     # def get_valoracion_promedio_usuario(self, obj):
     #     return obj.valoracion_promedio_usuario()

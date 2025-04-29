@@ -1006,21 +1006,46 @@ def precios_especiales_por_propiedad(request, propiedad_id):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def favoritos_por_usuario(request, usuario_id):
-    usuario = Usuario.objects.filter(usuario=request.user).first()
-    usuarioId = usuario.id
+def favoritos_por_usuario(request, usuario_id): 
+
+    
+    usuario_autenticado_profile = Usuario.objects.filter(usuario=request.user).first()
+    userId = request.user.id
+
+    
+    if usuario_autenticado_profile is None:
+        return Response(
+            {'error': 'Perfil de usuario asociado al usuario autenticado no encontrado.'},
+            status=status.HTTP_404_NOT_FOUND
+           
+        )
+
+    usuario_autenticado_profile_id = usuario_autenticado_profile.id
+    user2 = usuario_autenticado_profile.usuario.id
+
+   
     try:
-        if usuarioId != int(usuario_id):
-            return Response({'error': 'No tienes permiso para ver estos favoritos'}, status=status.HTTP_403_FORBIDDEN)
-        
-        favoritos = Favorito.objects.filter(usuario=usuarioId)
+        requested_user_id = int(usuario_id)
+       
+              
+    except (ValueError, TypeError):
+        return Response({'error': 'ID de usuario inválido en la URL.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if usuario_autenticado_profile_id != requested_user_id:
+        return Response({'error': 'No tienes permiso para ver estos favoritos'}, status=status.HTTP_403_FORBIDDEN)
+
+    
+    try:
+        favoritos = Favorito.objects.filter(usuario=requested_user_id)
         serializer = FavoritoSerializer(favoritos, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    except Favorito.DoesNotExist:
-        return Response({'error': 'Favoritos no encontrados'}, status=status.HTTP_404_NOT_FOUND)
+
+   
     except Exception as e:
-        return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+        
+        print(f"Error inesperado en favoritos_por_usuario [ID: {requested_user_id}]: {e}")
+        return Response({'error': 'Ocurrió un error interno en el servidor.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 def fotos_por_propiedad(request, propiedad_id):
     try :
