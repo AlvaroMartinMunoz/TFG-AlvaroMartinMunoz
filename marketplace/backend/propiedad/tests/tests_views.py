@@ -23,7 +23,10 @@ import numpy as np
 import os
 from collections import defaultdict, Counter
 from copy import deepcopy
-from ..recommendations import ContentRecommender 
+from ..recommendations import ContentRecommender, CollaborativeRecommender
+from django.test import TestCase
+from datetime import date
+
 
 
 
@@ -2488,3 +2491,299 @@ class ContentRecommenderTest(unittest.TestCase):
         """Prueba que refresh_data llama a _load_data."""
         self.recommender.refresh_data()
         mock_load_data.assert_called_once()
+
+
+# --- Clase de Test ---
+class CollaborativeRecommenderTest(TestCase):
+
+    @classmethod
+    def setUpTestData(cls):
+        """
+        Configura los datos necesarios una vez para toda la clase de tests.
+        Crea usuarios, propiedades y un historial de interacciones variado.
+        """
+        # --- Crear Usuarios ---
+        cls.user1 = User.objects.create_user('user1', 'user1@test.com', 'pw')
+        cls.user2 = User.objects.create_user('user2', 'user2@test.com', 'pw')
+        cls.user3 = User.objects.create_user('user3', 'user3@test.com', 'pw')
+        cls.user_target = User.objects.create_user('target', 'target@test.com', 'pw')
+        cls.user_no_overlap = User.objects.create_user('no_overlap', 'no_overlap@test.com', 'pw')
+        cls.user_no_interactions = User.objects.create_user('no_interactions', 'no_interactions@test.com', 'pw')
+
+        placeholder_date = date(2000, 1, 1)
+
+        # Incluye todos los campos requeridos por tu modelo Usuario
+        cls.usuario1 = Usuario.objects.create(id=1, usuario=cls.user1, fecha_de_nacimiento=placeholder_date, dni='00000001A', telefono='600000001')
+        cls.usuario2 = Usuario.objects.create(id=2, usuario=cls.user2, fecha_de_nacimiento=placeholder_date, dni='00000002B', telefono='600000002')
+        cls.usuario3 = Usuario.objects.create(id=3, usuario=cls.user3, fecha_de_nacimiento=placeholder_date, dni='00000003C', telefono='600000003')
+        cls.usuario_target = Usuario.objects.create(id=4, usuario=cls.user_target, fecha_de_nacimiento=placeholder_date, dni='00000004D', telefono='600000004')
+        cls.usuario_no_overlap = Usuario.objects.create(id=5, usuario=cls.user_no_overlap, fecha_de_nacimiento=placeholder_date, dni='00000005E', telefono='600000005')
+        cls.usuario_no_interactions = Usuario.objects.create(id=6, usuario=cls.user_no_interactions, fecha_de_nacimiento=placeholder_date, dni='00000006F', telefono='600000006')
+
+        # --- Crear Propiedades (COMPLETO) ---
+        default_anfitrion = cls.usuario1 # Usamos usuario1 como anfitrión para todas
+        default_desc = "Descripción de prueba para esta propiedad."
+        default_pais = "España"
+        # Asegúrate que estos valores existen en tus CHOICES del modelo Propiedad
+        default_tipo = "Apartamento"
+        default_politica = "Flexible"
+
+        cls.p1 = Propiedad.objects.create(
+            id=101, anfitrion=default_anfitrion, nombre="Prop A - Target/Similar1", descripcion=default_desc,
+            direccion="Calle Falsa 101", ciudad="Madrid", pais=default_pais, codigo_postal="28001",
+            tipo_de_propiedad=default_tipo, precio_por_noche=100, maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=1, tamano=50,
+            politica_de_cancelacion=default_politica
+        )
+        cls.p2 = Propiedad.objects.create(
+            id=102, anfitrion=default_anfitrion, nombre="Prop B - Target/Similar2/3", descripcion=default_desc,
+            direccion="Calle Falsa 102", ciudad="Barcelona", pais=default_pais, codigo_postal="08001",
+            tipo_de_propiedad=default_tipo, precio_por_noche=120, maximo_huespedes=4,
+            numero_de_habitaciones=2, numero_de_banos=1, numero_de_camas=3, tamano=70,
+            politica_de_cancelacion=default_politica
+        )
+        cls.p3 = Propiedad.objects.create(
+            id=103, anfitrion=default_anfitrion, nombre="Prop C - Similar1 Rec", descripcion=default_desc,
+            direccion="Calle Falsa 103", ciudad="Sevilla", pais=default_pais, codigo_postal="41001",
+            tipo_de_propiedad=default_tipo, precio_por_noche=90, maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=1, tamano=45,
+            politica_de_cancelacion=default_politica
+        )
+        cls.p4 = Propiedad.objects.create(
+            id=104, anfitrion=default_anfitrion, nombre="Prop D - Similar2/3 Rec", descripcion=default_desc,
+            direccion="Calle Falsa 104", ciudad="Madrid", pais=default_pais, codigo_postal="28002", # CP diferente
+            tipo_de_propiedad=default_tipo, precio_por_noche=110, maximo_huespedes=3,
+            numero_de_habitaciones=2, numero_de_banos=1, numero_de_camas=2, tamano=60,
+            politica_de_cancelacion=default_politica
+        )
+        cls.p5 = Propiedad.objects.create(
+            id=105, anfitrion=default_anfitrion, nombre="Prop E - NoOverlap", descripcion=default_desc,
+            direccion="Calle Falsa 105", ciudad="Valencia", pais=default_pais, codigo_postal="46001",
+            tipo_de_propiedad=default_tipo, precio_por_noche=80, maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=1, tamano=40,
+            politica_de_cancelacion=default_politica
+        )
+        cls.p6 = Propiedad.objects.create(
+            id=106, anfitrion=default_anfitrion, nombre="Prop F - Popular Global", descripcion=default_desc,
+            direccion="Calle Falsa 106", ciudad="Bilbao", pais=default_pais, codigo_postal="48001",
+            tipo_de_propiedad='Casa', precio_por_noche=130, maximo_huespedes=5,
+            numero_de_habitaciones=3, numero_de_banos=2, numero_de_camas=4, tamano=100,
+            politica_de_cancelacion='Moderada'
+        )
+        cls.p7 = Propiedad.objects.create(
+            id=107, anfitrion=default_anfitrion, nombre="Prop G - Similar3 Click", descripcion=default_desc,
+            direccion="Calle Falsa 107", ciudad="Granada", pais=default_pais, codigo_postal="18001",
+            tipo_de_propiedad=default_tipo, precio_por_noche=95, maximo_huespedes=2,
+            numero_de_habitaciones=1, numero_de_banos=1, numero_de_camas=2, tamano=55,
+            politica_de_cancelacion=default_politica
+        )
+        # --- FIN CREACIÓN PROPIEDADES ---
+
+        # --- Crear Interacciones (COMPLETO) ---
+        start_date_base = date.today() + timedelta(days=30) 
+        default_num_personas = 2
+        default_estado = 'Aceptada'
+        default_metodo = 'Tarjeta de crédito'
+
+        # Helper para calcular precio total
+        def calculate_total_price(prop, start_date, end_date):
+            nights = (end_date - start_date).days
+            if nights <= 0: nights = 1
+            price = prop.precio_por_noche * nights
+            return max(price, 0.01)
+
+        # Reserva 1 (Target User @ P1)
+        res1_start = start_date_base
+        res1_end = res1_start + timedelta(days=3)
+        Reserva.objects.create(
+            usuario=cls.usuario_target, propiedad=cls.p1, anfitrion=cls.p1.anfitrion,
+            fecha_llegada=res1_start, fecha_salida=res1_end, numero_personas=default_num_personas,
+            precio_por_noche=cls.p1.precio_por_noche,
+            precio_total=calculate_total_price(cls.p1, res1_start, res1_end),
+            estado=default_estado, metodo_pago=default_metodo
+        )
+        # Favorito Target User @ P2
+        Favorito.objects.create(usuario=cls.usuario_target, propiedad=cls.p2)
+
+        # Reserva 2 (User1 @ P1)
+        res2_start = start_date_base + timedelta(days=5)
+        res2_end = res2_start + timedelta(days=3)
+        Reserva.objects.create(
+            usuario=cls.usuario1, propiedad=cls.p1, anfitrion=cls.p1.anfitrion,
+            fecha_llegada=res2_start, fecha_salida=res2_end, numero_personas=default_num_personas,
+            precio_por_noche=cls.p1.precio_por_noche,
+            precio_total=calculate_total_price(cls.p1, res2_start, res2_end),
+            estado=default_estado, metodo_pago=default_metodo
+        )
+        # Favorito User1 @ P3
+        Favorito.objects.create(usuario=cls.usuario1, propiedad=cls.p3)
+        # Reserva 3 (User1 @ P6)
+        res3_start = start_date_base + timedelta(days=10)
+        res3_end = res3_start + timedelta(days=2)
+        Reserva.objects.create(
+            usuario=cls.usuario1, propiedad=cls.p6, anfitrion=cls.p6.anfitrion,
+            fecha_llegada=res3_start, fecha_salida=res3_end, numero_personas=default_num_personas,
+            precio_por_noche=cls.p6.precio_por_noche,
+            precio_total=calculate_total_price(cls.p6, res3_start, res3_end),
+            estado=default_estado, metodo_pago=default_metodo
+        )
+
+        # Click User2 @ P2
+        ClickPropiedad.objects.create(usuario=cls.usuario2, propiedad=cls.p2)
+        # Reserva 4 (User2 @ P4)
+        res4_start = start_date_base + timedelta(days=15)
+        res4_end = res4_start + timedelta(days=5)
+        Reserva.objects.create(
+            usuario=cls.usuario2, propiedad=cls.p4, anfitrion=cls.p4.anfitrion,
+            fecha_llegada=res4_start, fecha_salida=res4_end, numero_personas=default_num_personas,
+            precio_por_noche=cls.p4.precio_por_noche,
+            precio_total=calculate_total_price(cls.p4, res4_start, res4_end),
+            estado=default_estado, metodo_pago=default_metodo
+        )
+        # Favorito User2 @ P6
+        Favorito.objects.create(usuario=cls.usuario2, propiedad=cls.p6)
+
+        # Click User3 @ P1
+        ClickPropiedad.objects.create(usuario=cls.usuario3, propiedad=cls.p1)
+        # Reserva 5 (User3 @ P2)
+        res5_start = start_date_base + timedelta(days=25)
+        res5_end = res5_start + timedelta(days=5)
+        Reserva.objects.create(
+            usuario=cls.usuario3, propiedad=cls.p2, anfitrion=cls.p2.anfitrion,
+            fecha_llegada=res5_start, fecha_salida=res5_end, numero_personas=default_num_personas + 1, # Diff personas
+            precio_por_noche=cls.p2.precio_por_noche,
+            precio_total=calculate_total_price(cls.p2, res5_start, res5_end),
+            estado=default_estado, metodo_pago='PayPal' # Diff metodo
+        )
+        # Favorito User3 @ P4
+        Favorito.objects.create(usuario=cls.usuario3, propiedad=cls.p4)
+        # Click User3 @ P7
+        ClickPropiedad.objects.create(usuario=cls.usuario3, propiedad=cls.p7)
+        # Favorito User3 @ P6
+        Favorito.objects.create(usuario=cls.usuario3, propiedad=cls.p6)
+
+        # Reserva 6 (No Overlap User @ P5)
+        res6_start = start_date_base + timedelta(days=40)
+        res6_end = res6_start + timedelta(days=5)
+        Reserva.objects.create(
+            usuario=cls.usuario_no_overlap, propiedad=cls.p5, anfitrion=cls.p5.anfitrion,
+            fecha_llegada=res6_start, fecha_salida=res6_end, numero_personas=1, # Diff personas
+            precio_por_noche=cls.p5.precio_por_noche,
+            precio_total=calculate_total_price(cls.p5, res6_start, res6_end),
+            estado=default_estado, metodo_pago=default_metodo
+        )
+        
+
+        cls.recommender = CollaborativeRecommender()
+
+    # --- Métodos de Prueba ---
+
+    def test_get_recommendations_with_similar_users(self):
+        """
+        Prueba el flujo principal: encontrar usuarios similares y obtener
+        recomendaciones basadas en ellos, excluyendo las ya interactuadas por el target.
+        Verifica la ordenación por popularidad entre usuarios similares.
+        """
+        recommendations_qs = self.recommender.get_user_recommendations(self.usuario_target.id) # ID del target es 4
+
+        # Convertir a lista porque el QuerySet viene "sliceado"
+        recommendations_list = list(recommendations_qs)
+        recommended_ids = [p.id for p in recommendations_list]
+
+        # Aserciones de Contenido
+        self.assertIn(self.p3.id, recommended_ids, "P3 (de user1) debería ser recomendada")
+        self.assertIn(self.p4.id, recommended_ids, "P4 (de user2 y user3) debería ser recomendada")
+        self.assertIn(self.p7.id, recommended_ids, "P7 (de user3) debería ser recomendada")
+        self.assertIn(self.p6.id, recommended_ids, "P6 (de user1, 2, 3) debería ser recomendada")
+        self.assertNotIn(self.p1.id, recommended_ids, "P1 (de target) no debería ser recomendada")
+        self.assertNotIn(self.p2.id, recommended_ids, "P2 (de target) no debería ser recomendada")
+        self.assertNotIn(self.p5.id, recommended_ids, "P5 (aislada) no debería ser recomendada")
+
+      
+        self.assertGreaterEqual(len(recommended_ids), 4, "Se esperaban al menos 4 recomendaciones")
+        if len(recommended_ids) >= 4:
+            self.assertEqual(recommended_ids[0], self.p6.id, "P6 debería ser la primera (mayor popularidad)")
+            self.assertEqual(recommended_ids[1], self.p4.id, "P4 debería ser la segunda")
+            self.assertEqual(recommended_ids[2], self.p3.id, "P3 debería ser la tercera")
+            self.assertEqual(recommended_ids[3], self.p7.id, "P7 debería ser la última (de las 4 esperadas)")
+
+        # Verificar anotaciones buscando objetos en la lista
+        prop6_rec = next((p for p in recommendations_list if p.id == self.p6.id), None)
+        prop4_rec = next((p for p in recommendations_list if p.id == self.p4.id), None)
+        prop3_rec = next((p for p in recommendations_list if p.id == self.p3.id), None)
+        prop7_rec = next((p for p in recommendations_list if p.id == self.p7.id), None)
+
+        self.assertIsNotNone(prop6_rec, "No se encontró P6 en los resultados")
+        if prop6_rec:
+            self.assertTrue(hasattr(prop6_rec, 'popularity'), "La propiedad P6 debe tener el atributo 'popularity'")
+            self.assertAlmostEqual(prop6_rec.popularity, 7.0) # R(2.0) + F(1.5) + F(1.5) = 5.0
+
+        self.assertIsNotNone(prop4_rec, "No se encontró P4 en los resultados")
+        if prop4_rec:
+             self.assertTrue(hasattr(prop4_rec, 'popularity'), "La propiedad P4 debe tener el atributo 'popularity'")
+             self.assertAlmostEqual(prop4_rec.popularity, 3.5) # R(2.0) + F(1.5) = 3.5
+
+        self.assertIsNotNone(prop3_rec, "No se encontró P3 en los resultados")
+        if prop3_rec:
+             self.assertTrue(hasattr(prop3_rec, 'popularity'), "La propiedad P3 debe tener el atributo 'popularity'")
+             self.assertAlmostEqual(prop3_rec.popularity, 1.5) # F(1.5) = 1.5
+
+        self.assertIsNotNone(prop7_rec, "No se encontró P7 en los resultados")
+        if prop7_rec:
+             self.assertTrue(hasattr(prop7_rec, 'popularity'), "La propiedad P7 debe tener el atributo 'popularity'")
+             self.assertAlmostEqual(prop7_rec.popularity, 0.7) # C(0.7) = 0.7
+
+    def test_get_recommendations_no_similar_users_fallback(self):
+        """
+        Prueba el caso donde el usuario no tiene 'vecinos' (usuarios similares).
+        Debería devolver las propiedades más populares globales (fallback).
+        """
+        recommendations_qs = self.recommender.get_user_recommendations(self.usuario_no_overlap.id)
+
+        # Convertir a lista porque el QuerySet viene "sliceado"
+        recommendations_list = list(recommendations_qs)
+        recommended_ids = [p.id for p in recommendations_list]
+
+        
+        self.assertGreaterEqual(len(recommended_ids), 1, "Se esperaba al menos 1 recomendación en fallback")
+        if len(recommended_ids) >= 1:
+            self.assertEqual(recommended_ids[0], self.p6.id, "Fallback: P6 debería ser la primera (más popular global)")
+        self.assertIn(self.p1.id, recommended_ids, "Fallback: P1 debería estar presente")
+        self.assertIn(self.p2.id, recommended_ids, "Fallback: P2 debería estar presente")
+        self.assertIn(self.p4.id, recommended_ids, "Fallback: P4 debería estar presente")
+        self.assertIn(self.p3.id, recommended_ids, "Fallback: P3 debería estar presente")
+        self.assertIn(self.p5.id, recommended_ids, "Fallback: P5 debería estar presente")
+
+
+        prop6_rec = next((p for p in recommendations_list if p.id == self.p6.id), None)
+
+        self.assertIsNotNone(prop6_rec, "Fallback: No se encontró P6 en los resultados")
+        if prop6_rec:
+            self.assertTrue(hasattr(prop6_rec, 'popularidad_global'), "La propiedad P6 debe tener 'popularidad_global'")
+            self.assertEqual(prop6_rec.popularidad_global, 4) # R(user1)+F(user2)+F(user3)=3
+
+    def test_get_recommendations_user_no_interactions_fallback(self):
+        """
+        Prueba el caso donde el usuario target no tiene ninguna interacción.
+        También debería activar el fallback a popularidad global.
+        """
+        recommendations_qs = self.recommender.get_user_recommendations(self.usuario_no_interactions.id)
+
+        # Convertir a lista porque el QuerySet viene "sliceado"
+        recommendations_list = list(recommendations_qs)
+        recommended_ids = [p.id for p in recommendations_list]
+
+        # Aserciones (el resultado debe ser idéntico al del test anterior)
+        self.assertGreaterEqual(len(recommended_ids), 1, "Se esperaba al menos 1 recomendación en fallback (sin interac.)")
+        if len(recommended_ids) >= 1:
+            self.assertEqual(recommended_ids[0], self.p6.id, "Fallback (sin interac.): P6 debería ser la primera")
+        self.assertIn(self.p1.id, recommended_ids, "Fallback (sin interac.): P1 debería estar presente")
+
+        # Verificar anotación buscando objeto en la lista
+        prop6_rec = next((p for p in recommendations_list if p.id == self.p6.id), None)
+
+        self.assertIsNotNone(prop6_rec, "Fallback (sin interac.): No se encontró P6 en los resultados")
+        if prop6_rec:
+            self.assertTrue(hasattr(prop6_rec, 'popularidad_global'), "La propiedad P6 debe tener 'popularidad_global'")
+            self.assertEqual(prop6_rec.popularidad_global, 4)
+
