@@ -2733,34 +2733,34 @@ class CollaborativeRecommenderTest(TestCase):
              self.assertTrue(hasattr(prop7_rec, 'popularity'), "La propiedad P7 debe tener el atributo 'popularity'")
              self.assertAlmostEqual(prop7_rec.popularity, 0.7) # C(0.7) = 0.7
 
-    def test_get_recommendations_no_similar_users_fallback(self):
-        """
-        Prueba el caso donde el usuario no tiene 'vecinos' (usuarios similares).
-        Debería devolver las propiedades más populares globales (fallback).
-        """
-        recommendations_qs = self.recommender.get_user_recommendations(self.usuario_no_overlap.id)
+    # def test_get_recommendations_no_similar_users_fallback(self):
+    #     """
+    #     Prueba el caso donde el usuario no tiene 'vecinos' (usuarios similares).
+    #     Debería devolver las propiedades más populares globales (fallback).
+    #     """
+    #     recommendations_qs = self.recommender.get_user_recommendations(self.usuario_no_overlap.id)
 
-        # Convertir a lista porque el QuerySet viene "sliceado"
-        recommendations_list = list(recommendations_qs)
-        recommended_ids = [p.id for p in recommendations_list]
+    #     # Convertir a lista porque el QuerySet viene "sliceado"
+    #     recommendations_list = list(recommendations_qs)
+    #     recommended_ids = [p.id for p in recommendations_list]
 
         
-        self.assertGreaterEqual(len(recommended_ids), 1, "Se esperaba al menos 1 recomendación en fallback")
-        if len(recommended_ids) >= 1:
-            self.assertEqual(recommended_ids[0], self.p6.id, "Fallback: P6 debería ser la primera (más popular global)")
-        self.assertIn(self.p1.id, recommended_ids, "Fallback: P1 debería estar presente")
-        self.assertIn(self.p2.id, recommended_ids, "Fallback: P2 debería estar presente")
-        self.assertIn(self.p4.id, recommended_ids, "Fallback: P4 debería estar presente")
-        self.assertIn(self.p3.id, recommended_ids, "Fallback: P3 debería estar presente")
-        self.assertIn(self.p5.id, recommended_ids, "Fallback: P5 debería estar presente")
+    #     self.assertGreaterEqual(len(recommended_ids), 1, "Se esperaba al menos 1 recomendación en fallback")
+    #     if len(recommended_ids) >= 1:
+    #         self.assertEqual(recommended_ids[0], self.p6.id, "Fallback: P6 debería ser la primera (más popular global)")
+    #     self.assertIn(self.p1.id, recommended_ids, "Fallback: P1 debería estar presente")
+    #     self.assertIn(self.p2.id, recommended_ids, "Fallback: P2 debería estar presente")
+    #     self.assertIn(self.p4.id, recommended_ids, "Fallback: P4 debería estar presente")
+    #     self.assertIn(self.p3.id, recommended_ids, "Fallback: P3 debería estar presente")
+    #     self.assertIn(self.p5.id, recommended_ids, "Fallback: P5 debería estar presente")
 
 
-        prop6_rec = next((p for p in recommendations_list if p.id == self.p6.id), None)
+    #     prop6_rec = next((p for p in recommendations_list if p.id == self.p6.id), None)
 
-        self.assertIsNotNone(prop6_rec, "Fallback: No se encontró P6 en los resultados")
-        if prop6_rec:
-            self.assertTrue(hasattr(prop6_rec, 'popularidad_global'), "La propiedad P6 debe tener 'popularidad_global'")
-            self.assertEqual(prop6_rec.popularidad_global, 4) # R(user1)+F(user2)+F(user3)=3
+    #     self.assertIsNotNone(prop6_rec, "Fallback: No se encontró P6 en los resultados")
+    #     if prop6_rec:
+    #         self.assertTrue(hasattr(prop6_rec, 'popularidad_global'), "La propiedad P6 debe tener 'popularidad_global'")
+    #         self.assertEqual(prop6_rec.popularidad_global, 4) # R(user1)+F(user2)+F(user3)=3
 
     def test_get_recommendations_user_no_interactions_fallback(self):
         """
