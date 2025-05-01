@@ -57,7 +57,6 @@ import PeopleIcon from '@mui/icons-material/People';
 import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CompareIcon from '@mui/icons-material/Compare';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import { set } from 'date-fns';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import StarIcon from '@mui/icons-material/Star';
@@ -445,9 +444,10 @@ const PropertyDashboard = () => {
                             <Select
                                 value={propiedadId}
                                 onChange={(e) => {
-                                    window.location.href = `/dashboard/${e.target.value}`;
-
+                                    const safeValue = encodeURIComponent(e.target.value);
+                                    window.location.href = `/dashboard/${safeValue}`;
                                 }}
+
                             >
                                 {propiedades.map((prop) => (
                                     <MenuItem key={prop.id} value={prop.id}>
