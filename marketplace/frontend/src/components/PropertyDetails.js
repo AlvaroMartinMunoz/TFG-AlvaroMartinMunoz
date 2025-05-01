@@ -1109,7 +1109,7 @@ const PropertyDetails = () => {
                             </Typography>
 
                             <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
-                                {propiedad ? `${propiedad.precio_por_noche} € por noche` : 'Cargando...'}
+                                {propiedad ? `Desde ${propiedad.precio_por_noche} € por noche` : 'Cargando...'}
                             </Typography>
                             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                                 {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
