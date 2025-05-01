@@ -1818,7 +1818,7 @@ const PropertyDetails = () => {
                                     <AttachMoneyIcon color='primary' />
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary="Gestionar Fechas Especiales"
+                                    primary="Gestionar Precios por Fecha"
                                     primaryTypographyProps={{
                                         fontSize: '0.9rem',
                                         fontWeight: 400
@@ -2439,7 +2439,7 @@ const PropertyDetails = () => {
                             pr: 6
                         }}>
                             <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-                                Gestión de fechas especiales
+                                Gestión de precios por fecha
                             </Typography>
                             <IconButton
                                 aria-label="cerrar"
@@ -2477,7 +2477,7 @@ const PropertyDetails = () => {
                                     <AddCircleOutlineIcon color="primary" />
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary="Añadir fechas con precio especial"
+                                    primary="Añadir precio para fecha específica"
                                     primaryTypographyProps={{
                                         fontSize: '0.9rem',
                                         fontWeight: 400
@@ -2501,7 +2501,7 @@ const PropertyDetails = () => {
                                     <DeleteOutlineIcon color="error" />
                                 </ListItemIcon>
                                 <ListItemText
-                                    primary="Eliminar fechas con precio especial"
+                                    primary="Eliminar precio para fecha específica"
                                     primaryTypographyProps={{
                                         fontSize: '0.9rem',
                                         fontWeight: 400
@@ -2556,7 +2556,7 @@ const PropertyDetails = () => {
                             borderBottom: '1px solid rgba(255,255,255,0.1)'
                         }}>
                             <Typography variant="h6" component="div" sx={{ fontWeight: 600, letterSpacing: '0.01em' }}>
-                                Configurar precio especial
+                                Configurar precio para fecha específica
                             </Typography>
                             <IconButton
                                 aria-label="cerrar"
@@ -2627,7 +2627,7 @@ const PropertyDetails = () => {
                         <Box mb={4.5} sx={{ position: 'relative', zIndex: 0 }}>
                             <Typography variant="subtitle1" color="text.primary" mb={2} fontWeight={600} sx={{ display: 'flex', alignItems: 'center' }}>
                                 <EuroIcon sx={{ fontSize: 18, mr: 1.5, color: 'primary.main', opacity: 0.9 }} />
-                                Valor del precio especial
+                                Valor
                             </Typography>
                             <TextField
                                 label="Precio por noche"
@@ -2743,7 +2743,7 @@ const PropertyDetails = () => {
                     >
                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
                             <EventBusyIcon sx={{ mr: 1.5, color: 'error.main', opacity: 0.85 }} />
-                            Eliminar fechas con precio especial
+                            Eliminar fechas con precio distinto
                         </Box>
                         <IconButton
                             onClick={handleCloseDeleteSpecialPrice}
