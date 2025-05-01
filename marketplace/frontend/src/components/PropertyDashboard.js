@@ -58,6 +58,9 @@ import EventAvailableIcon from '@mui/icons-material/EventAvailable';
 import CompareIcon from '@mui/icons-material/Compare';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { set } from 'date-fns';
+import BarChartIcon from '@mui/icons-material/BarChart';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import StarIcon from '@mui/icons-material/Star';
 
 const PropertyDashboard = () => {
     const theme = useTheme();
@@ -100,6 +103,7 @@ const PropertyDashboard = () => {
 
     }, [propiedadId]);
 
+
     useEffect(() => {
         if (valoraciones.length > 0) {
             const usuarios = valoraciones.map(v => v.usuario)
@@ -119,6 +123,19 @@ const PropertyDashboard = () => {
             });
         }
     }, [reservas]);
+
+    const scrollToSection = (elementId, offsetPixels = 80) => {
+        const element = document.getElementById(elementId);
+        if (element) {
+            const elementPosition = element.getBoundingClientRect().top;
+            const offsetPosition = elementPosition + window.pageYOffset - offsetPixels;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: 'smooth'
+            });
+        }
+    };
 
     const fetchUsuarioReservas = async (usuarioId) => {
         try {
@@ -295,6 +312,123 @@ const PropertyDashboard = () => {
             minHeight: '100vh',
             backgroundImage: 'linear-gradient(to bottom, rgba(255,255,255,0.8), rgba(255,255,255,0.4))',
         }}>
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    justifyContent: 'center',
+                    gap: { xs: 1, sm: 2 },
+                    mb: 5,
+                    borderRadius: 2,
+                    p: 2,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    background: 'linear-gradient(to right, #fafafa, #f5f5f5)'
+                }}
+            >
+                <Button
+                    variant="contained"
+                    color="primary"
+                    href="#metricas"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection('metricas');
+                    }}
+                    startIcon={<BarChartIcon />}
+                    sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-3px)',
+                            boxShadow: 3
+                        }
+                    }}
+                >
+                    Métricas
+                </Button>
+
+                <Button
+                    variant="contained"
+                    color="secondary"
+                    href="#reservas-ingresos"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection('reservas-ingresos');
+                    }}
+                    startIcon={<AccountBalanceIcon />}
+                    sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-3px)',
+                            boxShadow: 3
+                        }
+                    }}
+                >
+                    Reservas e Ingresos
+                </Button>
+
+                <Button
+                    variant="contained"
+                    color="info"
+                    href="#valoraciones"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection('valoraciones');
+                    }}
+                    startIcon={<StarIcon />}
+                    sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-3px)',
+                            boxShadow: 3
+                        }
+                    }}
+                >
+                    Valoraciones
+                </Button>
+
+                <Button
+                    variant="contained"
+                    color="success"
+                    href="#comparacion"
+                    onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection('comparacion');
+                    }}
+                    startIcon={<CompareIcon />}
+                    sx={{
+                        px: 3,
+                        py: 1.2,
+                        borderRadius: 2,
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        fontSize: '0.95rem',
+                        transition: 'all 0.3s ease',
+                        '&:hover': {
+                            transform: 'translateY(-3px)',
+                            boxShadow: 3
+                        }
+                    }}
+                >
+                    Comparación
+                </Button>
+            </Box>
             <Container maxWidth="xl">
                 <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -303,17 +437,38 @@ const PropertyDashboard = () => {
                         </Typography>
                         <Chip label={propiedad?.tipo_de_propiedad} color="secondary" variant="outlined" sx={{ fontWeight: 500 }} />
                     </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: '300px' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.text.secondary }}>
+                            Cambiar Propiedad:
+                        </Typography>
+                        <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+                            <Select
+                                value={propiedadId}
+                                onChange={(e) => {
+                                    window.location.href = `/dashboard/${e.target.value}`;
+
+                                }}
+                            >
+                                {propiedades.map((prop) => (
+                                    <MenuItem key={prop.id} value={prop.id}>
+                                        {prop.nombre}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                    </Box>
+
 
                 </Box>
 
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
+                <Box id="metricas" sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
                     <MetricCard icon={<EventAvailableIcon />} title="Reservas Totales" value={totalReservas} subtitle="Últimos 12 meses" color={theme.palette.primary.main} />
                     <MetricCard icon={<EuroIcon />} title="Ingresos Totales" value={`€${ingresosTotales.toFixed(2)}`} subtitle="Ingresos anuales" color={theme.palette.success.main} />
                     <MetricCard icon={<StarRateIcon />} title="Valoración Promedio" value={promedioValoracion.toFixed(2) + "/5"} subtitle={`de ${valoraciones.length} reseñas`} color={theme.palette.warning.main} />
                     <MetricCard icon={<PeopleIcon />} title="Tasa de Ocupación" value={`${ocupacionPorcentaje}%`} subtitle="Días ocupados/año" color={theme.palette.info.main} />
                 </Box>
 
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 4 }}>
+                <Box id="reservas-ingresos" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 4 }}>
                     <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
@@ -428,8 +583,8 @@ const PropertyDashboard = () => {
                     </Card>
                 </Box>
 
-                {propiedades.length > 1 && <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
-                    <CardContent>
+                {propiedades.length > 1 && <Card id="comparacion" elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', mb: 4 }}>
+                    <CardContent sx={{ padding: { xs: 2, sm: 3 } }}>
                         <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
                             <CompareIcon /> Comparación con Otras Propiedades
                         </Typography>
@@ -700,7 +855,7 @@ const PropertyDashboard = () => {
                         border: '1px solid #f0f0f0',
                         height: 'fit-content'
                     }}>
-                        <CardHeader
+                        <CardHeader id='valoraciones'
                             title={
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <StarRateIcon color="warning" fontSize="small" />
