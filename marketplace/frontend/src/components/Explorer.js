@@ -127,6 +127,21 @@ const Explorer = () => {
     return !!localStorage.getItem("accessToken");
   };
 
+  const scrollToSection = (elementId, offsetPixels = 80) => {
+    const element = document.getElementById(elementId);
+    console.log("H", element);
+
+    if (element) {
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - offsetPixels;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
+
   // const location = useLocation();
   // const RELOAD_FLAG_KEY = 'hasReloadedAfterLogin';
 
@@ -982,37 +997,57 @@ const Explorer = () => {
                   <Typography variant="body1" color="text.secondary">
                     Intenta ajustar los filtros para encontrar más opciones
                   </Typography>
-                  <Button
-                    variant="outlined"
-                    sx={{
-                      mt: 3,
-                      borderRadius: "30px",
-                      borderColor: "#091630",
-                      color: "#091630",
-                      "&:hover": {
+                  <Box sx={{ mt: 2, display: "flex", justifyContent: "center", flexDirection: { xs: "column", md: "row" } }}>
+                    <Button
+                      variant="outlined"
+                      sx={{
+                        mt: 3,
+                        mr: { xs: 0, md: 2 },
+                        borderRadius: "30px",
                         borderColor: "#091630",
-                        bgcolor: "rgba(9, 22, 48, 0.04)",
-                      },
-                    }}
-                    onClick={() => {
-                      setPrecioRango([0, 1000]);
-                      setTipoPropiedad("");
-                      setHabitaciones(0);
-                      setCamas(0);
-                      setOrdenPrecio("recomendaciones");
-                      setCiudad("");
-                    }}
-                  >
-                    Limpiar filtros
-                  </Button>
+                        color: "#091630",
+                        "&:hover": {
+                          borderColor: "#091630",
+                          bgcolor: "rgba(9, 22, 48, 0.04)",
+                        },
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setPrecioRango([0, 1000]);
+                        setTipoPropiedad("");
+                        setHabitaciones(0);
+                        setCamas(0);
+                        setOrdenPrecio("recomendaciones");
+                        setCiudad("");
+                      }}
+                    >
+                      Limpiar filtros
+                    </Button>
+                    <Button
+                      variant="contained"
+                      sx={{
+                        mt: 3,
+                        ml: { xs: 0, md: 2 },
+                        borderRadius: "30px",
+                        bgcolor: "#091630",
+                        color: "white",
+                        "&:hover": {
+                          bgcolor: "#2a4a8d",
+                        },
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        scrollToSection('recomendaciones');
+                      }}
+                    > Ver recomendaciones </Button>
+                  </Box>
                 </Paper>
               )}
             </Box>
           </Box>
-          {/* --- INICIO CÓDIGO A AÑADIR --- */}
-          {/* Sección de Recomendaciones (al final del contenedor principal de propiedades) */}
+
           {!isLoading && recomendaciones.length > 0 && (
-            <Box sx={{ mt: 6, width: '100%' }}> {/* Asegura que ocupe todo el ancho disponible y añade margen superior */}
+            <Box id="recomendaciones" sx={{ mt: 6, width: '100%' }}> {/* Asegura que ocupe todo el ancho disponible y añade margen superior */}
               <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3, px: 1 }}>
                 Quizás te interese...
               </Typography>
