@@ -1009,9 +1009,213 @@ const Explorer = () => {
               )}
             </Box>
           </Box>
+          {/* --- INICIO CÓDIGO A AÑADIR --- */}
+          {/* Sección de Recomendaciones (al final del contenedor principal de propiedades) */}
+          {!isLoading && recomendaciones.length > 0 && (
+            <Box sx={{ mt: 6, width: '100%' }}> {/* Asegura que ocupe todo el ancho disponible y añade margen superior */}
+              <Typography variant="h5" sx={{ fontWeight: "bold", mb: 3, px: 1 }}>
+                Quizás te interese...
+              </Typography>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { // Usar la misma configuración de columnas que la lista principal
+                    xs: "1fr",
+                    sm: "repeat(2, 1fr)",
+                    md: "repeat(2, 1fr)",
+                    lg: "repeat(3, 1fr)"
+                  },
+                  gap: 3, // Usar el mismo espaciado
+                }}
+              >
+                {/* Mapear sobre las recomendaciones y usar EXACTAMENTE la misma estructura de tarjeta */}
+                {/* Puedes limitar el número de recomendaciones mostradas con .slice(0, X) si quieres */}
+                {recomendaciones.map((recomendacion, index) => (
+                  <Box
+                    key={`rec-${recomendacion.id}-${index}`} // Clave única para elementos de recomendación
+                    sx={{ // Copiar estilos exactos de la tarjeta principal
+                      borderRadius: "16px",
+                      overflow: "hidden",
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                      bgcolor: "white",
+                      transition: "transform 0.3s ease, box-shadow 0.3s ease",
+                      "&:hover": {
+                        transform: "translateY(-5px)",
+                        boxShadow: "0 10px 20px rgba(0,0,0,0.12)",
+                      },
+                      display: "flex",
+                      flexDirection: "column",
+                    }}
+                  >
+                    <Box sx={{ position: "relative" }}>
+                      {imageLoading[recomendacion.id] ? (
+                        <Skeleton variant="rectangular" height={200} />
+                      ) : (
+                        <Box
+                          component="img"
+                          // Asegúrate de tener las URLs de las fotos para las recomendaciones también en el estado 'url'
+                          src={url[recomendacion.id] || "https://source.unsplash.com/1600x900/?house,recommendation"} // Fallback por si no hay imagen
+                          alt={recomendacion.nombre}
+                          sx={{
+                            width: "100%",
+                            height: "200px",
+                            objectFit: "cover",
+                            transition: "transform 0.5s ease",
+                            "&:hover": {
+                              transform: "scale(1.05)",
+                            },
+                          }}
+                        />
+                      )}
+
+                      <Chip
+                        icon={getTipoIcon(recomendacion.tipo_de_propiedad)}
+                        label={recomendacion.tipo_de_propiedad}
+                        sx={{
+                          position: "absolute", top: 10, left: 10, bgcolor: "rgba(255, 255, 255, 0.9)", fontWeight: "bold", '& .MuiChip-icon': { color: "#091630" }
+                        }}
+                        size="small"
+                      />
+
+                      {isAuthenticated() ? (
+                        <IconButton
+                          // Asegúrate que toggleFavorito funcione con IDs de recomendaciones
+                          onClick={() => toggleFavorito(recomendacion.id)}
+                          sx={{
+                            position: "absolute", top: 10, right: 10, bgcolor: "rgba(255, 255, 255, 0.9)", "&:hover": { bgcolor: "rgba(255, 255, 255, 0.95)" },
+                          }}
+                          size="small"
+                        >
+                          {/* Asegúrate que 'favoritos' y 'usuarioId' estén actualizados y disponibles */}
+                          {favoritos.some(favorito => favorito.propiedad === recomendacion.id && favorito.usuario === usuarioId) ? (
+                            <FavoriteIcon sx={{ color: "#e91e63" }} />
+                          ) : (
+                            <FavoriteBorderIcon sx={{ color: "#091630" }} />
+                          )}
+                        </IconButton>
+                      ) : null}
+
+                      <Chip
+                        label={getPrecioLabel(recomendacion.precio_por_noche)}
+                        color={recomendacion.precio_por_noche > 300 ? "error" : recomendacion.precio_por_noche > 100 ? "warning" : "success"}
+                        sx={{
+                          position: "absolute", bottom: 10, right: 10, fontWeight: "bold", boxShadow: "0 2px 4px rgba(0,0,0,0.2)"
+                        }}
+                        size="small"
+                      />
+                    </Box>
+
+                    <Box sx={{ p: 2, flexGrow: 1, display: "flex", flexDirection: "column" }}>
+                      <Typography variant="subtitle1" sx={{
+                        fontWeight: "bold", mb: 1, fontSize: "1.1rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"
+                      }}>
+                        <a
+                          href={`/detalles/${recomendacion.id}`} // Enlace al detalle de la recomendación
+                          style={{
+                            textDecoration: "none", color: "#091630", transition: "color 0.2s ease", "&:hover": { color: "#2a4a8d" }
+                          }}
+                        >
+                          {recomendacion.nombre}
+                        </a>
+                      </Typography>
+
+                      <Box sx={{ mb: 1 }}>
+                        <Chip
+                          icon={<LocationOnIcon />}
+                          label={recomendacion.ciudad || "España"} // Usa la ciudad de la recomendación
+                          size="small"
+                          sx={{ bgcolor: "#f0f4f8", fontSize: "0.75rem", height: 24 }}
+                        />
+                      </Box>
+
+                      <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
+                        <Tooltip title="Habitaciones">
+                          <Chip icon={<BedIcon fontSize="small" />} label={recomendacion.numero_de_habitaciones} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                        </Tooltip>
+                        <Tooltip title="Camas">
+                          <Chip icon={<HotelIcon fontSize="small" />} label={recomendacion.numero_de_camas} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                        </Tooltip>
+                        {recomendacion.wifi && (
+                          <Tooltip title="WiFi disponible">
+                            <Chip icon={<WifiIcon fontSize="small" />} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                          </Tooltip>
+                        )}
+                      </Box>
+
+                      <Box sx={{
+                        mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, borderTop: "1px solid", borderColor: "grey.200"
+                      }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ color: "text.secondary" }}>Precio por noche</Typography>
+                          <Typography variant="h6" sx={{ fontWeight: "bold", color: "#091630" }}>{recomendacion.precio_por_noche}€</Typography>
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          {/* Asegúrate de tener las medias de valoración para las recomendaciones */}
+                          <Rating
+                            value={mediaValoraciones[recomendacion.id] !== undefined ? mediaValoraciones[recomendacion.id] : 0}
+                            precision={0.5}
+                            readOnly
+                            size="small"
+                          />
+                          {mediaValoraciones[recomendacion.id] !== undefined && mediaValoraciones[recomendacion.id] !== null && (
+                            <Typography variant="body2" sx={{ ml: 0.5, fontWeight: "bold" }}>
+                              {/* Usar optional chaining por si mediaValoraciones[id] es undefined o null */}
+                              {mediaValoraciones[recomendacion.id]?.toFixed(1)}
+                            </Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+          )}
+          {/* --- FIN CÓDIGO A AÑADIR --- */}
+
+          {/* El mensaje "No se encontraron propiedades" va después de la lista principal Y la sección de recomendaciones */}
+          {propiedadesFiltradas.length === 0 && recomendaciones.length === 0 && !isLoading && (
+            <Paper
+              elevation={1}
+              sx={{
+                p: 4,
+                textAlign: "center",
+                borderRadius: "16px",
+                mt: 4, // Aumentar margen si ambas listas están vacías
+                gridColumn: "1 / -1" // Asegura que ocupe todo el ancho del grid si se muestra aquí
+              }}
+            >
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                No se encontraron propiedades ni recomendaciones
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                Intenta ajustar los filtros o explorar otras opciones.
+              </Typography>
+              <Button
+                variant="outlined"
+                sx={{
+                  mt: 3, borderRadius: "30px", borderColor: "#091630", color: "#091630", "&:hover": { borderColor: "#091630", bgcolor: "rgba(9, 22, 48, 0.04)" },
+                }}
+                onClick={() => {
+                  setPrecioRango([0, 1000]);
+                  setTipoPropiedad("");
+                  setHabitaciones(0);
+                  setCamas(0);
+                  setOrdenPrecio("recomendaciones");
+                  setCiudad("");
+                }}
+              >
+                Limpiar filtros
+              </Button>
+            </Paper>
+          )}
+
+
+
+
         </Container>
-      </Box>
-    </LocalizationProvider>
+      </Box >
+    </LocalizationProvider >
   );
 };
 
