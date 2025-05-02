@@ -79,8 +79,25 @@ class PasswordResetSerializer(serializers.Serializer):
         return value
 
     
+# class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+#     def validate(self, attrs):
+#         data = super().validate(attrs)
+#         data['usuarioId'] = self.user.id  
+#         return data
+
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
         data = super().validate(attrs)
-        data['usuarioId'] = self.user.id  
+
+        try:
+           
+            usuario_relacionado = self.user.usuario
+            data['usuarioId'] = usuario_relacionado.id
+        except AttributeError:
+            
+            print(f"Error: No se encontró el perfil Usuario para el User con ID {self.user.id}")
+           
+            raise serializers.ValidationError("No se encontró el perfil de usuario asociado.")
+         
+
         return data
