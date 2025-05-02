@@ -352,7 +352,7 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
         usuario_id = request.data.get('usuario')
         valoracion = request.data.get('valoracion')
         comentario = request.data.get('comentario', None)
-        usuario = Usuario.objects.filter(id=usuario_id).first()
+        usuario = Usuario.objects.filter(id=usuario_id).first()        
 
         if not propiedad_id or not valoracion or not usuario_id or not comentario:
             return Response({'error': 'Todos los campos son obligatorios'}, status=status.HTTP_400_BAD_REQUEST)
@@ -367,6 +367,10 @@ class ValoracionPropiedadViewSet(viewsets.ModelViewSet):
         if propiedad.anfitrion.usuario_id == request.user.id:
             return Response({'error': 'No puedes valorar tu propia propiedad'}, status=status.HTTP_403_FORBIDDEN)
         
+        reservas = Reserva.objects.filter(usuario=usuario, propiedad_id=propiedad_id, estado='Aceptada')
+        if not reservas.exists():
+            return Response({'error': 'Debes tener una reserva confirmada para valorar esta propiedad'}, status=status.HTTP_403_FORBIDDEN)
+                
         try:
             ValoracionPropiedad.objects.create(propiedad=propiedad, usuario=usuario, valoracion=valoracion, comentario=comentario)
         except IntegrityError:

@@ -1,6 +1,6 @@
-import { Box, Typography, Container, Paper, Modal, Divider, ListItem, List, ListItemIcon, ListItemText, InputAdornment, IconButton, DialogActions, Button, DialogTitle, DialogContent, TextField, FormControl, InputLabel, MenuItem, Select, Rating, Dialog, CircularProgress, Tooltip } from '@mui/material';
+import { Box, Typography, Container, Paper, Modal, Divider, Chip, ListItem, List, ListItemIcon, ListItemText, InputAdornment, IconButton, DialogActions, Button, DialogTitle, DialogContent, TextField, FormControl, InputLabel, MenuItem, Select, Rating, Dialog, CircularProgress, Tooltip, ToggleButton, ToggleButtonGroup, Snackbar, Alert as MuiAlert, Avatar } from '@mui/material';
 import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react'; // Agregado useMemo
 import Carousel from 'react-material-ui-carousel';
 import CloseIcon from '@mui/icons-material/Close';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -8,11 +8,11 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import refreshAccessToken from './RefreshToken';
 import 'react-dates/initialize';
 import 'react-dates/lib/css/_datepicker.css';
-import { DateRangePicker, DayPickerSingleDateController } from 'react-dates';
+import { DateRangePicker, DayPickerRangeController } from 'react-dates'; // Cambiado DayPickerSingleDateController si es necesario
 import moment from 'moment';
+import 'moment/locale/es'; // Importar locale español para moment
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
-import { Alert } from '@mui/material';
 import { loadStripe } from '@stripe/stripe-js';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -30,11 +30,17 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import HomeWorkIcon from '@mui/icons-material/HomeWork';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import { useFavoritos } from "../context/FavoritosContext";
+import SettingsIcon from '@mui/icons-material/Settings'; // Nuevo icono
+import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Nuevo icono
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'; // Nuevo icono
 
+// Configurar Moment.js en español
+moment.locale('es');
 
-
-
-
+// Componente Alert personalizado para Snackbar
+const Alert = React.forwardRef(function Alert(props, ref) {
+    return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
+});
 
 
 const PropertyDetails = () => {
@@ -43,54 +49,90 @@ const PropertyDetails = () => {
     const { propiedadId } = useParams();
     const [propiedad, setPropiedad] = useState(null);
     const [fotos, setFotos] = useState([]);
-    const [open, setOpen] = useState(false);
+    const [open, setOpen] = useState(false); // Modal de fotos grande
     const [selectedFotoIndex, setSelectedFotoIndex] = useState(0);
     const [esAnfitrion, setEsAnfitrion] = useState(false);
-    const [openManageDates, setOpenManageDates] = useState(false);
-    const [blockedDates, setBlockedDates] = useState([]);
-    const [openDatePicker, setOpenDatePicker] = useState(false);
-    const [openUnblockDatePicker, setOpenUnblockDatePicker] = useState(false);
-    const [openReserveDatePicker, setOpenReserveDatePicker] = useState(false);
+    const [blockedDates, setBlockedDates] = useState([]); // Fechas bloqueadas manualmente por anfitrión
+    const [openReserveDatePicker, setOpenReserveDatePicker] = useState(false); // Modal de reserva cliente
     const [reserveStartDate, setReserveStartDate] = useState(null);
     const [reserveEndDate, setReserveEndDate] = useState(null);
-    const [focusedInput, setFocusedInput] = useState(null);
+    const [focusedInput, setFocusedInput] = useState(null); // Para el DateRangePicker de reserva cliente
     const [numPersonas, setNumPersonas] = useState(1);
     const [metodoPago, setMetodoPago] = useState("Tarjeta de crédito");
     const [comentarios_usuario, setComentariosUsuario] = useState("");
-    const [reservas, setReservas] = useState([]);
-    const [selectedBlockDates, setSelectedBlockDates] = useState([]);
-    const [selectedUnblockDates, setSelectedUnblockDates] = useState([]);
+    const [reservas, setReservas] = useState([]); // Reservas confirmadas
     const [rating, setRating] = useState(0);
     const [comentario_valoracion, setComentarioValoracion] = useState("");
     const [hasRated, setHasRated] = useState(false);
     const [userRating, setUserRating] = useState(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [alertMessage, setAlertMessage] = useState("");
+    const [alertMessage, setAlertMessage] = useState(""); // Para alertas de valoración
     const [mediaValoraciones, setMediaValoraciones] = useState(null);
     const [loadingMedia, setLoadingMedia] = useState(true);
     const [errorMedia, setErrorMedia] = useState(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(false); // Estado de carga general o para acciones específicas
     const [loadingRating, setLoadingRating] = useState(false);
-    const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn');
+    const stripePromise = loadStripe('pk_test_51OLmDUDoSuE99ePTNjJmFyVKyw1JJEabUApOykfz6zKOpSHuGJZ2Tobebcs0l9tSNtcBfUkURjIqSgarS1ik5YVt00ZVb4u4nn'); // Reemplaza con tu clave pública de Stripe
     const [isFavorite, setIsFavorite] = useState(false);
     const [favoritoId, setFavoritoId] = useState(null);
-    const [notification, setNotification] = useState(null);
+    const [notification, setNotification] = useState({ open: false, message: '', severity: 'info' }); // Para Snackbar
     const clienteId = JSON.parse(localStorage.getItem('additionalInfo'))?.usuarioId;
     const [cliente, setCliente] = useState(null);
-    const [specialPriceStartDate, setSpecialPriceStartDate] = useState(null);
-    const [specialPriceEndDate, setSpecialPriceEndDate] = useState(null);
-    const [specialPricesList, setSpecialPricesList] = useState([]);
-    const [specialPrice, setSpecialPrice] = useState('');
-    const [openAddSpecialPrice, setOpenAddSpecialPrice] = useState(false);
-    const [openMenuSpecialPrice, setOpenMenuSpecialPrice] = useState(false);
-    const [openDeleteSpecialPrice, setOpenDeleteSpecialPrice] = useState(false);
-    const [datesBetween, setDatesBetween] = useState([]);
-    const [openPrincipalMenu, setOpenPrincipalMenu] = useState(false);
+    const [specialPricesList, setSpecialPricesList] = useState([]); // Lista de precios especiales
+    const [specialPrice, setSpecialPrice] = useState(''); // Input para precio especial en modal unificado
+    const [datesBetween, setDatesBetween] = useState([]); // Para cálculo de precio en modal reserva cliente
 
+    const [openGestionModal, setOpenGestionModal] = useState(false);
+    const [gestionAccion, setGestionAccion] = useState('bloquear'); // 'bloquear', 'desbloquear', 'precio'
+    const [gestionStartDate, setGestionStartDate] = useState(null);
+    const [gestionEndDate, setGestionEndDate] = useState(null);
+    const [gestionFocusedInput, setGestionFocusedInput] = useState(null); // Para el DRP del modal de gestión
+
+    // --- Estilos reutilizables ---
+    const columnStyle = {
+        p: { xs: 2, sm: 3 }, // Padding adaptable
+        display: 'flex',
+        flexDirection: 'column',
+        overflowY: 'auto', // Permitir scroll independiente en cada columna
+        flexGrow: 1,        // Permitir que crezcan
+        minHeight: 0,       // Necesario para que flexGrow funcione con overflow
+    };
+
+    const leftColumnStyle = {
+        ...columnStyle,
+        flexBasis: { md: '60%' }, // Más espacio para el calendario
+        borderRight: { md: '1px solid' },
+        borderColor: { md: 'divider' },
+    };
+
+    const rightColumnStyle = {
+        ...columnStyle,
+        flexBasis: { md: '40%' }, // Menos espacio para la lista
+        bgcolor: 'grey.50',      // Fondo sutil para diferenciar
+    };
+
+    const stickyHeaderStyle = {
+        position: 'sticky',
+        top: 0,
+        bgcolor: 'background.paper', // Fondo para tapar contenido al hacer scroll
+        zIndex: 1,
+        pt: 0, // Ajustar padding si es necesario
+        pb: 1.5,
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+        mx: -3, // Extender al ancho completo del padding del contenedor
+        px: 3, // Restaurar padding interno
+    };
+
+    const stickyHeaderStyleRight = {
+        ...stickyHeaderStyle,
+        bgcolor: 'grey.50', // Mantener el fondo de la columna derecha
+        mx: -3,
+        px: 3,
+    };
 
     useEffect(() => {
         if (isAuthenticated()) {
-
             fetchBlockedDates();
             fetchReservas();
             refreshAccessToken();
@@ -103,19 +145,132 @@ const PropertyDetails = () => {
         checkUserRating();
         fetchMediaValoraciones();
 
-
-    }, [propiedadId, openManageDates, openDatePicker, openUnblockDatePicker, openReserveDatePicker, openAddSpecialPrice, openMenuSpecialPrice, openDeleteSpecialPrice]);
+    }, [propiedadId]);
 
     useEffect(() => {
         if (clienteId)
             fetchCliente(clienteId);
     }, [clienteId]);
 
-    const isSpecialPriceDate = (date) => {
-        return specialPricesList.some(
-            (price) =>
-                moment(date).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]')
-        );
+    const hasConfirmedReservation = () => {
+        return reservas.some(reserva => reserva.estado === 'Aceptada' && reserva.usuario === usuarioId);
+    };
+
+    const fetchPropertyDetails = async () => {
+        try {
+            let response;
+            if (isAuthenticated()) {
+                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                    },
+                });
+            }
+            else {
+                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
+                    method: "GET",
+                });
+            }
+            if (response.ok) {
+                const data = await response.json();
+                setPropiedad(data);
+
+                const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
+                const usuarioID = storedInfo ? storedInfo.usuarioId : null;
+                if (usuarioID && data.anfitrion && usuarioID === data.anfitrion) {
+                    setEsAnfitrion(true);
+                } else {
+                    setEsAnfitrion(false); // Asegúrate de resetear si no lo es
+                }
+            } else {
+                console.error("Error fetching property details:", response.status, response.statusText);
+                // Considera mostrar un error al usuario
+            }
+
+        } catch (error) {
+            console.error("Error fetching property details:", error);
+        }
+    };
+
+    const fetchPropertyPhotos = async (propiedadId) => {
+        // ... (sin cambios)
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            if (response.ok) {
+                const data = await response.json();
+                const filteredData = data.filter(foto => foto.propiedad === parseInt(propiedadId));
+                setFotos(filteredData);
+            } else {
+                console.error("Error fetching photos:", response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching photos:", error);
+        }
+    };
+
+    const fetchBlockedDates = async (retried = false) => {
+        if (!isAuthenticated()) return; // No intentar si no está autenticado
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas-por-propiedad/${propiedadId}/`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) {
+                    return fetchBlockedDates(true); // Reintentar con el nuevo token
+                } else {
+                    handleLogout(); // Falló el refresh, desloguear
+                    return;
+                }
+            }
+            if (response.ok) {
+                const data = await response.json();
+                setBlockedDates(data);
+            } else {
+                console.error("Error fetching blocked dates:", response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching blocked dates:", error);
+        }
+    };
+
+    const fetchReservas = async (retried = false) => {
+        if (!isAuthenticated()) return;
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}/`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) {
+                    return fetchReservas(true);
+                } else {
+                    handleLogout();
+                    return;
+                }
+            }
+            if (response.ok) {
+                const data = await response.json();
+                setReservas(data);
+                setReserveStartDate(null);
+                setReserveEndDate(null);
+                setFocusedInput(null);
+                setNumPersonas(1);
+                setMetodoPago("Tarjeta de crédito");
+                setComentariosUsuario("");
+            } else {
+                console.error("Error fetching reservas:", response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error("Error fetching reservas:", error);
+        }
     };
 
     const fetchSpecialPrices = async () => {
@@ -123,7 +278,7 @@ const PropertyDetails = () => {
             const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}/`);
             if (response.ok) {
                 const data = await response.json();
-                const filteredData = data.filter((precio) => precio.fecha_fin >= moment().format('YYYY-MM-DD'));
+                const filteredData = data.filter((precio) => moment(precio.fecha_fin).isSameOrAfter(moment(), 'day'));
                 setSpecialPricesList(filteredData);
             } else {
                 console.error("Error fetching special prices:", response.statusText);
@@ -133,45 +288,91 @@ const PropertyDetails = () => {
         }
     };
 
-
-
-    const validateFields = () => {
-        if (rating === 0 || comentario_valoracion.trim() === "") {
-            setAlertMessage("Por favor, complete todos los campos");
-            return false;
-        }
-        setAlertMessage("");
-        return true;
-    };
-
-    const handleDeleteSpecialPrice = async (specialPriceId) => {
+    const fetchMediaValoraciones = async () => {
+        setLoadingMedia(true);
+        setErrorMedia(null);
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/${specialPriceId}/`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
+                method: "GET",
+                headers: { "Content-Type": "application/json" },
             });
             if (response.ok) {
-                alert("Precio especial eliminado correctamente");
-                fetchSpecialPrices();
+                const data = await response.json();
+                setMediaValoraciones(data);
             } else {
-                console.error("Error deleting special price:", response.statusText);
+                setErrorMedia("No se pudo obtener la media de valoraciones");
+                console.error("Error fetching media valoraciones:", response.status, response.statusText);
             }
         } catch (error) {
-            console.error("Error deleting special price:", error);
+            setErrorMedia("Error al conectar para obtener valoraciones");
+            console.error("Error fetching media valoraciones:", error);
+        } finally {
+            setLoadingMedia(false);
         }
     };
 
+    const checkUserRating = async () => {
+        if (!isAuthenticated() || !usuarioId) return; // Necesita estar logueado
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}/`);
+            if (response.ok) {
+                const data = await response.json();
+                const dataFiltered = data.filter((valoracion) => valoracion.usuario === usuarioId);
+                if (dataFiltered.length > 0) {
+                    setHasRated(true);
+                    setUserRating(dataFiltered[0]);
+                    setRating(dataFiltered[0].valoracion);
+                    setComentarioValoracion(dataFiltered[0].comentario);
+                } else {
+                    setHasRated(false);
+                    setUserRating(null);
+                }
+            } else {
+                console.error("Error checking user rating:", response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error("Error checking user rating:", error);
+        }
+    };
+
+    const checkIfFavorite = async () => {
+        if (!isAuthenticated() || !usuarioId) return;
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}/`, {
+                method: "GET",
+                headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+            });
+
+            // Manejo de token expirado (opcional pero recomendado)
+            if (response.status === 401) {
+                const refreshed = await refreshAccessToken();
+                if (refreshed) return checkIfFavorite(); // Reintentar
+                else { handleLogout(); return; }
+            }
+
+            if (response.ok) {
+                const data = await response.json();
+                const propiedadID = parseInt(propiedadId);
+                const fav = data.find((fav) => fav.usuario === usuarioId && fav.propiedad === propiedadID);
+                setIsFavorite(!!fav);
+                setFavoritoId(fav ? fav.id : null);
+                actualizarFavoritosNavbar(); // Asegúrate que esta función exista en tu contexto
+            } else {
+                console.error("Error checking favorite status:", response.status, response.statusText);
+            }
+        } catch (error) {
+            console.error("Error checking favorite status:", error);
+        }
+    };
 
     const fetchCliente = async (clienteId) => {
+        if (!isAuthenticated()) return;
         try {
             const response = await fetch(`http://localhost:8000/api/usuarios/${clienteId}/`);
             if (response.ok) {
                 const data = await response.json();
                 setCliente(data);
-                console.log(data);
+                // console.log(data); // Evitar logs innecesarios en producción
             } else {
                 console.error("Error fetching cliente data:", response.statusText);
             }
@@ -180,149 +381,45 @@ const PropertyDetails = () => {
         }
     };
 
-    const handleSpecialPriceDateChange = ({ startDate, endDate }) => {
-        setSpecialPriceStartDate(startDate);
-        setSpecialPriceEndDate(endDate);
+
+    const isAuthenticated = () => {
+        return !!localStorage.getItem("accessToken") && !!localStorage.getItem("refreshToken");
     };
 
-    const handleCloseMenuSpecialPrice = () => {
-        setOpenMenuSpecialPrice(false);
-        setOpenDeleteSpecialPrice(false);
+    const handleLogout = () => {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("additionalInfo"); // Limpiar toda la info de usuario
+        setIsFavorite(false); // Resetear estado de favorito
+        setEsAnfitrion(false); // Resetear estado de anfitrión
+        window.location.href = '/inicio-de-sesion'; // Redirigir a login
     };
 
-    const handleCloseDeleteSpecialPrice = () => {
-        setOpenDeleteSpecialPrice(false);
-        setSpecialPriceStartDate(null);
-        setSpecialPriceEndDate(null);
-        setSpecialPrice(null);
+    const handleNotificationClose = (event, reason) => {
+        if (reason === 'clickaway') {
+            return;
+        }
+        setNotification({ ...notification, open: false });
     };
 
-    const validateSpecialPriceDates = (startData, endDate) => {
-        if (!startData || !endDate) {
-            alert("Por favor, seleccione ambas fechas");
-            return false;
-        }
-        if (specialPrice <= 0) {
-            alert("El precio especial debe ser mayor a 0");
-            return false;
-        }
-        if (specialPrice > 5000) {
-            alert("El precio especial no puede ser mayor a 5000");
-            return false;
-        }
-
-        const start = moment(startData);
-        const end = moment(endDate);
-        const datesBetween = [];
-        let currentDate = start.clone();
-
-
-        while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
-            datesBetween.push(currentDate.format('YYYY-MM-DD'));
-            currentDate.add(1, 'day');
-        }
-
-        const hasUnavailableDates = datesBetween.some((date) => allBlockedDatesWithSpecialPrices.includes(date));
-        if (hasUnavailableDates) {
-            alert('Las fechas seleccionadas no están disponibles porque tienen que ser días seguidos');
-            return false;
-        }
-        return true;
+    const handleClickOpen = (index) => {
+        setSelectedFotoIndex(index);
+        setOpen(true);
     };
 
+    const handleClose = () => {
+        setOpen(false);
 
-    const handleSpecialPriceChange = async (priceValue) => {
-        try {
-            if (!specialPriceStartDate || !specialPriceEndDate || !priceValue) {
-                alert("Por favor, complete todas las fechas y el precio especial");
-                return;
-            }
-
-            if (!validateSpecialPriceDates(specialPriceStartDate, specialPriceEndDate)) {
-                return;
-            }
-
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-                body: JSON.stringify({
-                    propiedad: propiedadId,
-                    fecha_inicio: moment(specialPriceStartDate).format('YYYY-MM-DD'),
-                    fecha_fin: moment(specialPriceEndDate).format('YYYY-MM-DD'),
-                    precio_especial: parseFloat(priceValue),
-                }),
-            });
-            if (response.ok) {
-                alert("Precio especial creado correctamente");
-                fetchSpecialPrices();
-                handleCloseAddSpecialPrice();
-
-            }
-        } catch (error) {
-            console.error(error);
-        }
     };
 
-    const handleCloseAddSpecialPrice = () => {
-        setOpenAddSpecialPrice(false);
-        setSpecialPriceStartDate(null);
-        setSpecialPriceEndDate(null);
-        setSpecialPrice(null);
+    const handlePrev = () => {
+
+        setSelectedFotoIndex((prev) => (prev === 0 ? fotos.length - 1 : prev - 1));
     };
 
-    const checkIfFavorite = async () => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
+    const handleNext = () => {
 
-            if (response.ok) {
-                const data = await response.json();
-                const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
-                const usuarioID = storedInfo ? storedInfo.usuarioId : null;
-                const propiedadID = parseInt(propiedadId);
-                const isFav = data.some((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID);
-                setIsFavorite(isFav);
-                setFavoritoId(data.find((fav) => fav.usuario === usuarioID && fav.propiedad === propiedadID)?.id);
-                actualizarFavoritosNavbar();
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleDeleteRating = async (ratingId) => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${ratingId}/`, {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
-            if (response.ok) {
-
-                setNotification({
-                    message: "Valoración eliminada correctamente",
-                    severity: "success",
-                })
-                setTimeout(() => { window.location.reload() }, 2000);
-                fetchMediaValoraciones();
-            }
-
-        } catch (error) {
-            console.error(error);
-            setNotification({
-                message: "Error al eliminar la valoración",
-                severity: "error",
-            })
-
-        }
+        setSelectedFotoIndex((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
     };
 
     const handleToggleFavorite = async (retried = false) => {
@@ -374,54 +471,99 @@ const PropertyDetails = () => {
         }
     };
 
+    const handleRatingChange = (event, newValue) => {
+        setRating(newValue);
+    };
 
-    const fetchMediaValoraciones = async () => {
+    const validateFields = () => {
+        if (rating === 0 || !comentario_valoracion || comentario_valoracion.trim() === "") {
+            setAlertMessage("Por favor, complete la puntuación y el comentario.");
+            return false;
+        }
+        if (comentario_valoracion.length < 10) {
+            setAlertMessage("El comentario debe tener al menos 10 caracteres.");
+            return false;
+        }
+        setAlertMessage(""); // Limpiar alerta si todo OK
+        return true;
+    };
+
+    const handleSubmitRating = async (retried = false) => {
+        if (!validateFields()) return;
+        if (!isAuthenticated() || !usuarioId || !propiedadId) {
+            setAlertMessage("Necesita iniciar sesión para valorar.");
+            return;
+        }
+        setLoadingRating(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
-                method: "GET",
+            const response = await fetch("http://localhost:8000/api/propiedades/valoraciones-propiedades/", {
+                method: "POST",
                 headers: {
                     "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                 },
+                body: JSON.stringify({
+                    propiedad: parseInt(propiedadId),
+                    usuario: usuarioId,
+                    valoracion: rating,
+                    comentario: comentario_valoracion,
+                }),
             });
-            if (response.ok) {
-                const data = await response.json();
-                setMediaValoraciones(data);
-            } else {
-                setErrorMedia("No se pudo obtener la media de valoraciones");
-            }
-        } catch (error) {
-            setErrorMedia("No se pudo obtener la media de valoraciones");
-            console.error(error);
-        } finally {
-            setLoadingMedia(false);
-        }
-    };
 
-    const checkUserRating = async () => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`);
-            if (response.ok) {
-                const data = await response.json();
-                const dataFiltered = data.filter((valoracion) => valoracion.usuario === JSON.parse(localStorage.getItem('additionalInfo')).usuarioId);
-                if (dataFiltered.length > 0) {
-                    setHasRated(true);
-                    setUserRating(dataFiltered[0]);
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) {
+                    return handleSubmitRating(true);
+                } else {
+                    handleLogout();
+                    setAlertMessage("Su sesión ha expirado. Por favor, inicie sesión de nuevo.");
+                    return;
                 }
+            } else if (response.ok) {
+                setNotification({
+                    open: true,
+                    message: "Valoración enviada correctamente",
+                    severity: "success",
+                });
+                await checkUserRating();
+                await fetchMediaValoraciones();
+                setRating(0);
+                setComentarioValoracion("");
+                setAlertMessage("");
+                setIsEditing(false);
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                setAlertMessage(`Error al enviar la valoración: ${errorData.detail || response.statusText}`);
+                console.error("Error submitting rating:", response.status, response.statusText, errorData);
             }
         } catch (error) {
-            console.error(error);
+            setAlertMessage("Error de red al enviar la valoración.");
+            console.error("Error submitting rating:", error);
+        } finally {
+            setLoadingRating(false);
         }
     };
 
-    const handleEditRating = async () => {
-        setIsEditing(true);
-        setRating(userRating.valoracion);
-        setComentarioValoracion(userRating.comentario);
+    const handleEditRating = () => {
+        if (userRating) {
+            setIsEditing(true);
+            setRating(userRating.valoracion);
+            setComentarioValoracion(userRating.comentario);
+            setAlertMessage("");
+        }
     };
 
-    const handleUpdateRating = async (propiedadId, retried = false) => {
+    const handleUpdateRating = async (retried = false) => {
         if (!validateFields()) return;
-
+        if (!userRating || !userRating.id) {
+            setAlertMessage("No se encontró la valoración a editar.");
+            return;
+        }
+        if (!isAuthenticated()) {
+            setAlertMessage("Necesita iniciar sesión para editar.");
+            return;
+        }
+        setLoadingRating(true);
         try {
             const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${userRating.id}/`, {
                 method: "PATCH",
@@ -434,86 +576,105 @@ const PropertyDetails = () => {
                     comentario: comentario_valoracion,
                 }),
             });
+
             if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    handleUpdateRating(retried = true, propiedadId);
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) {
+                    return handleUpdateRating(true);
                 } else {
                     handleLogout();
+                    setAlertMessage("Su sesión ha expirado. Por favor, inicie sesión de nuevo.");
+                    return;
                 }
             } else if (response.ok) {
                 setNotification({
+                    open: true,
                     message: "Valoración actualizada correctamente",
                     severity: "success",
-                })
-                setTimeout(() => { window.location.reload() }, 2000);
-
-            }
-
-        } catch (error) {
-            console.error(error);
-
-        };
-    };
-
-    const isAuthenticated = () => {
-        return localStorage.getItem("accessToken") && localStorage.getItem("refreshToken");
-    };
-
-    const handleLogout = () => {
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
-        window.location.reload();
-    };
-
-    const handleRatingChange = (event, newValue) => {
-        setRating(newValue);
-    };
-
-    const handleSubmitRating = async (propiedadId, retried = false) => {
-        if (!validateFields()) return;
-        setLoadingRating(true);
-        try {
-            const response = await fetch("http://localhost:8000/api/propiedades/valoraciones-propiedades/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-                body: JSON.stringify({
-                    propiedad: propiedadId,
-                    usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
-                    valoracion: rating,
-                    comentario: comentario_valoracion,
-                }),
-            });
-
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    handleSubmitRating(retried = true, propiedadId);
-                } else {
-                    handleLogout();
-                }
-            } else if (response.ok) {
-                setNotification({
-                    message: "Valoración enviada correctamente",
-                    severity: "success",
-                })
-
-                setTimeout(() => { window.location.reload(); }, 2000);
+                });
+                await checkUserRating(); // Actualizar los datos de la valoración mostrada
+                await fetchMediaValoraciones(); // Actualizar media
+                setIsEditing(false); // Salir del modo edición
+                setAlertMessage("");
             } else {
-                console.error(response);
+                const errorData = await response.json().catch(() => ({}));
+                setAlertMessage(`Error al actualizar la valoración: ${errorData.detail || response.statusText}`);
+                console.error("Error updating rating:", response.status, response.statusText, errorData);
             }
         } catch (error) {
-            console.error(error);
+            setAlertMessage("Error de red al actualizar la valoración.");
+            console.error("Error updating rating:", error);
         } finally {
             setLoadingRating(false);
         }
     };
 
+    const handleDeleteRating = async (ratingId, retried = false) => {
+        if (!isAuthenticated()) {
+            setNotification({ open: true, message: 'Necesita iniciar sesión para eliminar.', severity: 'error' });
+            return;
+        }
+        // Confirmación opcional antes de borrar
+        if (!window.confirm("¿Está seguro de que desea eliminar su valoración? Esta acción no se puede deshacer.")) {
+            return;
+        }
+
+        setLoadingRating(true); // Podrías usar un estado de carga específico si lo deseas
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${ratingId}/`, {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+            });
+
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) {
+                    return handleDeleteRating(ratingId, true);
+                } else {
+                    handleLogout();
+                    setNotification({ open: true, message: 'Su sesión ha expirado.', severity: 'error' });
+                    return;
+                }
+            }
+
+            if (response.status === 204) { // Éxito en DELETE
+                setNotification({
+                    open: true,
+                    message: "Valoración eliminada correctamente",
+                    severity: "success",
+                });
+                setHasRated(false);
+                setUserRating(null);
+                setRating(0); // Resetear campos
+                setComentarioValoracion("");
+                setIsEditing(false); // Salir de edición si estaba activo
+                await fetchMediaValoraciones(); // Actualizar la media
+            } else {
+                const errorData = await response.text(); // DELETE puede no devolver JSON
+                setNotification({
+                    open: true,
+                    message: `Error al eliminar la valoración: ${response.statusText || errorData}`,
+                    severity: "error",
+                });
+                console.error("Error deleting rating:", response.status, response.statusText, errorData);
+            }
+        } catch (error) {
+            setNotification({
+                open: true,
+                message: "Error de red al eliminar la valoración.",
+                severity: "error",
+            });
+            console.error("Error deleting rating:", error);
+        } finally {
+            setLoadingRating(false);
+        }
+    };
+
+
     const handleIncrement = () => {
-        if (numPersonas < propiedad.maximo_huespedes)
+        if (propiedad && numPersonas < propiedad.maximo_huespedes)
             setNumPersonas((prev) => prev + 1);
     };
 
@@ -523,6 +684,12 @@ const PropertyDetails = () => {
     };
 
     const handleOpenReserveDatePicker = () => {
+        setReserveStartDate(null);
+        setReserveEndDate(null);
+        setFocusedInput(null); // Importante para react-dates
+        setComentariosUsuario(""); // Limpiar comentarios previos
+        setNumPersonas(1); // Resetear número de personas
+        setMetodoPago("Tarjeta de crédito"); // Resetear método de pago
         setOpenReserveDatePicker(true);
     };
 
@@ -533,368 +700,185 @@ const PropertyDetails = () => {
     const handleReserveDateChange = ({ startDate, endDate }) => {
         setReserveStartDate(startDate);
         setReserveEndDate(endDate);
+
         if (startDate && endDate) {
             const start = moment(startDate);
-            const end = moment(endDate).subtract(1, 'day');
+            const end = moment(endDate);
             const dates = [];
             let currentDate = start.clone();
-            while (currentDate.isBefore(end) || currentDate.isSame(end, 'day')) {
+            while (currentDate.isBefore(end, 'day')) {
                 dates.push(currentDate.format('YYYY-MM-DD'));
                 currentDate.add(1, 'day');
             }
-
             setDatesBetween(dates);
         } else {
             setDatesBetween([]);
         }
     };
 
-    const handleOpenUnblockDatePicker = () => {
-        setOpenUnblockDatePicker(true);
-    };
-
-    const handleCloseUnblockDatePicker = () => {
-        setOpenUnblockDatePicker(false);
-    };
-
-    const handleUnblockDateChange = (date) => {
-        const dateStr = date.format('YYYY-MM-DD');
-        setSelectedUnblockDates((prevDates) => {
-            if (prevDates.includes(dateStr)) {
-                return prevDates.filter((d) => d !== dateStr);
-            } else {
-                return [...prevDates, dateStr];
-            }
-        });
-    };
-
-    const handleConfirmUnblockDate = () => {
-        selectedUnblockDates.forEach((date) => handleUnblockDate(date));
-        setSelectedUnblockDates([]);
-        handleCloseUnblockDatePicker();
-    };
-
-    const handleOpenDatePicker = () => {
-        setOpenDatePicker(true);
-    };
-
-    const handleCloseDatePicker = () => {
-        setOpenDatePicker(false);
-    };
-
-    const handleBlockDateChange = (date) => {
-        const dateStr = date.format('YYYY-MM-DD');
-        setSelectedBlockDates((prevDates) => {
-            if (prevDates.includes(dateStr)) {
-                return prevDates.filter((d) => d !== dateStr);
-            } else {
-                return [...prevDates, dateStr];
-            }
-        });
-    };
-
-    const handleFocusChange = (focusedInput) => {
-        setFocusedInput(focusedInput);
-    };
-
-    const handleConfirmBlockDate = async () => {
-
-        for (const date of selectedBlockDates) {
-            await handleBlockDate(date);
-        }
-        setSelectedBlockDates([]);
-        handleCloseDatePicker();
-    };
-
-
-    const handleClickOpen = (index) => {
-        setSelectedFotoIndex(index);
-        setOpen(true);
-    };
-
-    const handleClose = () => {
-        setOpen(false);
-        setSelectedFotoIndex(0);
-    };
-
-    const handlePrev = () => {
-        setSelectedFotoIndex((prev) => (prev === 0 ? fotos.length - 1 : prev - 1));
-    };
-
-    const handleNext = () => {
-        setSelectedFotoIndex((prev) => (prev === fotos.length - 1 ? 0 : prev + 1));
-    };
-
-    const fetchBlockedDates = async (retried = false) => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas-por-propiedad/${propiedadId}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    fetchBlockedDates(retried = true);
-                } else {
-                    handleLogout();
-                }
-            }
-            if (response.ok) {
-                const data = await response.json();
-                setBlockedDates(data);
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleBlockDate = async (date, retried = false) => {
-        try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-                body: JSON.stringify({
-                    fecha: date,
-                    propiedad: propiedadId,
-                }),
-            });
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    handleBlockDate(date, true);
-                }
-                else {
-                    handleLogout();
-                }
-            }
-            if (response.ok) {
-                await fetchBlockedDates();
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const handleUnblockDate = async (date, retried = false) => {
-        try {
-            const fechaBloqueada = blockedDates.find((fecha) => fecha.fecha === date);
-            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas/${fechaBloqueada.id}/`, {
-                method: "DELETE",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
-                },
-            });
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    handleUnblockDate(date, true);
-                } else {
-                    handleLogout();
-                }
-            }
-
-            if (response.ok) {
-                fetchBlockedDates();
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchPropertyDetails = async () => {
-        try {
-            let response;
-            if (isAuthenticated()) {
-                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`, {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                    },
-                });
-            }
-            else {
-                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`, {
-                    method: "GET",
-                });
-            }
-            if (response.ok) {
-                const data = await response.json();
-                setPropiedad(data);
-
-                const storedInfo = JSON.parse(localStorage.getItem('additionalInfo'));
-                const usuarioID = storedInfo ? storedInfo.usuarioId : null;
-                if (usuarioID === data.anfitrion) {
-                    setEsAnfitrion(true);
-                }
-            }
-
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchPropertyPhotos = async (propiedadId) => {
-        try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
-            if (response.ok) {
-                const data = await response.json();
-                const filteredData = data.filter(foto => foto.propiedad === parseInt(propiedadId));
-                setFotos(filteredData);
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const fetchReservas = async (retried = false) => {
-        try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
-                },
-            });
-            if (response.status === 401 && !retried) {
-                const token = await refreshAccessToken();
-                if (token) {
-                    fetchReservas(true);
-                } else {
-                    handleLogout();
-                }
-            }
-            if (response.ok) {
-                const data = await response.json();
-                setReservas(data);
-                setReserveStartDate(null);
-                setReserveEndDate(null);
-                setFocusedInput(null);
-                setNumPersonas(1);
-                setMetodoPago("Tarjeta de crédito");
-                setComentariosUsuario("");
-            }
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    const calculateBlockedDatesWithGaps = (blockedDates) => {
-        const sortedDates = blockedDates.sort((a, b) => moment(a).diff(moment(b)));
-        const filledDates = new Set(blockedDates);
-
-        for (let i = 0; i < sortedDates.length - 1; i++) {
-            const current = moment(sortedDates[i]);
-            const next = moment(sortedDates[i + 1]);
-
-            if (next.diff(current, 'days') === 2) {
-                const gapDate = current.clone().add(1, 'day').format('YYYY-MM-DD');
-                filledDates.add(gapDate);
-            }
-        }
-
-        return Array.from(filledDates);
-
-    };
-
-    const allBlockedDates = calculateBlockedDatesWithGaps([
-        ...blockedDates?.map((fecha) => fecha.fecha),
-        ...reservas.filter((reserva) => reserva.estado !== "Cancelada")
+    const allUnavailableDatesForClient = useMemo(() => {
+        const blocked = blockedDates?.map((fecha) => fecha.fecha) || [];
+        const reserved = reservas
+            .filter((reserva) => reserva.estado !== "Cancelada")
             .flatMap((reserva) => {
-                const startDate = moment(reserva.fecha_llegada);
-                const endDate = moment(reserva.fecha_salida).subtract(1, 'day');
+                const start = moment(reserva.fecha_llegada);
+                const end = moment(reserva.fecha_salida); // Sin restar 1 día
                 const dates = [];
-                while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
-                    dates.push(startDate.format('YYYY-MM-DD'));
-                    startDate.add(1, 'day');
+                let current = start.clone();
+                while (current.isBefore(end, 'day')) {
+                    dates.push(current.format('YYYY-MM-DD'));
+                    current.add(1, 'day');
                 }
-
                 return dates;
-            })
-    ]);
-    const allBlockedDatesWithSpecialPrices = calculateBlockedDatesWithGaps([
-        ...allBlockedDates,
-        ...(Array.isArray(specialPricesList) ? specialPricesList.flatMap((precio) => {
-            const startDate = moment(precio.fecha_inicio);
-            const endDate = moment(precio.fecha_fin);
+            });
+        const specialPriceDates = specialPricesList.flatMap((precio) => {
+            const start = moment(precio.fecha_inicio);
+            const end = moment(precio.fecha_fin);
             const dates = [];
-            while (startDate.isBefore(endDate) || startDate.isSame(endDate, 'day')) {
-                dates.push(startDate.format('YYYY-MM-DD'));
-                startDate.add(1, 'day');
+            let current = start.clone();
+            while (current.isSameOrBefore(end, 'day')) { // Incluye inicio y fin
+                dates.push(current.format('YYYY-MM-DD'));
+                current.add(1, 'day');
             }
             return dates;
-        }) : [])
-    ]);
+        });
+
+
+        const allDatesSet = new Set([...blocked, ...reserved, ...specialPriceDates]);
+
+        return [...new Set([...blocked, ...reserved])]; // Usar Set para eliminar duplicados
+    }, [blockedDates, reservas, specialPricesList]);
+
+
+    // Función para el DateRangePicker del cliente
+    const isClientDayBlocked = (day) => {
+        const dateStr = day.format('YYYY-MM-DD');
+        if (day.isBefore(moment(), 'day')) {
+            return true; // Bloquear pasado
+        }
+        return allUnavailableDatesForClient.includes(dateStr);
+    };
+
+    // Función para mostrar días con precio especial en el calendario del cliente
+    const renderClientDayContents = (day) => {
+        const dateStr = day.format('YYYY-MM-DD');
+        const specialPriceInfo = specialPricesList.find(
+            (price) => moment(dateStr).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]')
+        );
+        const isSpecial = !!specialPriceInfo;
+        const isUnavailable = isClientDayBlocked(day); // Revisa si está bloqueado/reservado
+
+        // Estilo base
+        let dayStyle = {
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '50%',
+            fontSize: '0.8rem', // Ligeramente más pequeño
+        };
+        let tooltip = '';
+
+        if (isUnavailable && !isSpecial) { // Si está bloqueado/reservado Y NO tiene precio especial visible
+            dayStyle = {
+                ...dayStyle,
+                textDecoration: 'line-through',
+                color: 'rgba(0, 0, 0, 0.3)',
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                cursor: 'not-allowed' // Indicar no seleccionable
+            };
+        } else if (isSpecial) {
+            dayStyle = {
+                ...dayStyle,
+                fontWeight: 'bold',
+                color: '#0056b3', // Azul oscuro para precio especial
+                backgroundColor: 'rgba(0, 123, 255, 0.08)', // Fondo azul claro
+                border: '1px solid rgba(0, 123, 255, 0.2)'
+            };
+            tooltip = `Precio especial: ${specialPriceInfo.precio_especial} €`;
+        }
+
+        const content = <div style={dayStyle}>{day.format('D')}</div>;
+
+        return tooltip ? (
+            <Tooltip title={tooltip} placement="top" arrow>
+                {content}
+            </Tooltip>
+        ) : (
+            content
+        );
+    };
 
 
     const handleConfirmReserve = async (retried = false) => {
         if (!reserveStartDate || !reserveEndDate) {
-            alert('Por favor, seleccione las fechas de reserva');
+            setNotification({ open: true, message: 'Por favor, seleccione las fechas de reserva', severity: 'warning' });
+            return;
+        }
+        if (!isAuthenticated()) {
+            setNotification({ open: true, message: 'Necesita iniciar sesión para reservar', severity: 'error' });
+            // Opcional: redirigir a login
+            // const redirectUrl = `/inicio-de-sesion?redirect=/detalles/${propiedadId}`;
+            // window.location.href = redirectUrl;
             return;
         }
 
         setLoading(true);
 
-        const startDate = moment(reserveStartDate);
-        const endDate = moment(reserveEndDate);
-        const endDateAdjusted = endDate.subtract(1, 'day');
-        const datesBetween = [];
-        let currentDate = startDate.clone();
-        while (currentDate.isBefore(endDateAdjusted) || currentDate.isSame(endDateAdjusted, 'day')) {
-            datesBetween.push(currentDate.format('YYYY-MM-DD'));
-            currentDate.add(1, 'day');
+        // Validar si alguna fecha seleccionada está bloqueada (doble chequeo)
+        const localDatesBetween = [];
+        let currentCheck = reserveStartDate.clone();
+        while (currentCheck.isBefore(reserveEndDate, 'day')) {
+            localDatesBetween.push(currentCheck.format('YYYY-MM-DD'));
+            currentCheck.add(1, 'day');
         }
-
-        const hasBlockedDates = datesBetween.some((date) => allBlockedDates.includes(date));
+        const hasBlockedDates = localDatesBetween.some((date) => allUnavailableDatesForClient.includes(date));
 
         if (hasBlockedDates) {
-            alert('Las fechas seleccionadas no están disponibles porque tienen que ser días seguidos');
+            setNotification({ open: true, message: 'Alguna de las fechas seleccionadas ya no está disponible.', severity: 'error' });
             setLoading(false);
             return;
         }
 
-        const subtotal = datesBetween.reduce((total, date) => {
-            const specialPrice = specialPricesList.find(
+        // Cálculo de precio total
+        const subtotal = localDatesBetween.reduce((total, date) => {
+            const specialPriceInfo = specialPricesList.find(
                 (price) => moment(date).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]')
             );
-            return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+            return total + (specialPriceInfo ? parseFloat(specialPriceInfo.precio_especial) : parseFloat(propiedad.precio_por_noche));
         }, 0);
 
-        const comision = subtotal * 0.1;
-
+        const comision = subtotal * 0.10; // Asumiendo 10% de comisión
         const precioTotal = subtotal + comision;
 
-        const formattedStartDate = moment(reserveStartDate).format('YYYY-MM-DD');
-        const formattedEndDate = moment(reserveEndDate).format('YYYY-MM-DD');
+        const formattedStartDate = reserveStartDate.format('YYYY-MM-DD');
+        const formattedEndDate = reserveEndDate.format('YYYY-MM-DD');
 
         const reservationData = {
-            usuario: JSON.parse(localStorage.getItem('additionalInfo')).usuarioId,
+            usuario: usuarioId,
             anfitrion: propiedad.anfitrion,
-            propiedad: propiedadId,
+            propiedad: parseInt(propiedadId),
             fecha_llegada: formattedStartDate,
             fecha_salida: formattedEndDate,
-            estado: 'Pendiente',
-            precio_por_noche: propiedad.precio_por_noche,
+            estado: 'Pendiente', // O 'Confirmada' si el pago es inmediato y exitoso
+            precio_por_noche: propiedad.precio_por_noche, // Podría ser redundante si se calcula al confirmar
             numero_personas: numPersonas,
             metodo_pago: metodoPago,
-            precio_total: precioTotal,
-            comentarios_usuario: comentarios_usuario,
-            amount: Math.round(precioTotal * 100),
+            precio_total: precioTotal, // Enviar como string formateado? O número? Verificar API
+            comentarios_usuario: comentarios_usuario || "", // Asegurar que no sea null
+            // Datos para Stripe/Paypal
+            amount: Math.round(precioTotal * 100), // En céntimos para Stripe
             currency: 'eur',
-            correo: cliente?.usuario?.email,
-            nombrePropiedad: propiedad.nombre,
-            tiene_precio_especial: specialPricesList.some(price =>
-                moment(reserveStartDate).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]') ||
-                moment(reserveEndDate).isBetween(price.fecha_inicio, price.fecha_fin, null, '[]')
-            )
+            correo: cliente?.usuario?.email, // Asegúrate que 'cliente' tenga esta estructura
+            nombrePropiedad: propiedad?.nombre,
+
+            // tiene_precio_especial: localDatesBetween.some(date => specialPricesList.some(price => moment(date).isBetween(price.fecha_inicio, price.fecha_fin, 'day', '[]'))) // Para info adicional si es necesario
         };
 
+        // --- Lógica de Pago (Stripe / PayPal) ---
         if (metodoPago === "Tarjeta de crédito") {
-
             try {
                 const response = await fetch("http://localhost:8000/api/propiedades/create-checkout-session/", {
                     method: "POST",
@@ -902,43 +886,37 @@ const PropertyDetails = () => {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                     },
-                    body: JSON.stringify({
-                        reservationData,
-                    }),
+                    body: JSON.stringify({ reservationData }), // Enviar el objeto completo
                 });
+
+                if (response.status === 401 && !retried) {
+                    const tokenRefreshed = await refreshAccessToken();
+                    if (tokenRefreshed) return handleConfirmReserve(true);
+                    else { handleLogout(); return; }
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
+                }
 
                 const data = await response.json();
-
                 const { id: sessionId } = data;
-
                 const stripe = await stripePromise;
-
-                console.log('Redirecting to checkout');
-                const { error } = await stripe.redirectToCheckout({
-                    sessionId: sessionId,
-
-                });
-                if (error) {
-                    if (error.type === 'card_error') {
-                        alert(`Error de tarjeta: ${error.message}`);
-                    } else if (error.type === 'validation_error') {
-                        alert(error.message);
-                    } else {
-                        alert('Error inesperado durante el pago');
-                    }
-                }
+                const { error } = await stripe.redirectToCheckout({ sessionId });
 
                 if (error) {
-                    console.error(error);
-                    alert('Ocurrió un error al procesar el pago');
-                    setLoading(false);
-                    return;
+                    console.error("Stripe checkout error:", error);
+                    setNotification({ open: true, message: `Error en el pago: ${error.message}`, severity: 'error' });
                 }
+                // Si no hay error, Stripe redirige. Si el usuario cancela, vuelve.
+                // La confirmación final suele manejarse en una página de éxito/cancelación via webhooks.
 
             } catch (error) {
-                console.error(error);
-                alert('Ocurrió un error al procesar el pago');
-                setLoading(false);
+                console.error("Error creating Stripe session:", error);
+                setNotification({ open: true, message: `Error al iniciar el pago: ${error.message}`, severity: 'error' });
+            } finally {
+                setLoading(false); // Detener carga si falla antes de redirigir
             }
         } else if (metodoPago === "PayPal") {
             try {
@@ -948,118 +926,569 @@ const PropertyDetails = () => {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                     },
-                    body: JSON.stringify({
-                        reservationData,
-                    }),
+                    body: JSON.stringify({ reservationData }),
                 });
+
+                if (response.status === 401 && !retried) {
+                    const tokenRefreshed = await refreshAccessToken();
+                    if (tokenRefreshed) return handleConfirmReserve(true);
+                    else { handleLogout(); return; }
+                }
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`Error ${response.status}: ${errorData.error || response.statusText}`);
+                }
 
                 const data = await response.json();
 
                 if (data.approval_url) {
-                    localStorage.setItem(`reservation_${data.orderID}`, JSON.stringify(reservationData));
-                    window.location.href = data.approval_url;
+                    // Guardar temporalmente los datos de la reserva asociados al ID de pedido de PayPal
+                    // para recuperarlos después de la redirección de PayPal.
+                    localStorage.setItem(`pending_paypal_reservation_${data.orderID}`, JSON.stringify(reservationData));
+                    window.location.href = data.approval_url; // Redirigir a PayPal
                 } else {
-                    alert('Ocurrió un error al procesar el pago');
-                    setLoading(false);
+                    throw new Error("No se recibió la URL de aprobación de PayPal.");
                 }
             } catch (error) {
-                console.error(error);
-                alert('Ocurrió un error al procesar el pago');
-                setLoading(false);
+                console.error("Error creating PayPal session:", error);
+                setNotification({ open: true, message: `Error al iniciar el pago con PayPal: ${error.message}`, severity: 'error' });
+                setLoading(false); // Detener carga si falla
+            }
+        } else {
+            setNotification({ open: true, message: 'Método de pago no soportado', severity: 'error' });
+            setLoading(false);
+        }
+    };
+
+
+    // --- FUNCIONES PARA EL MODAL UNIFICADO DE GESTIÓN ---
+
+    const handleOpenGestionModal = () => {
+        // ... (implementado arriba)
+        setGestionAccion('bloquear'); // Acción por defecto
+        setGestionStartDate(null);
+        setGestionEndDate(null);
+        setSpecialPrice('');
+        setGestionFocusedInput(null);
+        setOpenGestionModal(true);
+    };
+
+    const handleCloseGestionModal = () => {
+        // ... (implementado arriba)
+        setOpenGestionModal(false);
+        // Resetear estados al cerrar (opcional, pero recomendado si no se guardó)
+        setGestionAccion('bloquear');
+        setGestionStartDate(null);
+        setGestionEndDate(null);
+        setSpecialPrice('');
+        setGestionFocusedInput(null);
+    };
+
+    const handleGestionAccionChange = (event, nuevaAccion) => {
+        // ... (implementado arriba)
+        if (nuevaAccion !== null) {
+            setGestionAccion(nuevaAccion);
+            setGestionStartDate(null);
+            setGestionEndDate(null);
+            setSpecialPrice('');
+            setGestionFocusedInput(null); // Forzar re-render del calendario
+        }
+    };
+
+    const handleGestionDatesChange = ({ startDate, endDate }) => {
+        // ... (implementado arriba)
+        setGestionStartDate(startDate);
+        setGestionEndDate(endDate);
+    };
+
+    // Fechas no disponibles para el ANFITRIÓN (bloqueadas manualmente + reservadas)
+    const fechasNoDisponiblesGestion = useMemo(() => {
+        const blocked = blockedDates?.map((fecha) => fecha.fecha) || [];
+        const reserved = reservas
+            .filter((reserva) => reserva.estado !== "Cancelada")
+            .flatMap((reserva) => {
+                const start = moment(reserva.fecha_llegada);
+                const end = moment(reserva.fecha_salida);
+                const dates = [];
+                let current = start.clone();
+                while (current.isBefore(end, 'day')) {
+                    dates.push(current.format('YYYY-MM-DD'));
+                    current.add(1, 'day');
+                }
+                return dates;
+            });
+        return [...new Set([...blocked, ...reserved])];
+    }, [blockedDates, reservas]);
+
+    // Fechas que YA tienen precio especial asignado
+    const fechasConPrecioEspecial = useMemo(() => {
+        return specialPricesList.flatMap((precio) => {
+            const start = moment(precio.fecha_inicio);
+            const end = moment(precio.fecha_fin);
+            const dates = [];
+            let current = start.clone();
+            while (current.isSameOrBefore(end, 'day')) {
+                dates.push(current.format('YYYY-MM-DD'));
+                current.add(1, 'day');
+            }
+            return dates;
+        });
+    }, [specialPricesList]);
+
+
+    // Decide qué días deshabilitar en el modal de GESTIÓN
+    const isGestionDayBlocked = (day) => {
+        // ... (implementado arriba)
+        const dateStr = day.format('YYYY-MM-DD');
+
+        if (day.isBefore(moment(), 'day')) {
+            return true; // Bloquear fechas pasadas
+        }
+
+        switch (gestionAccion) {
+            case 'bloquear':
+                // Bloquear si ya reservado o tiene precio especial (no se puede bloquear encima)
+                // O si ya está bloqueado manualmente (ya está hecho)
+                const isReserved = reservas.some(r => r.estado !== 'Cancelada' && moment(dateStr).isBetween(r.fecha_llegada, r.fecha_salida, 'day', '[)'));
+                const isSpecial = fechasConPrecioEspecial.includes(dateStr);
+                const isManuallyBlocked = blockedDates.some(b => b.fecha === dateStr);
+                return isReserved || isSpecial || isManuallyBlocked;
+            case 'desbloquear':
+                // Solo permitir seleccionar días bloqueados manualmente
+                return !blockedDates.some(b => b.fecha === dateStr);
+            case 'precio':
+                // Bloquear si ya reservado o ya tiene precio especial. Permitir sobre bloqueos manuales? (Decisión de negocio)
+                // Aquí permitimos poner precio sobre bloqueo manual (el precio tendría precedencia)
+                const isReservedForPrice = reservas.some(r => r.estado !== 'Cancelada' && moment(dateStr).isBetween(r.fecha_llegada, r.fecha_salida, 'day', '[)'));
+                const isSpecialForPrice = fechasConPrecioEspecial.includes(dateStr);
+                // const isManuallyBlockedForPrice = blockedDates.some(b => b.fecha === dateStr); // Descomentar si no se permite precio sobre bloqueo
+                return isReservedForPrice || isSpecialForPrice; // || isManuallyBlockedForPrice;
+            default:
+                return false;
+        }
+    };
+
+    // Renderiza visualmente los días en el modal de GESTIÓN
+    const renderGestionDayContents = (day) => {
+        // ... (implementado arriba)
+        const dateStr = day.format('YYYY-MM-DD');
+        const isBlockedManual = blockedDates.some(b => b.fecha === dateStr);
+        const isReserved = reservas.some(r => r.estado !== 'Cancelada' && moment(dateStr).isBetween(r.fecha_llegada, r.fecha_salida, 'day', '[)'));
+        const specialPriceInfo = specialPricesList.find(p => moment(dateStr).isBetween(p.fecha_inicio, p.fecha_fin, 'day', '[]'));
+        const isSpecial = !!specialPriceInfo;
+
+        let style = {};
+        let tooltipTitle = '';
+
+        // Prioridad visual: Reserva > Precio Especial > Bloqueo Manual
+        if (isReserved) {
+            style = { backgroundColor: 'rgba(108, 117, 125, 0.1)', textDecoration: 'line-through', color: 'rgba(108, 117, 125, 0.7)', borderRadius: '50%', cursor: 'not-allowed' };
+            tooltipTitle = 'Fecha reservada';
+        } else if (isSpecial) {
+            style = { backgroundColor: 'rgba(0, 123, 255, 0.1)', color: '#0056b3', fontWeight: 'bold', borderRadius: '50%' };
+            tooltipTitle = `Precio especial: ${specialPriceInfo.precio_especial} €`;
+        } else if (isBlockedManual) {
+            style = { backgroundColor: 'rgba(255, 0, 0, 0.1)', textDecoration: 'line-through', color: 'rgba(200, 0, 0, 0.7)', borderRadius: '50%' };
+            tooltipTitle = 'Fecha bloqueada manualmente';
+            if (gestionAccion === 'desbloquear') {
+                style.cursor = 'pointer'; // Indicar que es clickeable para desbloquear
+                style.border = '1px solid rgba(255, 0, 0, 0.5)'; // Resaltar más
+            } else {
+                style.cursor = 'not-allowed';
             }
         }
 
+        const dayContainerStyle = {
+            position: 'relative',
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...style
+        };
+
+        const dayContent = (
+            <div style={dayContainerStyle}>
+                {day.format('D')}
+            </div>
+        );
+
+        return tooltipTitle ? (
+            <Tooltip title={tooltipTitle} placement="top" arrow>
+                {dayContent}
+            </Tooltip>
+        ) : (
+            dayContent
+        );
     };
+
+
+    // Bloquea UNA fecha (llamado por handleGuardarGestion)
+    const handleBlockDate = async (date, retried = false) => {
+        // ... (código original, pero sin gestión de UI aquí)
+        if (!isAuthenticated()) return false;
+        try {
+            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    fecha: date, // date ya es YYYY-MM-DD
+                    propiedad: parseInt(propiedadId),
+                }),
+            });
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) return handleBlockDate(date, true);
+                else { handleLogout(); return false; }
+            }
+            if (response.ok) {
+                console.log(`Fecha ${date} bloqueada`);
+                return true; // Indicar éxito
+            } else {
+                console.error(`Error bloqueando fecha ${date}:`, response.status, response.statusText);
+                return false; // Indicar fallo
+            }
+        } catch (error) {
+            console.error(`Error en petición para bloquear ${date}:`, error);
+            return false;
+        }
+    };
+
+    // Desbloquea UNA fecha (llamado por handleGuardarGestion)
+    const handleUnblockDate = async (date, retried = false) => {
+        // ... (código original, pero sin gestión de UI aquí)
+        if (!isAuthenticated()) return false;
+        try {
+            // Encontrar el ID de la fecha bloqueada
+            const fechaBloqueada = blockedDates.find((fecha) => fecha.fecha === date);
+            if (!fechaBloqueada || !fechaBloqueada.id) {
+                console.warn(`Fecha ${date} no encontrada o sin ID para desbloquear.`);
+                return false; // No se puede desbloquear si no existe
+            }
+
+            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas/${fechaBloqueada.id}/`, {
+                method: "DELETE",
+                headers: {
+                    // "Content-Type": "application/json", // DELETE no suele necesitar Content-Type
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`
+                },
+            });
+
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) return handleUnblockDate(date, true);
+                else { handleLogout(); return false; }
+            }
+
+            if (response.status === 204) { // Éxito
+                console.log(`Fecha ${date} desbloqueada`);
+                return true;
+            } else {
+                console.error(`Error desbloqueando fecha ${date}:`, response.status, response.statusText);
+                return false;
+            }
+        } catch (error) {
+            console.error(`Error en petición para desbloquear ${date}:`, error);
+            return false;
+        }
+    };
+
+    // Guarda precio especial para UN rango (llamado por handleGuardarGestion)
+    const handleSetSpecialPrice = async (fechaInicio, fechaFin, priceValue, retried = false) => {
+        if (!isAuthenticated()) return false;
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                },
+                body: JSON.stringify({
+                    propiedad: parseInt(propiedadId),
+                    fecha_inicio: fechaInicio,
+                    fecha_fin: fechaFin,
+                    precio_especial: parseFloat(priceValue), // Asegurar que es número
+                }),
+            });
+
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) return handleSetSpecialPrice(fechaInicio, fechaFin, priceValue, true);
+                else { handleLogout(); return false; }
+            }
+
+            if (response.ok) {
+                console.log(`Precio especial creado para ${fechaInicio} - ${fechaFin}`);
+                return true;
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error(`Error creando precio especial para ${fechaInicio} - ${fechaFin}:`, response.status, response.statusText, errorData);
+                setNotification({ // Mostrar error específico de la API
+                    open: true,
+                    message: `Error al guardar precio: ${errorData.detail || response.statusText}`,
+                    severity: 'error'
+                });
+                return false;
+            }
+        } catch (error) {
+            console.error(`Error en petición para crear precio especial ${fechaInicio} - ${fechaFin}:`, error);
+            setNotification({ open: true, message: 'Error de red al guardar precio especial.', severity: 'error' });
+            return false;
+        }
+    };
+
+
+    // Borra UN precio especial (llamado desde la lista en el modal)
+    const handleDeleteSpecialPrice = async (specialPriceId, retried = false) => {
+        // ... (implementado arriba, asegurar que refresque la lista y muestre notificación)
+        if (!isAuthenticated()) return;
+        // Confirmación opcional
+        if (!window.confirm("¿Está seguro de que desea eliminar este precio especial?")) {
+            return;
+        }
+        setLoading(true); // Indicar carga mientras se borra
+        try {
+            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/${specialPriceId}/`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
+            });
+
+            if (response.status === 401 && !retried) {
+                const tokenRefreshed = await refreshAccessToken();
+                if (tokenRefreshed) return handleDeleteSpecialPrice(specialPriceId, true);
+                else { handleLogout(); setLoading(false); return; }
+            }
+
+            if (response.status === 204) { // Éxito
+                setNotification({ open: true, message: 'Precio especial eliminado.', severity: 'success' });
+                await fetchSpecialPrices(); // Actualizar la lista mostrada en el modal
+                // await fetchBlockedDates(); // Opcional: refrescar calendario si afecta visualización
+            } else {
+                const errorData = await response.text();
+                setNotification({ open: true, message: `Error al eliminar: ${response.statusText || errorData}`, severity: 'error' });
+                console.error("Error deleting special price:", response.status, response.statusText, errorData);
+            }
+        } catch (error) {
+            setNotification({ open: true, message: 'Error de red al eliminar.', severity: 'error' });
+            console.error("Error deleting special price:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Guarda los cambios del modal de GESTIÓN (Bloquear, Desbloquear, Precio)
+    const handleGuardarGestion = async () => {
+        // ... (implementado arriba)
+        if (!gestionStartDate) {
+            setNotification({ open: true, message: 'Seleccione una fecha o rango.', severity: 'warning' });
+            return;
+        }
+        // Usar fecha de fin igual a inicio si no se seleccionó rango
+        const endDateToUse = gestionEndDate || gestionStartDate;
+
+        setLoading(true);
+
+        // Generar lista de fechas (días individuales) en el rango seleccionado
+        const datesToProcess = [];
+        let current = gestionStartDate.clone();
+        while (current.isSameOrBefore(endDateToUse, 'day')) {
+            // Doble check: solo procesar fechas desde hoy en adelante
+            if (current.isSameOrAfter(moment(), 'day')) {
+                datesToProcess.push(current.format('YYYY-MM-DD'));
+            }
+            current.add(1, 'day');
+        }
+
+        if (datesToProcess.length === 0) {
+            setNotification({ open: true, message: 'No se han seleccionado fechas válidas (a partir de hoy).', severity: 'warning' });
+            setLoading(false);
+            return;
+        }
+
+        let success = true; // Flag para saber si todas las operaciones fueron exitosas
+        let partialSuccess = false; // Flag si al menos una tuvo éxito
+        let errorMessage = '';
+
+        try {
+            switch (gestionAccion) {
+                case 'bloquear':
+                    for (const date of datesToProcess) {
+                        const canBlock = !fechasNoDisponiblesGestion.includes(date) && !fechasConPrecioEspecial.includes(date);
+                        if (canBlock) {
+                            const blocked = await handleBlockDate(date);
+                            if (blocked) partialSuccess = true;
+                            else success = false; // Si una falla, el resultado general no es 100% exitoso
+                        } else {
+                            console.warn(`Intento de bloquear fecha no disponible o con precio: ${date}`);
+                            success = false; // No se pudo realizar esta operación
+                            errorMessage = 'Algunas fechas no se pudieron bloquear por no estar disponibles.';
+                        }
+                    }
+                    if (partialSuccess && success) setNotification({ open: true, message: 'Fechas bloqueadas correctamente.', severity: 'success' });
+                    else if (partialSuccess) setNotification({ open: true, message: errorMessage || 'Algunas fechas no se pudieron bloquear.', severity: 'warning' });
+                    else setNotification({ open: true, message: 'No se pudo bloquear ninguna fecha.', severity: 'error' });
+                    break;
+
+                case 'desbloquear':
+                    for (const date of datesToProcess) {
+                        const canUnblock = blockedDates.some(b => b.fecha === date); // Solo desbloquear las bloqueadas manualmente
+                        if (canUnblock) {
+                            const unblocked = await handleUnblockDate(date);
+                            if (unblocked) partialSuccess = true;
+                            else success = false;
+                        } else {
+                            console.warn(`Intento de desbloquear fecha no bloqueada manualmente: ${date}`);
+                            success = false;
+                            errorMessage = 'Algunas fechas no se pudieron desbloquear (solo se pueden desbloquear las bloqueadas manualmente).';
+                        }
+                    }
+                    if (partialSuccess && success) setNotification({ open: true, message: 'Fechas desbloqueadas correctamente.', severity: 'success' });
+                    else if (partialSuccess) setNotification({ open: true, message: errorMessage || 'Algunas fechas no se pudieron desbloquear.', severity: 'warning' });
+                    else setNotification({ open: true, message: 'No se pudo desbloquear ninguna fecha.', severity: 'error' });
+                    break;
+
+                case 'precio':
+                    const priceValue = parseFloat(specialPrice);
+                    if (isNaN(priceValue) || priceValue <= 0 || priceValue > 5000) {
+                        setNotification({ open: true, message: 'Ingrese un precio especial válido (entre 0.01 y 5000).', severity: 'error' });
+                        success = false;
+                        break; // Salir del switch
+                    }
+                    if (!gestionEndDate) { // Necesita rango para precio
+                        setNotification({ open: true, message: 'Seleccione una fecha de fin para el precio especial.', severity: 'error' });
+                        success = false;
+                        break;
+                    }
+
+                    // Validar que NINGUNA fecha en el rango esté ya reservada o con OTRO precio especial
+                    const canSetPrice = datesToProcess.every(date =>
+                        !reservas.some(r => r.estado !== 'Cancelada' && moment(date).isBetween(r.fecha_llegada, r.fecha_salida, 'day', '[)')) &&
+                        !fechasConPrecioEspecial.includes(date)
+                    );
+
+                    if (!canSetPrice) {
+                        setNotification({ open: true, message: 'El rango incluye fechas reservadas o que ya tienen un precio especial.', severity: 'error' });
+                        success = false;
+                        break;
+                    }
+
+                    // Llamar a la API para crear el precio especial para TODO el rango
+                    const priceSet = await handleSetSpecialPrice(
+                        gestionStartDate.format('YYYY-MM-DD'),
+                        gestionEndDate.format('YYYY-MM-DD'),
+                        priceValue
+                    );
+                    success = priceSet; // El éxito depende del resultado de la API
+                    if (success) {
+                        setNotification({ open: true, message: 'Precio especial guardado.', severity: 'success' });
+                        partialSuccess = true; // Si la API tuvo éxito
+                    }
+                    // La notificación de error ya la maneja handleSetSpecialPrice
+                    break;
+
+                default:
+                    console.error('Acción desconocida en handleGuardarGestion:', gestionAccion);
+                    success = false;
+            }
+
+            // Si hubo algún cambio exitoso, refrescar datos y cerrar si todo fue bien
+            if (partialSuccess) {
+                await fetchBlockedDates();
+                await fetchSpecialPrices();
+                if (success) { // Solo cerrar si TODO salió bien
+                    handleCloseGestionModal();
+                }
+            }
+
+        } catch (error) {
+            console.error("Error general al guardar cambios de gestión:", error);
+            setNotification({ open: true, message: 'Ocurrió un error inesperado al guardar.', severity: 'error' });
+            success = false;
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- RENDERIZADO DEL COMPONENTE ---
+
+    if (!propiedad) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+                <CircularProgress />
+            </Box>
+        );
+    }
+
+
     return (
         <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#f8f9fc' }}>
-            <Container maxWidth="lg" sx={{ flexGrow: 1, py: 5 }}>
+            <Container maxWidth="lg" sx={{ flexGrow: 1, py: { xs: 3, md: 5 }, }}>
+
+                {/* Sección Superior: Fotos e Info Básica/Reserva */}
                 <Box
                     sx={{
                         display: 'flex',
                         flexDirection: { xs: 'column', md: 'row' },
-                        gap: 4,
-                        mb: 5,
+                        gap: { xs: 3, md: 4 },
+                        mb: { xs: 4, md: 5 },
                     }}
                 >
+                    {/* Columna Fotos */}
                     {fotos.length > 0 && (
                         <Box sx={{
-                            flex: 1.2,
-                            display: 'flex',
-                            alignItems: 'center'
+                            flex: { xs: 1, md: 1.2 }, // Más ancho para fotos en desktop
+                            minWidth: 0 // Para evitar overflow en flex
                         }}>
                             <Paper
-                                elevation={2}
+                                elevation={3}
                                 sx={{
                                     borderRadius: 3,
                                     overflow: 'hidden',
-                                    transition: 'transform 0.3s',
-                                    height: '100%',
-                                    width: '100%',
-                                    '&:hover': {
-                                        transform: 'scale(1.01)',
-                                    },
+                                    height: '100%', // Ocupar altura disponible
+                                    maxHeight: { xs: '50vh', md: "400px" }, // Limitar altura máxima
+                                    boxShadow: '0 6px 20px rgba(0,0,0,0.1)'
                                 }}
                             >
                                 <Carousel
-                                    autoPlay
-                                    interval={8000}
+                                    autoPlay={false} // Desactivar autoplay puede ser mejor UX
+                                    // interval={8000}
                                     navButtonsAlwaysVisible
                                     indicators={true}
                                     animation="slide"
-                                    sx={{ height: '100%' }}
-                                    navButtonsProps={{
-                                        style: {
-                                            backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                            color: '#000',
-                                            borderRadius: '50%',
-                                            margin: '0 10px',
-
-                                        }
-                                    }}
-                                    indicatorContainerProps={{
-                                        style: {
-                                            marginTop: '-24px',
-                                            position: 'relative',
-                                            zIndex: 1,
-                                            height: "100%",
-                                            bottom: "15px"
-                                        }
-                                    }}
-                                    indicatorIconButtonProps={{
-                                        style: {
-                                            color: 'rgba(255, 255, 255, 0.7)',
-
-                                        }
-                                    }}
-                                    activeIndicatorIconButtonProps={{
-                                        style: {
-                                            color: '#fff',
-                                        }
-                                    }}
+                                    sx={{ height: '100%' }} // Carrusel ocupa todo el Paper
+                                    navButtonsProps={{ style: { backgroundColor: 'rgba(255, 255, 255, 0.7)', color: '#333', '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.9)' } } }}
+                                    indicatorContainerProps={{ style: { marginTop: '-30px', position: 'relative', zIndex: 1 } }}
+                                    indicatorIconButtonProps={{ style: { color: 'rgba(255, 255, 255, 0.6)' } }}
+                                    activeIndicatorIconButtonProps={{ style: { color: '#fff' } }}
                                 >
                                     {fotos.map((foto, index) => (
                                         <Box
                                             key={index}
+                                            onClick={() => handleClickOpen(index)} // Abre modal grande
                                             sx={{
                                                 position: 'relative',
                                                 width: '100%',
-                                                height: '100%',
-                                                paddingTop: '66.25%',
+                                                height: { xs: '50vh', md: '600px' }, // Altura fija consistente
                                                 cursor: 'pointer',
+                                                backgroundColor: '#eee' // Fondo mientras carga img
                                             }}
-                                            onClick={() => handleClickOpen(index)}
                                         >
                                             <Box
                                                 component="img"
                                                 src={foto.foto}
-                                                alt={foto.descripcion || 'Imagen de propiedad'}
+                                                alt={foto.descripcion || `Imagen ${index + 1} de ${propiedad.nombre}`}
                                                 sx={{
                                                     position: 'absolute',
                                                     top: 0,
                                                     left: 0,
                                                     width: '100%',
                                                     height: '100%',
-                                                    objectFit: 'cover',
+                                                    objectFit: 'cover', // 'cover' suele ser mejor que 'contain' para carrusel
                                                 }}
                                             />
                                         </Box>
@@ -1068,285 +1497,194 @@ const PropertyDetails = () => {
                             </Paper>
                         </Box>
                     )}
-                    <Box
-                        sx={{
-                            flex: 1,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            justifyContent: 'center',
-                        }}
-                    >
+
+                    {/* Columna Info y Acciones */}
+                    <Box sx={{ flex: 1, display: 'flex' }}>
                         <Paper
-                            elevation={2}
+                            elevation={3}
                             sx={{
-                                p: 4,
+                                p: { xs: 2.5, md: 4 },
                                 borderRadius: 3,
-                                height: '100%',
+                                height: '100%', // Ocupar altura
                                 display: 'flex',
                                 flexDirection: 'column',
-                                justifyContent: 'center',
+                                justifyContent: 'space-between', // Distribuye espacio
                                 position: 'relative',
+                                boxShadow: '0 6px 20px rgba(0,0,0,0.1)'
                             }}
                         >
-                            <IconButton
-                                onClick={handleToggleFavorite}
-                                color="primary"
-                                sx={{
-                                    position: 'absolute',
-                                    top: 16,
-                                    right: 16,
-                                    zIndex: 2,
-                                    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-                                    '&:hover': {
-                                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                                    },
-                                }}
-                            >
-                                {isFavorite ? <FavoriteIcon sx={{ color: "#e91e63" }} /> : <FavoriteBorderIcon />}
-                            </IconButton>
-                            <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 2 }}>
-                                {propiedad?.nombre || 'Cargando...'}
-                            </Typography>
-
-                            <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
-                                {propiedad ? `Desde ${propiedad.precio_por_noche} € por noche` : 'Cargando...'}
-                            </Typography>
-                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
-                            </Typography>
-                            {loadingMedia ? (
-                                <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
-                                    <Typography variant='body1' color='text.secondary'>Cargando valoraciones...</Typography>
-                                </Box>
-                            ) : errorMedia ? (
-                                <Typography variant='body1' color='text.secondary' sx={{ my: 2 }}>{errorMedia}</Typography>
-                            ) : (
-                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                    <Rating
-                                        name="read-only"
-                                        value={mediaValoraciones?.media || 0}
-                                        readOnly
-                                        precision={0.25}
-                                        size="medium"
-                                    />
-                                    <Typography variant='body1' color='text.secondary'>
-                                        {mediaValoraciones?.reseñas ? `${mediaValoraciones.media.toFixed(2)} (${mediaValoraciones.reseñas} valoraciones)` : '0 valoraciones'}
-                                    </Typography>
-                                </Box>
-                            )}
-
-                            {esAnfitrion && isAuthenticated() ? (
-                                <Box
-                                    display="flex"
-                                    flexDirection="column"
-                                    width="100%"
-                                    maxWidth="450px"
-                                    mx="auto"
-                                    mt={2}
-                                >
-
-                                    <Button
-                                        variant="contained"
+                            {/* Contenido Principal Info */}
+                            <Box>
+                                {/* Botón Favorito */}
+                                {isAuthenticated() && ( // Solo mostrar si está logueado
+                                    <IconButton
+                                        onClick={handleToggleFavorite}
                                         color="primary"
-                                        size="medium"
-                                        fullWidth
-                                        startIcon={<HomeWorkIcon />}
+                                        aria-label={isFavorite ? "Quitar de favoritos" : "Añadir a favoritos"}
                                         sx={{
-                                            py: 1,
-                                            fontWeight: 600,
-                                            borderRadius: 2,
-                                            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.12)",
-                                            textTransform: "none",
-                                            fontSize: "0.95rem",
-                                            mb: 2
+                                            position: 'absolute', top: 16, right: 16, zIndex: 2,
+                                            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                                            '&:hover': { backgroundColor: 'rgba(255, 255, 255, 1)' },
                                         }}
-                                        onClick={() => setOpenPrincipalMenu(true)}
                                     >
-                                        Gestionar Propiedad
-                                    </Button>
-                                    <Box sx={{ display: 'flex', gap: 2, flexDirection: 'row' }}>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            size="medium"
-                                            fullWidth
-                                            startIcon={<CalendarTodayIcon />}
-                                            sx={{
-                                                py: 1,
-                                                fontWeight: 600,
-                                                borderRadius: 2,
-                                                borderWidth: 1.5,
-                                                textTransform: "none",
-                                                fontSize: "0.95rem",
-                                                "&:hover": {
-                                                    borderWidth: 1.5
-                                                }
-                                            }}
-                                            onClick={() => {
-                                                if (propiedadId) {
-                                                    window.location.href = `/solicitudes-de-reserva?id=${propiedadId}`;
-                                                } else {
-                                                    console.error('propiedadId is not defined');
-                                                }
-                                            }}
-                                        >
-                                            Ver reservas
-                                        </Button>
-                                        <Button
-                                            variant="outlined"
-                                            color="primary"
-                                            size="medium"
-                                            fullWidth
-                                            startIcon={<BarChartIcon />}
-                                            sx={{
-                                                py: 1,
-                                                fontWeight: 600,
-                                                borderRadius: 2,
-                                                borderWidth: 1.5,
-                                                textTransform: "none",
-                                                fontSize: "0.95rem",
-                                                "&:hover": {
-                                                    borderWidth: 1.5
-                                                }
-                                            }}
-                                            onClick={() => window.location.href = `/dashboard/${propiedadId}`}
-                                        >
-                                            Estadísticas
-                                        </Button>
+                                        {isFavorite ? <FavoriteIcon sx={{ color: "#e91e63" }} /> : <FavoriteBorderIcon />}
+                                    </IconButton>
+                                )}
 
+                                <Typography variant="h5" component="h1" sx={{ fontWeight: 700, mb: 1, pr: 5 }}> {/* Padding right por si solapa con fav */}
+                                    {propiedad?.nombre || 'Cargando...'}
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
+                                    {propiedad ? `${propiedad.direccion}, ${propiedad.ciudad}, ${propiedad.pais}` : 'Dirección no disponible'}
+                                </Typography>
 
-                                    </Box>
-
+                                {/* Rating Promedio */}
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+                                    {loadingMedia ? (
+                                        <Typography variant='body2' color='text.secondary'>Cargando valoraciones...</Typography>
+                                    ) : errorMedia ? (
+                                        <Typography variant='body2' color='error.main'>{errorMedia}</Typography>
+                                    ) : mediaValoraciones && mediaValoraciones.media > 0 ? (
+                                        <>
+                                            <Rating
+                                                name="read-only-average"
+                                                value={mediaValoraciones.media}
+                                                readOnly
+                                                precision={0.25}
+                                                size="medium"
+                                                sx={{ mr: 0.5 }}
+                                            />
+                                            <Typography variant='body2' color='text.secondary'>
+                                                {`${mediaValoraciones.media.toFixed(1)} (${mediaValoraciones.reseñas} ${mediaValoraciones.reseñas === 1 ? 'valoración' : 'valoraciones'})`}
+                                            </Typography>
+                                        </>
+                                    ) : (
+                                        <Typography variant='body2' color='text.secondary'>Aún no hay valoraciones</Typography>
+                                    )}
                                 </Box>
 
-                            ) : isAuthenticated() ? (
-                                <Button
-                                    variant='contained'
-                                    color='primary'
-                                    size="large"
-                                    sx={{
-                                        mt: 2,
-                                        py: 1.5,
-                                        fontWeight: 600,
-                                        borderRadius: 2,
-                                        boxShadow: 3,
-                                    }}
-                                    onClick={handleOpenReserveDatePicker}
-                                >
-                                    Reservar Ahora
-                                </Button>
-                            ) : (
-                                <Button
-                                    variant='contained'
-                                    color='primary'
-                                    size="large"
-                                    sx={{
-                                        mt: 2,
-                                        py: 1.5,
-                                        fontWeight: 600,
-                                        borderRadius: 2,
-                                        boxShadow: 3,
-                                    }}
-                                    onClick={() => {
-                                        const redirectUrl = `/inicio-de-sesion?redirect=/detalles/${propiedadId}`;
-                                        window.location.href = redirectUrl;
-                                    }}
-                                >
-                                    Inicie sesión para reservar
-                                </Button>
-                            )}
-                        </Paper>
+                                <Typography variant="h6" color="primary" sx={{ fontWeight: 600, mb: 3 }}>
+                                    {propiedad ? `Desde ${propiedad.precio_por_noche} € / noche` : 'Cargando...'}
+                                    <Tooltip title="Este es el precio base. Pueden aplicarse precios especiales en algunas fechas.">
+                                        <InfoOutlinedIcon fontSize="inherit" sx={{ ml: 0.5, verticalAlign: 'middle', color: 'text.secondary', opacity: 0.7 }} />
+                                    </Tooltip>
+                                </Typography>
+                            </Box>
 
+                            {/* Botones de Acción (Anfitrión / Cliente) */}
+                            <Box mt="auto"> {/* Empuja los botones hacia abajo */}
+                                {esAnfitrion && isAuthenticated() ? (
+                                    <Box display="flex" flexDirection="column" gap={1.5} width="100%">
+                                        <Button
+                                            variant="contained"
+                                            color="primary"
+                                            size="large"
+                                            fullWidth
+                                            startIcon={<SettingsIcon />}
+                                            sx={{ py: 1.3, fontWeight: 600, borderRadius: 2, textTransform: 'none', fontSize: '0.95rem' }}
+                                            onClick={handleOpenGestionModal}
+                                        >
+                                            Gestionar Calendario y Precios
+                                        </Button>
+                                        <Box sx={{ display: 'flex', gap: 1.5, width: '100%' }}>
+                                            <Button
+                                                variant="outlined" color="primary" size="medium" fullWidth
+                                                startIcon={<CalendarTodayIcon />}
+                                                sx={{ textTransform: 'none', fontSize: '0.85rem', flex: 1 }}
+                                                onClick={() => window.location.href = `/solicitudes-de-reserva?id=${propiedadId}`}
+                                            >
+                                                Ver reservas
+                                            </Button>
+                                            <Button
+                                                variant="outlined" color="primary" size="medium" fullWidth
+                                                startIcon={<BarChartIcon />}
+                                                sx={{ textTransform: 'none', fontSize: '0.85rem', flex: 1 }}
+                                                onClick={() => window.location.href = `/dashboard/${propiedadId}`}
+                                            >
+                                                Estadísticas
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                ) : isAuthenticated() ? (
+                                    <Button
+                                        variant='contained' color='primary' size="large" fullWidth
+                                        sx={{ mt: 2, py: 1.5, fontWeight: 600, borderRadius: 2, boxShadow: 3 }}
+                                        onClick={handleOpenReserveDatePicker}
+                                    >
+                                        Reservar Ahora
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant='contained' color='primary' size="large" fullWidth
+                                        sx={{ mt: 2, py: 1.5, fontWeight: 600, borderRadius: 2, boxShadow: 3 }}
+                                        onClick={() => {
+                                            const redirectUrl = `/inicio-de-sesion?redirect=/detalles/${propiedadId}`;
+                                            window.location.href = redirectUrl;
+                                        }}
+                                    >
+                                        Inicie sesión para reservar
+                                    </Button>
+                                )}
+                            </Box>
+                        </Paper>
                     </Box>
                 </Box>
 
-
-
+                {/* Sección Descripción y Detalles */}
                 <Paper
                     elevation={2}
                     sx={{
-                        p: 4,
-                        borderRadius: 3,
-                        mb: 4,
-                        transition: 'transform 0.2s',
-                        '&:hover': {
-                            transform: 'translateY(-5px)',
-                        },
+                        p: { xs: 2.5, md: 4 }, borderRadius: 3, mb: 4,
+                        boxShadow: '0 4px 15px rgba(0,0,0,0.07)'
                     }}
                 >
-                    <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
+                    <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: 'primary.dark' }}>
                         Descripción
                     </Typography>
-                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, lineHeight: 1.8 }}>
+                    <Typography variant="body1" color="text.secondary" sx={{ mb: 4, lineHeight: 1.7 }}>
                         {propiedad?.descripcion || 'Descripción no disponible'}
                     </Typography>
 
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
-                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
-                                Información General
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Código Postal:</strong> {propiedad?.codigo_postal}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Tipo:</strong> {propiedad?.tipo_de_propiedad}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Tamaño:</strong> {propiedad?.tamano} m²
-                            </Typography>
-                        </Box>
+                    <Divider sx={{ my: 3 }} />
 
-                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
-                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
-                                Capacidad
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Máx. Huéspedes:</strong> {propiedad?.maximo_huespedes}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Habitaciones:</strong> {propiedad?.numero_de_habitaciones}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Camas:</strong> {propiedad?.numero_de_camas}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Baños:</strong> {propiedad?.numero_de_banos}
-                            </Typography>
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'primary.dark' }}>
+                        Detalles de la Propiedad
+                    </Typography>
+                    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 3 }}>
+                        {/* Información General */}
+                        <Box>
+                            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 1 }}>Información</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Tipo:</strong> {propiedad?.tipo_de_propiedad}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Tamaño:</strong> {propiedad?.tamano} m²</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>CP:</strong> {propiedad?.codigo_postal}</Typography>
                         </Box>
-
-                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
-                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
-                                Comodidades
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Wifi:</strong> {propiedad?.wifi ? '✓' : '✗'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Aire Acond.:</strong> {propiedad?.aire_acondicionado ? '✓' : '✗'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Calefacción:</strong> {propiedad?.calefaccion ? '✓' : '✗'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Parking:</strong> {propiedad?.parking ? '✓' : '✗'}
-                            </Typography>
+                        {/* Capacidad */}
+                        <Box>
+                            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 1 }}>Capacidad</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Huéspedes:</strong> {propiedad?.maximo_huespedes}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Habitaciones:</strong> {propiedad?.numero_de_habitaciones}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Camas:</strong> {propiedad?.numero_de_camas}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Baños:</strong> {propiedad?.numero_de_banos}</Typography>
                         </Box>
-
-                        <Box sx={{ minWidth: '160px', flex: '1 1 auto', mb: 2 }}>
-                            <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mb: 1 }}>
-                                Normas
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Mascotas:</strong> {propiedad?.mascotas ? 'Permitidas' : 'No permitidas'}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-                                <strong>Fumar:</strong> {propiedad?.permitido_fumar ? 'Permitido' : 'No permitido'}
-                            </Typography>
+                        {/* Comodidades */}
+                        <Box>
+                            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 1 }}>Comodidades</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Wifi:</strong> {propiedad?.wifi ? '✓ Sí' : '✗ No'}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Aire Acond.:</strong> {propiedad?.aire_acondicionado ? '✓ Sí' : '✗ No'}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Calefacción:</strong> {propiedad?.calefaccion ? '✓ Sí' : '✗ No'}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Parking:</strong> {propiedad?.parking ? '✓ Sí' : '✗ No'}</Typography>
+                        </Box>
+                        {/* Normas */}
+                        <Box>
+                            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 1 }}>Normas</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Mascotas:</strong> {propiedad?.mascotas ? '✓ Permitidas' : '✗ No permitidas'}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}><strong>Fumar:</strong> {propiedad?.permitido_fumar ? '✓ Permitido' : '✗ No permitido'}</Typography>
                         </Box>
                     </Box>
 
-                    <Typography variant="subtitle2" color="primary" sx={{ fontWeight: 600, mt: 3, mb: 1 }}>
+                    <Divider sx={{ my: 3 }} />
+
+                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: 'primary.dark' }}>
                         Política de Cancelación
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
@@ -1354,41 +1692,63 @@ const PropertyDetails = () => {
                     </Typography>
                 </Paper>
 
-                {
-                    (isAuthenticated() && esAnfitrion) ? null : (isAuthenticated() && (
-                        <Paper
-                            elevation={2}
-                            sx={{
-                                p: 4,
-                                borderRadius: 3,
-                                mb: 4,
-                                transition: 'transform 0.2s',
-                                '&:hover': {
-                                    transform: 'translateY(-5px)',
-                                },
-                            }}
-                        >
-                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.main' }}>
-                                Tu Valoración
-                            </Typography>
-                            {alertMessage && (
-                                <Alert severity='error' sx={{ mb: 3, borderRadius: 2 }}>
-                                    {alertMessage}
-                                </Alert>
-                            )}
-                            {hasRated ? (
-                                isEditing ? (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                            <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
-                                            <Rating
-                                                name="rating"
-                                                value={rating}
-                                                onChange={handleRatingChange}
-                                                precision={0.5}
-                                                size="large"
-                                            />
+                {/* Sección Tu Valoración (Solo Clientes Logueados NO Anfitriones) */}
+                {isAuthenticated() && !esAnfitrion && (
+                    <Paper
+                        elevation={2}
+                        sx={{
+                            p: { xs: 2.5, md: 4 }, borderRadius: 3, mb: 4,
+                            boxShadow: '0 4px 15px rgba(0,0,0,0.07)'
+                        }}
+                    >
+                        <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, color: 'primary.dark' }}>
+                            {hasRated ? 'Tu Valoración' : 'Deja tu Valoración'}
+                        </Typography>
+
+                        {hasConfirmedReservation() ? (
+                            // Mostrar formulario de valoración si tiene una reserva confirmada
+                            <>
+                                {/* Alerta para errores de validación */}
+                                {alertMessage && (
+                                    <MuiAlert severity='error' sx={{ mb: 2, borderRadius: 1.5 }} onClose={() => setAlertMessage("")}>
+                                        {alertMessage}
+                                    </MuiAlert>
+                                )}
+
+                                {/* Formulario/Vista de Valoración */}
+                                {hasRated && !isEditing ? (
+                                    // Vista de valoración existente
+                                    <Box>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                            <Typography variant="body1" sx={{ mr: 1, fontWeight: 500 }}>Tu puntuación:</Typography>
+                                            <Rating name="read-only-user" value={userRating.valoracion} readOnly precision={0.5} size="large" />
                                         </Box>
+                                        <Paper variant="outlined" sx={{ p: 2, mb: 2, bgcolor: 'grey.50', borderColor: 'grey.200', borderRadius: 1.5 }}>
+                                            <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                                                "{userRating.comentario}"
+                                            </Typography>
+                                        </Paper>
+                                        <Box sx={{ display: 'flex', gap: 1.5 }}>
+                                            <Button variant="outlined" color="primary" onClick={handleEditRating} size="small">
+                                                Editar
+                                            </Button>
+                                            <Button variant="outlined" color="error" onClick={() => handleDeleteRating(userRating.id)} size="small" disabled={loadingRating}>
+                                                {loadingRating ? <CircularProgress size={16} /> : 'Eliminar'}
+                                            </Button>
+                                        </Box>
+                                    </Box>
+                                ) : (
+                                    // Formulario para valorar o editar
+                                    <Box component="form" noValidate autoComplete="off">
+                                        <Typography variant="body1" sx={{ mb: 1, fontWeight: 500 }}>Puntuación:</Typography>
+                                        <Rating
+                                            name="user-rating"
+                                            value={rating}
+                                            onChange={handleRatingChange}
+                                            precision={0.5}
+                                            size="large"
+                                            sx={{ mb: 2 }}
+                                        />
                                         <TextField
                                             label="Tu comentario"
                                             value={comentario_valoracion}
@@ -1397,1519 +1757,417 @@ const PropertyDetails = () => {
                                             rows={4}
                                             fullWidth
                                             variant="outlined"
-                                            sx={{ mt: 1, mb: 2 }}
+                                            placeholder="Comparte tu experiencia (mín. 10 caracteres)"
+                                            sx={{ mb: 2 }}
+                                            required
+                                            inputProps={{ minLength: 10 }}
                                         />
-                                        <Box sx={{ display: 'flex', gap: 2 }}>
+                                        <Box sx={{ display: 'flex', gap: 1.5 }}>
                                             <Button
                                                 variant="contained"
                                                 color="primary"
-                                                onClick={() => handleUpdateRating(propiedad.id)}
-                                                sx={{
-                                                    py: 1,
-                                                    px: 3,
-                                                    fontWeight: 600,
-                                                    borderRadius: 2,
-                                                }}
+                                                onClick={isEditing ? handleUpdateRating : handleSubmitRating}
+                                                disabled={loadingRating}
+                                                startIcon={loadingRating ? <CircularProgress size={20} color="inherit" /> : null}
                                             >
-                                                Actualizar Valoración
+                                                {loadingRating ? 'Guardando...' : (isEditing ? 'Actualizar Valoración' : 'Enviar Valoración')}
                                             </Button>
-                                            <Button
-                                                variant="outlined"
-                                                color="secondary"
-                                                onClick={() => setIsEditing(false)}
-                                                sx={{
-                                                    py: 1,
-                                                    px: 3,
-                                                    fontWeight: 600,
-                                                    borderRadius: 2,
-                                                }}
-                                            >
-                                                Cancelar
-                                            </Button>
+                                            {isEditing && (
+                                                <Button variant="outlined" color="inherit" onClick={() => { setIsEditing(false); setAlertMessage(""); setRating(userRating.valoracion); setComentarioValoracion(userRating.comentario); }} disabled={loadingRating}>
+                                                    Cancelar
+                                                </Button>
+                                            )}
                                         </Box>
                                     </Box>
-                                ) : (
-                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                            <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
-                                            <Rating
-                                                name="read-only"
-                                                value={userRating.valoracion}
-                                                readOnly
-                                                precision={0.5}
-                                                size="large"
-                                            />
-                                        </Box>
-                                        <Paper
-                                            elevation={0}
-                                            sx={{
-                                                p: 3,
-                                                mb: 3,
-                                                borderRadius: 2,
-                                                bgcolor: 'rgba(0, 0, 0, 0.02)',
-                                                border: '1px solid rgba(0, 0, 0, 0.08)'
-                                            }}
-                                        >
-                                            <Typography variant="body1" color="text.secondary">
-                                                {userRating.comentario}
-                                            </Typography>
-                                        </Paper>
-                                        <Box sx={{ display: 'flex', gap: 2 }}>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                onClick={handleEditRating}
-                                                sx={{
-                                                    alignSelf: 'flex-start',
-                                                    py: 1,
-                                                    px: 3,
-                                                    fontWeight: 600,
-                                                    borderRadius: 2,
-                                                }}
-                                            >
-                                                Editar Valoración
-                                            </Button>
-                                            <Button variant="contained" color="error" onClick={() => handleDeleteRating(userRating.id)} sx={{ py: 1, px: 3, fontWeight: 600, borderRadius: 2 }}>
-                                                Eliminar Valoración
-                                            </Button>
+                                )}
+                            </>
+                        ) : (
+                            // Mostrar mensaje si no tiene una reserva confirmada
+                            <Typography variant="body1" color="text.secondary">
+                                Necesitas tener una reserva confirmada para dejar una valoración.
+                            </Typography>
+                        )}
+                    </Paper>
+                )}
 
-                                        </Box>
+                {/* Sección Valoraciones de Otros */}
+                <PropertyValorations propiedadId={propiedadId} />
 
-                                    </Box>
+                {/* --- MODALES --- */}
 
-                                )
-                            ) : (isAuthenticated() && !esAnfitrion && (
-                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                                        <Typography variant="body1" sx={{ mr: 2 }}>Tu puntuación:</Typography>
-                                        <Rating
-                                            name="rating"
-                                            value={rating}
-                                            onChange={handleRatingChange}
-                                            precision={0.5}
-                                            size="large"
-                                        />
-                                    </Box>
-                                    <TextField
-                                        label="Tu comentario sobre la propiedad"
-                                        value={comentario_valoracion}
-                                        onChange={(e) => setComentarioValoracion(e.target.value)}
-                                        multiline
-                                        rows={4}
-                                        fullWidth
-                                        variant="outlined"
-                                        placeholder="Comparte tu experiencia con otros huéspedes"
-                                        sx={{ mb: 2 }}
-                                    />
-                                    <Button
-                                        variant="contained"
-                                        disabled={loadingRating}
-                                        color="primary"
-                                        onClick={() => handleSubmitRating(propiedad.id)}
-                                        sx={{
-                                            alignSelf: 'flex-start',
-                                            py: 1,
-                                            px: 3,
-                                            fontWeight: 600,
-                                            borderRadius: 2,
-                                        }}
-                                    >
-                                        Enviar Valoración
-                                    </Button>
-                                </Box>
-                            ))}
-                            {notification && (
-                                <Alert
-                                    severity={notification.type}
-                                    sx={{
-                                        mt: 3,
-                                        borderRadius: 2,
-                                        boxShadow: '0 2px 10px rgba(0,0,0,0.08)'
-                                    }}
-                                    onClose={() => setNotification(null)}
-                                >
-                                    {notification.message}
-                                </Alert>
-                            )}
-
-                        </Paper>
-                    ))
-                }
-
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                    <PropertyValorations propiedadId={propiedadId} />
-                </Box>
-
-                <Modal
-                    open={open}
-                    onClose={handleClose}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    }}
-                >
+                {/* Modal Fotos Grandes */}
+                <Modal open={open} onClose={handleClose} /* ...otros props... */ >
                     <Box
                         sx={{
-                            position: 'relative',
-                            width: '85vw',
-                            height: '85vh',
-                            bgcolor: "background.paper",
-                            p: 0,
-                            borderRadius: 3,
-                            overflow: 'hidden',
-                            boxShadow: 24
+                            position: 'relative', width: { xs: '95vw', sm: '85vw' }, height: { xs: '70vh', sm: '85vh' },
+                            maxWidth: '1200px', maxHeight: '800px', // Límites máximos
+                            bgcolor: "background.paper", p: 0, borderRadius: 2,
+                            overflow: 'hidden', boxShadow: 24,
+                            top: '50%', left: '50%', transform: 'translate(-50%, -50%)' // Centrado absoluto
                         }}
                     >
-                        <IconButton
-                            onClick={handleClose}
-                            sx={{
-                                position: 'absolute',
-                                top: 16,
-                                right: 16,
-                                bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                zIndex: 2,
-                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                            }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-                        <IconButton
-                            onClick={handlePrev}
-                            sx={{
-                                position: 'absolute',
-                                top: '50%',
-                                left: 16,
-                                transform: 'translateY(-50%)',
-                                bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                zIndex: 2,
-                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                            }}
-                        >
-                            <ArrowBackIosNewIcon />
-                        </IconButton>
-                        <IconButton
-                            onClick={handleNext}
-                            sx={{
-                                position: 'absolute',
-                                top: '50%',
-                                right: 16,
-                                transform: 'translateY(-50%)',
-                                bgcolor: 'rgba(255, 255, 255, 0.7)',
-                                zIndex: 2,
-                                '&:hover': { bgcolor: 'rgba(255, 255, 255, 0.9)' }
-                            }}
-                        >
-                            <ArrowForwardIosIcon />
-                        </IconButton>
+                        {/* Botones navegación y cierre del modal de fotos */}
+                        <IconButton onClick={handleClose} sx={{ position: 'absolute', top: 8, right: 8, bgcolor: 'rgba(0, 0, 0, 0.5)', color: 'white', zIndex: 2, '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' } }}><CloseIcon /></IconButton>
+                        <IconButton onClick={handlePrev} sx={{ position: 'absolute', top: '50%', left: 8, transform: 'translateY(-50%)', bgcolor: 'rgba(0, 0, 0, 0.5)', color: 'white', zIndex: 2, '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' } }}><ArrowBackIosNewIcon /></IconButton>
+                        <IconButton onClick={handleNext} sx={{ position: 'absolute', top: '50%', right: 8, transform: 'translateY(-50%)', bgcolor: 'rgba(0, 0, 0, 0.5)', color: 'white', zIndex: 2, '&:hover': { bgcolor: 'rgba(0, 0, 0, 0.7)' } }}><ArrowForwardIosIcon /></IconButton>
                         {fotos[selectedFotoIndex] && (
-                            <Box
-                                component="img"
-                                src={fotos[selectedFotoIndex].foto}
-                                alt={fotos[selectedFotoIndex].descripcion || 'Imagen de propiedad'}
-                                sx={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'contain',
-                                    bgcolor: '#000'
-                                }}
-                            />
+                            <Box component="img" src={fotos[selectedFotoIndex].foto} alt={fotos[selectedFotoIndex].descripcion || 'Imagen ampliada'} sx={{ width: '100%', height: '100%', objectFit: 'contain', bgcolor: '#222' }} />
                         )}
                     </Box>
                 </Modal>
 
-                <Dialog
-                    open={openManageDates}
-                    onClose={() => setOpenManageDates(false)}
-                    maxWidth="sm"
-                    fullWidth
-                    PaperProps={{
-                        elevation: 3,
-                        sx: {
-                            borderRadius: 1,
-                            overflow: 'hidden'
-                        }
-                    }}
-                >
-
-
-                    <Paper square sx={{ position: 'relative' }}>
-                        <DialogTitle sx={{
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2,
-                            pl: 3,
-                            pr: 6
-                        }}>
-                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-                                Gestionar Fechas Disponibles
-                            </Typography>
-                            <IconButton
-                                aria-label="cerrar"
-                                onClick={() => setOpenManageDates(false)}
-                                sx={{
-                                    position: 'absolute',
-                                    right: 12,
-                                    top: 12,
-                                    color: 'primary.contrastText'
-                                }}
-                                size="small"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </DialogTitle>
-                    </Paper>
-
-                    <DialogContent sx={{ px: 0, py: 2 }}>
-                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
-                            Seleccione una acción para continuar
-                        </Typography>
-
-                        <List disablePadding>
-                            <ListItem
-                                button
-                                onClick={() => handleOpenDatePicker()}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'primary.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <AddCircleOutlineIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Bloquear Fecha"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-
-                            <Divider component="li" />
-
-                            <ListItem
-                                button
-                                onClick={handleOpenUnblockDatePicker}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'error.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <DeleteOutlineIcon color="error" />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Desbloquear Fecha"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-                        </List>
-                    </DialogContent>
-
-                    <Divider />
-
-                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
-                        <Button
-                            onClick={() => setOpenManageDates(false)}
-                            variant="contained"
-                            color="primary"
-                            disableElevation
-                            sx={{
-                                textTransform: 'none',
-                                borderRadius: 1,
-                                px: 3
-                            }}
-                        >
-                            Cerrar
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-                <Dialog
-                    open={openPrincipalMenu}
-                    onClose={() => setOpenPrincipalMenu(false)}
-                    maxWidth="sm"
-                    fullWidth
-                    PaperProps={{
-                        elevation: 3,
-                        sx: {
-                            borderRadius: 1,
-                            overflow: 'hidden'
-                        }
-                    }}
-                >
-
-
-                    <Paper square sx={{ position: 'relative' }}>
-                        <DialogTitle sx={{
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2,
-                            pl: 3,
-                            pr: 6
-                        }}>
-                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-                                Gestionar Propiedad
-                            </Typography>
-                            <IconButton
-                                aria-label="cerrar"
-                                onClick={() => setOpenPrincipalMenu(false)}
-                                sx={{
-                                    position: 'absolute',
-                                    right: 12,
-                                    top: 12,
-                                    color: 'primary.contrastText'
-                                }}
-                                size="small"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </DialogTitle>
-                    </Paper>
-
-                    <DialogContent sx={{ px: 0, py: 2 }}>
-                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
-                            Seleccione una acción para continuar
-                        </Typography>
-
-                        <List disablePadding>
-                            <ListItem
-                                button
-                                onClick={() => setOpenManageDates(true)}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'primary.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <AddCircleOutlineIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Gestionar Fechas Disponibles"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-
-                            <Divider component="li" />
-
-                            <ListItem
-                                button
-                                onClick={() => setOpenMenuSpecialPrice(true)}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'error.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <AttachMoneyIcon color='primary' />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Gestionar Precios por Fecha"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-                        </List>
-                    </DialogContent>
-
-                    <Divider />
-
-                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
-                        <Button
-                            onClick={() => setOpenPrincipalMenu(false)}
-                            variant="contained"
-                            color="primary"
-                            disableElevation
-                            sx={{
-                                textTransform: 'none',
-                                borderRadius: 1,
-                                px: 3
-                            }}
-                        >
-                            Cerrar
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-
-                <Modal
-                    open={openDatePicker}
-                    onClose={handleCloseDatePicker}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
-                    }}
-                >
-                    <Paper
-                        sx={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '600px',
-                            p: 4,
-                            borderRadius: 3,
-                            boxShadow: 24
-                        }}
-                    >
-                        <IconButton
-                            onClick={handleCloseDatePicker}
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8
-                            }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
-                                Seleccionar fechas para bloquear
-                            </Typography>
-                            <Box sx={{ mb: 3 }}>
-                                <DayPickerSingleDateController
-                                    date={null}
-                                    onDateChange={handleBlockDateChange}
-                                    focused={true}
-                                    onFocusChange={handleFocusChange}
-                                    isDayHighlighted={(date) => selectedBlockDates.includes(date.format('YYYY-MM-DD'))}
-                                    isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
-                                    hideKeyboardShortcutsPanel
-                                    numberOfMonths={1}
-                                />
-                            </Box>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleConfirmBlockDate}
-                                sx={{
-                                    py: 1.5,
-                                    px: 4,
-                                    fontWeight: 600,
-                                    borderRadius: 2,
-                                }}
-                            >
-                                Confirmar
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Modal>
-
-                <Modal
-                    open={openUnblockDatePicker}
-                    onClose={handleCloseUnblockDatePicker}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100vw',
-                    }}
-                >
-                    <Paper
-                        sx={{
-                            position: 'relative',
-                            width: '100%',
-                            maxWidth: '600px',
-                            p: 4,
-                            borderRadius: 3,
-                            boxShadow: 24
-                        }}
-                    >
-                        <IconButton
-                            onClick={handleCloseUnblockDatePicker}
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8
-                            }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                            <Typography variant="h5" sx={{ mb: 3, fontWeight: 600, textAlign: 'center' }}>
-                                Seleccionar fechas para desbloquear
-                            </Typography>
-                            <Box sx={{ mb: 3 }}>
-                                <DayPickerSingleDateController
-                                    date={null}
-                                    onDateChange={handleUnblockDateChange}
-                                    focused={true}
-                                    onFocusChange={handleFocusChange}
-                                    isDayHighlighted={(date) => selectedUnblockDates.includes(date.format('YYYY-MM-DD'))}
-                                    isOutsideRange={(date) => date.isBefore(moment()) || !blockedDates.some((blockedDate) => moment(blockedDate.fecha).isSame(date, 'day'))}
-                                    hideKeyboardShortcutsPanel
-                                    numberOfMonths={1}
-                                />
-                            </Box>
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleConfirmUnblockDate}
-                                sx={{
-                                    py: 1.5,
-                                    px: 4,
-                                    fontWeight: 600,
-                                    borderRadius: 2,
-                                }}
-                            >
-                                Confirmar
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Modal>
+                {/* Modal Reserva Cliente */}
                 <Modal
                     open={openReserveDatePicker}
                     onClose={handleCloseReserveDatePicker}
-                    sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        width: '100vw',
-                        bgcolor: "white"
-                    }}
+                    // ... (estilos como en el código original) ...
+                    sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                     <Paper
-                        elevation={3}
+                        elevation={5}
                         sx={{
-                            position: 'relative',
-                            width: '80vw',
-                            maxWidth: '850px',
-                            bgcolor: "background.paper",
-                            maxHeight: '90vh',
-                            p: 4,
-                            pt: 5,
-                            pb: 5,
-                            borderRadius: 2,
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            boxShadow: 24,
-                            overflow: 'auto'
+                            position: 'relative', width: { xs: '95vw', sm: '80vw', md: '70vw' }, maxWidth: '850px',
+                            bgcolor: "background.paper", maxHeight: '90vh', p: { xs: 2, sm: 3, md: 4 }, borderRadius: 2,
+                            display: 'flex', flexDirection: 'column', boxShadow: 24, overflow: 'hidden' // Overflow hidden en Paper
                         }}
                     >
-                        <Box sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            height: '6px',
-                            bgcolor: 'white',
-                            width: '100%',
-                        }} />
-
-                        <IconButton
-                            onClick={handleCloseReserveDatePicker}
-                            aria-label="Cerrar"
-                            sx={{
-                                position: 'absolute',
-                                top: 8,
-                                right: 8,
-                                color: 'text.secondary',
-                                '&:hover': {
-                                    bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                    color: 'primary.main'
-                                }
-                            }}
-                        >
-                            <CloseIcon />
-                        </IconButton>
-
-                        <Typography
-                            variant="h5"
-                            sx={{
-                                mb: 4,
-                                fontWeight: 600,
-                                textAlign: 'center',
-                                color: 'text.primary'
-                            }}
-                        >
-                            Realizar Reserva
-                        </Typography>
-
-                        <Box sx={{
-                            zIndex: 1300,
-                            width: '100%',
-                            mb: 3
-                        }}>
-                            <Typography
-                                variant="subtitle1"
-                                sx={{
-                                    mb: 1,
-                                    fontWeight: 500,
-                                    color: 'text.secondary'
-                                }}
-                            >
-                                Seleccione las fechas de su estancia:
+                        {/* Título y Cierre */}
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pb: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+                            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                Realizar Reserva
                             </Typography>
-                            <DateRangePicker
-                                startDate={reserveStartDate}
-                                startDateId="start_date_id"
-                                endDate={reserveEndDate}
-                                startDatePlaceholderText='Fecha de entrada'
-                                endDatePlaceholderText='Fecha de salida'
-                                endDateId="end_date_id"
-                                onDatesChange={handleReserveDateChange}
-                                focusedInput={focusedInput}
-                                onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
-                                minimumNights={1}
-                                isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDates.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
-                                hideKeyboardShortcutsPanel
-                                required
-                                customArrowIcon={<span style={{ padding: '0 8px' }}>→</span>}
-                                displayFormat="DD/MM/YYYY"
-                                small
-                                renderDayContents={(day) => {
-                                    const isSpecial = isSpecialPriceDate(day);
-                                    return (
-                                        <div style={{
-                                            position: 'relative',
-                                            width: '100%',
-                                            height: '100%',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            // Estilo profesional actualizado para precios especiales
-                                            background: isSpecial ? 'linear-gradient(to bottom, rgba(0, 123, 255, 0.05) 0%, rgba(0, 123, 255, 0.1) 100%)' : 'transparent',
-                                            borderRadius: '50%',
-                                            color: isSpecial ? '#0056b3' : 'inherit',
-                                            fontWeight: isSpecial ? '600' : 'normal',
-                                            transition: 'all 0.2s ease'
-                                        }}>
-                                            {day.date()}
-                                            {isSpecial && (
-                                                <div style={{
-                                                    position: 'absolute',
-                                                    bottom: 1,
-                                                    right: '50%',
-                                                    transform: 'translateX(50%)',
-                                                    fontSize: 9,
-                                                    color: '#0056b3',
-                                                    background: 'rgba(255, 255, 255, 0.7)',
-                                                    borderRadius: '2px',
-                                                    padding: '0 2px',
-                                                    lineHeight: '1',
-                                                    fontWeight: 'bold'
-                                                }}>
-                                                    €
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                }}
-                            />
+                            <IconButton onClick={handleCloseReserveDatePicker} aria-label="Cerrar"><CloseIcon /></IconButton>
                         </Box>
 
-                        <Box sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            width: '100%',
-                            mb: 3,
-                            p: 2,
-                            bgcolor: 'rgba(0, 0, 0, 0.02)',
-                            borderRadius: 1
-                        }}>
-                            <Typography variant="body1">Número de huéspedes:</Typography>
-                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                <IconButton
-                                    onClick={handleDecrement}
-                                    size="small"
-                                    aria-label="Reducir número de huéspedes"
-                                    sx={{
-                                        bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                        color: 'text.secondary',
-                                        '&:hover': {
-                                            bgcolor: 'primary.light',
-                                            color: 'primary.contrastText'
-                                        }
-                                    }}
-                                >
-                                    <RemoveIcon fontSize="small" />
-                                </IconButton>
-                                <Typography variant="body1" sx={{ mx: 2, fontWeight: 500 }}>{numPersonas}</Typography>
-                                <IconButton
-                                    onClick={handleIncrement}
-                                    size="small"
-                                    aria-label="Aumentar número de huéspedes"
-                                    sx={{
-                                        bgcolor: 'rgba(0, 0, 0, 0.04)',
-                                        color: 'text.secondary',
-                                        '&:hover': {
-                                            bgcolor: 'primary.light',
-                                            color: 'primary.contrastText'
-                                        }
-                                    }}
-                                >
-                                    <AddIcon fontSize="small" />
-                                </IconButton>
+                        {/* Contenido Scrollable */}
+                        <Box sx={{ overflowY: 'auto', flexGrow: 1, pr: 1, mr: -1 }}> {/* Padding y margin para scrollbar */}
+                            {/* Selector de Fechas */}
+                            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+                                <DateRangePicker
+                                    startDate={reserveStartDate} startDateId="reserve_start_date_id"
+                                    endDate={reserveEndDate} endDateId="reserve_end_date_id"
+                                    onDatesChange={handleReserveDateChange}
+                                    focusedInput={focusedInput} onFocusChange={setFocusedInput}
+                                    minimumNights={1} // O la estancia mínima que requieras
+                                    isDayBlocked={isClientDayBlocked} // Usa la función específica del cliente
+                                    renderDayContents={renderClientDayContents} // Muestra precios especiales
+                                    numberOfMonths={window.innerWidth < 700 ? 1 : 2} // Adaptar meses
+                                    hideKeyboardShortcutsPanel required noBorder small
+                                    startDatePlaceholderText='Fecha de entrada' endDatePlaceholderText='Fecha de salida'
+                                    customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
+                                    displayFormat="DD/MM/YYYY" daySize={36}
+                                />
                             </Box>
-                        </Box>
 
-                        <FormControl sx={{ mt: 1, mb: 3, width: '100%' }}>
-                            <InputLabel id="metodo-pago-label">Método de Pago</InputLabel>
-                            <Select
-                                id="metodo-pago"
-                                labelId="metodo-pago-label"
-                                value={metodoPago}
-                                onChange={(e) => setMetodoPago(e.target.value)}
-                                label="Método de Pago"
-                                sx={{ '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0, 0, 0, 0.23)' } }}
-                            >
-                                <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
-                                <MenuItem value="PayPal">PayPal</MenuItem>
-                            </Select>
-                        </FormControl>
-
-                        <Box sx={{ width: '100%', mb: 3 }}>
-                            <Typography
-                                variant="subtitle1"
-                                sx={{
-                                    mb: 1,
-                                    fontWeight: 500,
-                                    color: 'text.secondary'
-                                }}
-                            >
-                                Información adicional:
-                            </Typography>
-                            <TextField
-                                value={comentarios_usuario}
-                                onChange={(e) => setComentariosUsuario(e.target.value)}
-                                multiline
-                                rows={3}
-                                placeholder="Indique cualquier requerimiento especial o información relevante para su estancia..."
-                                sx={{
-                                    width: '100%',
-                                    '& .MuiOutlinedInput-root': {
-                                        '& fieldset': {
-                                            borderColor: 'rgba(0, 0, 0, 0.23)',
-                                        },
-                                        '&:hover fieldset': {
-                                            borderColor: 'primary.main',
-                                        },
-                                    }
-                                }}
-                            />
-                        </Box>
-
-                        {reserveStartDate && reserveEndDate && (
-                            <Paper
-                                elevation={0}
-                                sx={{
-                                    width: '100%',
-                                    mb: 3,
-                                    p: 3,
-                                    bgcolor: 'rgba(250, 250, 250, 0.95)',
-                                    borderRadius: 2,
-                                    border: '1px solid rgba(0, 0, 0, 0.09)',
-                                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)'
-                                }}
-                            >
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        mb: 2.5,
-                                        fontWeight: 600,
-                                        color: 'text.primary',
-                                        position: 'relative',
-                                        pb: 1.5,
-                                        '&:after': {
-                                            content: '""',
-                                            position: 'absolute',
-                                            bottom: 0,
-                                            left: 0,
-                                            width: '40px',
-                                            height: '3px',
-                                            backgroundColor: 'primary.main',
-                                            borderRadius: '2px'
-                                        }
-                                    }}
-                                >
-                                    Resumen de precios
-                                </Typography>
-
-                                <Box sx={{ mb: 3, pl: 0.5, pr: 0.5 }}>
-                                    {datesBetween.map((date, index) => {
-                                        const specialPrice = specialPricesList.find(
-                                            (price) => date >= price.fecha_inicio && date <= price.fecha_fin
-                                        );
-                                        const price = specialPrice ? specialPrice.precio_especial : propiedad.precio_por_noche;
-                                        const isSpecialPrice = !!specialPrice;
-
-                                        return (
-                                            <Box
-                                                key={index}
-                                                sx={{
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    mb: 1,
-                                                    p: 1,
-                                                    borderRadius: 1,
-                                                    backgroundColor: isSpecialPrice ? 'rgba(0, 123, 255, 0.05)' : 'transparent',
-                                                    transition: 'background-color 0.2s ease',
-                                                    border: isSpecialPrice ? '1px solid rgba(0, 123, 255, 0.12)' : 'none'
-                                                }}
-                                            >
-                                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        {moment(date).format('DD MMM, yyyy')}
-                                                    </Typography>
-                                                    {isSpecialPrice && (
-                                                        <Tooltip title="Tarifa especial para esta fecha" arrow>
-                                                            <Box sx={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                ml: 1,
-                                                                borderRadius: '4px',
-                                                                p: '2px 5px',
-                                                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                                                            }}>
-                                                                <EuroIcon sx={{ fontSize: 14, mr: 0.5, color: '#0056b3' }} />
-                                                                <Typography variant="caption" sx={{ fontWeight: 600, color: '#0056b3' }}>
-                                                                    Tarifa Especial
-                                                                </Typography>
-                                                            </Box>
-                                                        </Tooltip>
-                                                    )}
-                                                </Box>
-                                                <Typography variant="body2" fontWeight={600} sx={{ color: isSpecialPrice ? '#0056b3' : 'text.primary' }}>
-                                                    {price} €
-                                                </Typography>
-                                            </Box>
-                                        );
-                                    })}
+                            {/* Selector Huéspedes */}
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: '100%', mb: 2.5, p: 1.5, bgcolor: 'grey.100', borderRadius: 1.5 }}>
+                                <Typography variant="body1">Número de huéspedes:</Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                    <IconButton onClick={handleDecrement} size="small" aria-label="Reducir huéspedes"><RemoveIcon fontSize="small" /></IconButton>
+                                    <Typography variant="body1" sx={{ mx: 2, fontWeight: 500 }}>{numPersonas}</Typography>
+                                    <IconButton onClick={handleIncrement} size="small" aria-label="Aumentar huéspedes"><AddIcon fontSize="small" /></IconButton>
                                 </Box>
+                            </Box>
 
-                                {/* Sección de resumen */}
-                                <Box sx={{
-                                    backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                                    p: 2,
-                                    borderRadius: 1.5,
-                                    border: '1px solid rgba(0, 0, 0, 0.06)'
-                                }}>
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
-                                        <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
+                            {/* Selector Método de Pago */}
+                            <FormControl fullWidth sx={{ mb: 2.5 }}>
+                                <InputLabel id="metodo-pago-label-reserva">Método de Pago</InputLabel>
+                                <Select
+                                    id="metodo-pago-reserva" labelId="metodo-pago-label-reserva"
+                                    value={metodoPago} onChange={(e) => setMetodoPago(e.target.value)}
+                                    label="Método de Pago" size="small"
+                                >
+                                    <MenuItem value="Tarjeta de crédito">Tarjeta de Crédito</MenuItem>
+                                    <MenuItem value="PayPal">PayPal</MenuItem>
+                                </Select>
+                            </FormControl>
+
+                            {/* Comentarios Adicionales */}
+                            <TextField
+                                label="Comentarios adicionales (opcional)"
+                                value={comentarios_usuario} onChange={(e) => setComentariosUsuario(e.target.value)}
+                                multiline rows={3} fullWidth variant="outlined" size="small"
+                                placeholder="Indique cualquier requerimiento especial..." sx={{ mb: 3 }}
+                            />
+
+                            {/* Resumen de Precios */}
+                            {reserveStartDate && reserveEndDate && datesBetween.length > 0 && (
+                                <Paper variant="outlined" sx={{ width: '100%', mb: 3, p: 2.5, bgcolor: 'grey.50', borderRadius: 1.5, borderColor: 'grey.300' }}>
+                                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: 'text.primary', pb: 1, borderBottom: 1, borderColor: 'grey.300' }}>
+                                        Resumen de precios
+                                    </Typography>
+                                    {/* Detalle por noche (opcional, puede ocupar mucho espacio) */}
+                                    {/* datesBetween.map((date, index) => { ... }) */}
+                                    {/* Subtotal */}
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">
                                             Subtotal ({datesBetween.length} {datesBetween.length === 1 ? 'noche' : 'noches'})
                                         </Typography>
-                                        <Typography variant="body2" fontWeight={600}>
+                                        <Typography variant="body2" fontWeight={500}>
                                             {datesBetween.reduce((total, date) => {
-                                                const specialPrice = specialPricesList.find(
-                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
-                                                );
-                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                                const specialPriceInfo = specialPricesList.find(p => moment(date).isBetween(p.fecha_inicio, p.fecha_fin, 'day', '[]'));
+                                                return total + (specialPriceInfo ? parseFloat(specialPriceInfo.precio_especial) : parseFloat(propiedad.precio_por_noche));
                                             }, 0).toFixed(2)} €
                                         </Typography>
                                     </Box>
-
+                                    {/* Comisión */}
                                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
                                         <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>
-                                                Comisión de servicio
-                                            </Typography>
-                                            <Tooltip title="Tarifa administrativa por uso de la plataforma" arrow>
-                                                <InfoOutlinedIcon sx={{ fontSize: 16, ml: 0.5, color: 'text.secondary', opacity: 0.7 }} />
+                                            <Typography variant="body2" color="text.secondary">Comisión de servicio</Typography>
+                                            <Tooltip title="Tarifa administrativa por uso de la plataforma (10%)" arrow>
+                                                <InfoOutlinedIcon sx={{ fontSize: 14, ml: 0.5, color: 'text.secondary', opacity: 0.7 }} />
                                             </Tooltip>
                                         </Box>
-                                        <Typography variant="body2" fontWeight={600}>
+                                        <Typography variant="body2" fontWeight={500}>
                                             {(datesBetween.reduce((total, date) => {
-                                                const specialPrice = specialPricesList.find(
-                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
-                                                );
-                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                                const specialPriceInfo = specialPricesList.find(p => moment(date).isBetween(p.fecha_inicio, p.fecha_fin, 'day', '[]'));
+                                                return total + (specialPriceInfo ? parseFloat(specialPriceInfo.precio_especial) : parseFloat(propiedad.precio_por_noche));
                                             }, 0) * 0.10).toFixed(2)} €
                                         </Typography>
                                     </Box>
-                                </Box>
-
-                                {/* Precio total */}
-                                <Box sx={{
-                                    display: 'flex',
-                                    justifyContent: 'space-between',
-                                    alignItems: 'center',
-                                    mt: 3,
-                                    pt: 2,
-                                    borderTop: '1px solid rgba(0, 0, 0, 0.1)'
-                                }}>
-                                    <Typography variant="subtitle1" fontWeight={700}>
-                                        Importe Total
-                                    </Typography>
-                                    <Box sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        backgroundColor: 'primary.main',
-                                        color: 'white',
-                                        px: 2,
-                                        py: 1,
-                                        borderRadius: 1.5
-                                    }}>
-                                        <Typography variant="subtitle1" fontWeight={700}>
+                                    {/* Total */}
+                                    <Divider sx={{ my: 1.5 }} />
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <Typography variant="subtitle1" fontWeight={700}>Importe Total</Typography>
+                                        <Typography variant="subtitle1" fontWeight={700} color="primary.main">
                                             {(datesBetween.reduce((total, date) => {
-                                                const specialPrice = specialPricesList.find(
-                                                    (price) => date >= price.fecha_inicio && date <= price.fecha_fin
-                                                );
-                                                return total + (specialPrice ? parseFloat(specialPrice.precio_especial) : parseFloat(propiedad.precio_por_noche));
+                                                const specialPriceInfo = specialPricesList.find(p => moment(date).isBetween(p.fecha_inicio, p.fecha_fin, 'day', '[]'));
+                                                return total + (specialPriceInfo ? parseFloat(specialPriceInfo.precio_especial) : parseFloat(propiedad.precio_por_noche));
                                             }, 0) * 1.10).toFixed(2)} €
                                         </Typography>
                                     </Box>
-                                </Box>
-                            </Paper>
-                        )}
-                        <Box sx={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            gap: 2,
-                            width: '100%',
-                            justifyContent: 'space-between'
-                        }}>
-                            <Button
-                                variant="outlined"
-                                color="inherit"
-                                onClick={handleCloseReserveDatePicker}
-                                disabled={loading}
-                                sx={{
-                                    flex: 1,
-                                    py: 1.2,
-                                    color: 'text.secondary',
-                                    borderColor: 'rgba(0, 0, 0, 0.23)',
-                                    '&:hover': {
-                                        borderColor: 'rgba(0, 0, 0, 0.5)',
-                                        bgcolor: 'rgba(0, 0, 0, 0.02)'
-                                    }
-                                }}
-                            >
+                                </Paper>
+                            )}
+                        </Box> {/* Fin Contenido Scrollable */}
+
+                        {/* Acciones del Modal de Reserva */}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 1.5, pt: 2, borderTop: 1, borderColor: 'divider', mt: 'auto' }}> {/* mt auto para empujar abajo */}
+                            <Button variant="outlined" color="inherit" onClick={handleCloseReserveDatePicker} disabled={loading}>
                                 Cancelar
                             </Button>
                             <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={handleConfirmReserve}
-                                disabled={loading || !reserveStartDate || !reserveEndDate}
-                                sx={{
-                                    flex: 2,
-                                    py: 1.2,
-                                    fontWeight: 600,
-                                    boxShadow: 2,
-                                    '&:hover': {
-                                        boxShadow: 4
-                                    }
-                                }}
+                                variant="contained" color="primary" onClick={handleConfirmReserve}
+                                disabled={loading || !reserveStartDate || !reserveEndDate || datesBetween.length === 0}
+                                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
                             >
-                                {loading ? (
-                                    <>
-                                        <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
-                                        Procesando
-                                    </>
-                                ) : 'Confirmar Reserva'}
+                                {loading ? 'Procesando...' : 'Confirmar y Pagar'}
                             </Button>
                         </Box>
                     </Paper>
                 </Modal>
-                <Dialog
-                    open={openMenuSpecialPrice}
-                    onClose={handleCloseMenuSpecialPrice}
-                    maxWidth="sm"
-                    fullWidth
-                    PaperProps={{
-                        elevation: 3,
-                        sx: {
-                            borderRadius: 1,
-                            overflow: 'hidden'
-                        }
-                    }}
-                >
-                    <Paper square sx={{ position: 'relative' }}>
-                        <DialogTitle sx={{
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2,
-                            pl: 3,
-                            pr: 6
-                        }}>
-                            <Typography variant="h6" component="div" sx={{ fontWeight: 500 }}>
-                                Gestión de precios por fecha
-                            </Typography>
-                            <IconButton
-                                aria-label="cerrar"
-                                onClick={handleCloseMenuSpecialPrice}
-                                sx={{
-                                    position: 'absolute',
-                                    right: 12,
-                                    top: 12,
-                                    color: 'primary.contrastText'
-                                }}
-                                size="small"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </DialogTitle>
-                    </Paper>
 
-                    <DialogContent sx={{ px: 0, py: 2 }}>
-                        <Typography variant="subtitle2" sx={{ px: 3, pb: 1, color: 'text.secondary' }}>
-                            Seleccione una acción para continuar
-                        </Typography>
-
-                        <List disablePadding>
-                            <ListItem
-                                button
-                                onClick={() => setOpenAddSpecialPrice(true)}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'primary.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <AddCircleOutlineIcon color="primary" />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Añadir precio para fecha específica"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-
-                            <Divider component="li" />
-
-                            <ListItem
-                                button
-                                onClick={() => setOpenDeleteSpecialPrice(true)}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': {
-                                        bgcolor: 'error.50'
-                                    }
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 40, ml: 1 }}>
-                                    <DeleteOutlineIcon color="error" />
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary="Eliminar precio para fecha específica"
-                                    primaryTypographyProps={{
-                                        fontSize: '0.9rem',
-                                        fontWeight: 400
-                                    }}
-                                />
-                            </ListItem>
-                        </List>
-                    </DialogContent>
-
-                    <Divider />
-
-                    <DialogActions sx={{ px: 3, py: 2, justifyContent: 'flex-end' }}>
-                        <Button
-                            onClick={handleCloseMenuSpecialPrice}
-                            variant="contained"
-                            color="primary"
-                            disableElevation
-                            sx={{
-                                textTransform: 'none',
-                                borderRadius: 1,
-                                px: 3
-                            }}
-                        >
-                            Cerrar
-                        </Button>
-                    </DialogActions>
-                </Dialog>
-
-                <Dialog
-                    open={openAddSpecialPrice}
-                    onClose={handleCloseAddSpecialPrice}
-                    fullWidth
-                    maxWidth="md"
-                    PaperProps={{
-                        elevation: 4,
-                        sx: {
-                            borderRadius: 2,
-                            overflow: 'hidden',
-                            height: '90vh',
-                            maxHeight: '650px',
-                            boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
-                        }
-                    }}
-                >
-                    <Paper square sx={{ position: 'relative' }}>
-                        <DialogTitle sx={{
-                            bgcolor: 'primary.main',
-                            color: 'primary.contrastText',
-                            py: 2.5,
-                            pl: 3,
-                            pr: 6,
-                            borderBottom: '1px solid rgba(255,255,255,0.1)'
-                        }}>
-                            <Typography variant="h6" component="div" sx={{ fontWeight: 600, letterSpacing: '0.01em' }}>
-                                Configurar precio para fecha específica
-                            </Typography>
-                            <IconButton
-                                aria-label="cerrar"
-                                onClick={handleCloseAddSpecialPrice}
-                                sx={{
-                                    position: 'absolute',
-                                    right: 16,
-                                    top: 14,
-                                    color: 'primary.contrastText',
-                                    '&:hover': {
-                                        bgcolor: 'rgba(255,255,255,0.15)'
-                                    },
-                                    transition: 'background-color 0.2s'
-                                }}
-                                size="small"
-                            >
-                                <CloseIcon fontSize="small" />
-                            </IconButton>
-                        </DialogTitle>
-                    </Paper>
-
-                    <DialogContent sx={{ pt: 4, px: 4, pb: 3 }}>
-                        <Box mb={4.5}>
-                            <Typography variant="subtitle1" color="text.primary" mb={2} fontWeight={600} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <CalendarTodayIcon sx={{ fontSize: 18, mr: 1.5, color: 'primary.main', opacity: 0.9 }} />
-                                Rango de fechas
-                            </Typography>
-                            <Paper
-                                variant="outlined"
-                                sx={{
-                                    p: 2.5,
-                                    borderRadius: 1.5,
-                                    borderColor: 'divider',
-                                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-                                    bgcolor: 'background.paper',
-                                    position: 'relative',
-                                    zIndex: 1,
-                                }}
-                            >
-                                <DateRangePicker
-                                    startDate={specialPriceStartDate}
-                                    startDateId="start_date_id"
-                                    endDate={specialPriceEndDate}
-                                    startDatePlaceholderText='Fecha inicio'
-                                    endDatePlaceholderText='Fecha fin'
-                                    endDateId="end_date_id"
-                                    onDatesChange={handleSpecialPriceDateChange}
-                                    focusedInput={focusedInput}
-                                    onFocusChange={(focusedInput) => setFocusedInput(focusedInput)}
-                                    minimumNights={1}
-                                    isOutsideRange={(date) => date.isBefore(moment()) || allBlockedDatesWithSpecialPrices.some((blockedDate) => moment(blockedDate).isSame(date, 'day'))}
-                                    hideKeyboardShortcutsPanel
-                                    required
-                                    customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
-                                    displayFormat="DD/MM/YYYY"
-                                    small
-                                    noBorder
-                                    daySize={36}
-                                    renderCalendarInfo={() => (
-                                        <Box sx={{ p: 1.5, borderTop: '1px solid', borderColor: 'divider', fontSize: '0.85rem', color: 'text.secondary' }}>
-                                            Las fechas no disponibles aparecen deshabilitadas
-                                        </Box>
-                                    )}
-                                />
-                            </Paper>
-                        </Box>
-
-                        <Box mb={4.5} sx={{ position: 'relative', zIndex: 0 }}>
-                            <Typography variant="subtitle1" color="text.primary" mb={2} fontWeight={600} sx={{ display: 'flex', alignItems: 'center' }}>
-                                <EuroIcon sx={{ fontSize: 18, mr: 1.5, color: 'primary.main', opacity: 0.9 }} />
-                                Valor
-                            </Typography>
-                            <TextField
-                                label="Precio por noche"
-                                type="number"
-                                value={specialPrice}
-                                onChange={(e) => setSpecialPrice(e.target.value)}
-                                fullWidth
-                                variant="outlined"
-                                size="medium"
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <Typography variant="body1" color="text.primary" sx={{ fontWeight: 500 }}>€</Typography>
-                                        </InputAdornment>
-                                    )
-                                }}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: 1.5,
-                                        '&:hover .MuiOutlinedInput-notchedOutline': {
-                                            borderColor: 'primary.main',
-                                            borderWidth: '1px'
-                                        },
-                                    }
-                                }}
-                            />
-                            <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block', fontStyle: 'italic' }}>
-                                El precio especial tiene prioridad sobre cualquier otro precio configurado para estas fechas
-                            </Typography>
-                        </Box>
-
-                        <Divider sx={{ mb: 4, opacity: 0.7 }} />
-
-                        <Box display="flex" justifyContent="flex-end" gap={2}>
-                            <Button
-                                variant="outlined"
-                                onClick={handleCloseAddSpecialPrice}
-                                sx={{
-                                    px: 3.5,
-                                    py: 1.2,
-                                    textTransform: 'none',
-                                    fontWeight: 500,
-                                    borderRadius: 1.5,
-                                    borderColor: 'divider',
-                                    color: 'text.primary',
-                                    '&:hover': {
-                                        borderColor: 'text.secondary',
-                                        bgcolor: 'rgba(0,0,0,0.02)'
-                                    }
-                                }}
-                                startIcon={<CloseIcon fontSize="small" />}
-                            >
-                                Cancelar
-                            </Button>
-
-                            <Button
-                                variant="contained"
-                                color="primary"
-                                onClick={() => handleSpecialPriceChange(specialPrice)}
-                                disabled={loading || !specialPrice || !specialPriceStartDate || !specialPriceEndDate}
-                                disableElevation
-                                sx={{
-                                    px: 4,
-                                    py: 1.2,
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    borderRadius: 1.5,
-                                    boxShadow: '0 3px 8px rgba(0,0,0,0.08)',
-                                    '&:hover': {
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-                                    }
-                                }}
-                                startIcon={loading ? null : <SaveIcon fontSize="small" />}
-                            >
-                                {loading ? (
-                                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <CircularProgress size={20} color="inherit" sx={{ mr: 1.5 }} />
-                                        <span>Procesando...</span>
-                                    </Box>
-                                ) : 'Aplicar cambios'}
-                            </Button>
-                        </Box>
-                    </DialogContent>
-                </Dialog>
-                <Dialog
-                    open={openDeleteSpecialPrice}
-                    onClose={handleCloseDeleteSpecialPrice}
-                    fullWidth
-                    maxWidth="sm"
-                    PaperProps={{
-                        elevation: 4,
-                        sx: {
-                            borderRadius: 2,
-                            boxShadow: '0 10px 32px rgba(0, 0, 0, 0.18)',
-                            overflow: 'hidden'
-                        }
-                    }}
-                >
-                    <DialogTitle
-                        sx={{
-                            borderBottom: '1px solid',
-                            borderColor: 'divider',
-                            py: 2.5,
-                            px: 3,
-                            fontWeight: 600,
-                            fontSize: '1.1rem',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            bgcolor: 'background.paper',
-                            color: 'text.primary'
+                {/* Modal Unificado Gestión Anfitrión */}
+                {esAnfitrion && (
+                    <Dialog
+                        open={openGestionModal}
+                        onClose={handleCloseGestionModal}
+                        fullWidth
+                        maxWidth="lg"
+                        PaperProps={{
+                            sx: {
+                                borderRadius: { xs: 0, sm: 3 }, // Sin borde en móvil, redondeado en escritorio
+                                height: { xs: '100%', sm: '90vh' }, // Pantalla completa en móvil
+                                maxHeight: { sm: '750px' },     // Altura máxima en escritorio
+                                overflow: 'hidden',           // Gestionar scroll interno
+                                boxShadow: '0 12px 30px -5px rgba(0,0,0,0.2)' // Sombra más pronunciada
+                            }
                         }}
                     >
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <EventBusyIcon sx={{ mr: 1.5, color: 'error.main', opacity: 0.85 }} />
-                            Eliminar fechas con precio distinto
-                        </Box>
-                        <IconButton
-                            onClick={handleCloseDeleteSpecialPrice}
-                            size="small"
-                            aria-label="cerrar"
-                            sx={{
-                                color: 'text.secondary',
-                                '&:hover': {
-                                    bgcolor: 'action.hover',
-                                    color: 'text.primary'
-                                }
-                            }}
-                        >
-                            <CloseIcon fontSize="small" />
-                        </IconButton>
-                    </DialogTitle>
+                        {/* Título del Diálogo */}
+                        <DialogTitle sx={{
+                            bgcolor: 'primary.main',
+                            color: 'primary.contrastText',
+                            py: 1.5, px: { xs: 2, sm: 3 },
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                            borderBottom: '1px solid', borderColor: 'primary.dark' // Línea sutil
+                        }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <CalendarMonthIcon sx={{ mr: 1.5, opacity: 0.9 }} />
+                                <Typography variant="h6" component="div" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+                                    Gestionar Calendario y Precios
+                                </Typography>
+                            </Box>
+                            <IconButton aria-label="cerrar" onClick={handleCloseGestionModal} sx={{ color: 'primary.contrastText' }} size="medium">
+                                <CloseIcon />
+                            </IconButton>
+                        </DialogTitle>
 
-                    <Box sx={{ maxHeight: '400px', overflowY: 'auto' }}>
-                        <DialogContent sx={{ p: 0 }}>
-                            {specialPricesList?.length > 0 ? (
-                                <>
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            justifyContent: 'space-between',
-                                            py: 1.5,
-                                            px: 3,
-                                            bgcolor: 'action.hover',
-                                            borderBottom: '1px solid',
-                                            borderColor: 'divider'
-                                        }}
-                                    >
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '30%' }}>
-                                            FECHA INICIO
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '30%' }}>
-                                            FECHA FIN
-                                        </Typography>
-                                        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600, width: '25%', textAlign: 'right' }}>
-                                            PRECIO
-                                        </Typography>
-                                        <Box sx={{ width: '15%' }}></Box>
-                                    </Box>
+                        {/* Contenido Principal (Dividido en Columnas) */}
+                        <DialogContent dividers sx={{ p: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, flexGrow: 1, minHeight: 0 }}>
 
-                                    {specialPricesList?.map((date, index) => (
-                                        <Box
-                                            key={index}
-                                            sx={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                alignItems: 'center',
-                                                py: 2,
-                                                px: 3,
-                                                borderBottom: index !== specialPricesList.length - 1 ? '1px solid' : 'none',
-                                                borderColor: 'divider',
-                                                transition: 'background-color 0.2s',
-                                                '&:hover': {
-                                                    bgcolor: 'action.hover'
-                                                }
-                                            }}
-                                        >
-                                            <Box sx={{ width: '30%' }}>
-                                                <Typography variant="body2" color="text.primary" fontWeight={500}>
-                                                    {date.fecha_inicio}
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ width: '30%' }}>
-                                                <Typography variant="body2" color="text.primary" fontWeight={500}>
-                                                    {date.fecha_fin}
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ width: '25%', textAlign: 'right' }}>
-                                                <Typography variant="body2" color="primary.main" fontWeight={600}>
-                                                    {date.precio_especial} €
-                                                </Typography>
-                                            </Box>
-                                            <Box sx={{ width: '15%', textAlign: 'right' }}>
-                                                <Tooltip title="Eliminar precio especial" placement="top" arrow>
-                                                    <IconButton
-                                                        onClick={() => handleDeleteSpecialPrice(date.id)}
-                                                        size="small"
-                                                        color="error"
-                                                        sx={{
-                                                            transition: 'all 0.2s',
-                                                            '&:hover': {
-                                                                bgcolor: 'error.lighter',
-                                                                transform: 'scale(1.05)'
-                                                            }
-                                                        }}
-                                                    >
-                                                        <DeleteOutlineIcon fontSize="small" />
-                                                    </IconButton>
-                                                </Tooltip>
-                                            </Box>
-                                        </Box>
-                                    ))}
-                                </>
-                            ) : (
-                                <Box sx={{ p: 4, textAlign: 'center' }}>
-                                    <Box sx={{ opacity: 0.7, mb: 2 }}>
-                                        <EventBusyIcon sx={{ fontSize: '3rem', color: 'text.disabled' }} />
-                                    </Box>
-                                    <Typography variant="body1" color="text.secondary" fontWeight={500}>
-                                        No hay fechas con precios especiales
+                            {/* Columna Izquierda: Acciones y Calendario */}
+                            <Box sx={leftColumnStyle}>
+                                {/* Selector de Acción */}
+                                <Box sx={stickyHeaderStyle}> {/* Header pegajoso */}
+                                    <Typography variant="overline" display="block" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500, pt: 1.5 }}>
+                                        Seleccionar Acción
                                     </Typography>
-                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                                        Puede agregar precios especiales desde la sección de calendario
+                                    <ToggleButtonGroup
+                                        color="primary" value={gestionAccion} exclusive
+                                        onChange={handleGestionAccionChange} aria-label="Acción de gestión"
+                                        fullWidth size="small" sx={{ mb: 2 }}
+                                    >
+                                        <ToggleButton value="bloquear" aria-label="Bloquear fechas" sx={{ textTransform: 'none', flexGrow: 1 }}>
+                                            <EventBusyIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
+                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Bloquear</Typography>
+                                        </ToggleButton>
+                                        <ToggleButton value="desbloquear" aria-label="Desbloquear fechas" sx={{ textTransform: 'none', flexGrow: 1 }}>
+                                            <EventAvailableIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
+                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Desbloquear</Typography>
+                                        </ToggleButton>
+                                        <ToggleButton value="precio" aria-label="Establecer precio especial" sx={{ textTransform: 'none', flexGrow: 1 }}>
+                                            <AttachMoneyIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
+                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Precio Esp.</Typography>
+                                        </ToggleButton>
+                                    </ToggleButtonGroup>
+                                    <Typography variant="overline" display="block" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                        Seleccionar Fechas
                                     </Typography>
                                 </Box>
-                            )}
+
+                                {/* Input de Precio Especial */}
+                                {gestionAccion === 'precio' && (
+                                    <Box sx={{ mt: 'auto', pt: 3, borderTop: 1, borderColor: 'divider', mx: -3, px: 3 }}> {/* Con separador */}
+                                        <TextField
+                                            label="Precio Especial por Noche" type="number"
+                                            value={specialPrice} onChange={(e) => setSpecialPrice(e.target.value)}
+                                            fullWidth variant="outlined" size="small" required
+                                            InputProps={{ startAdornment: <InputAdornment position="start">€</InputAdornment>, inputProps: { min: 0.01, step: 0.01, max: 5000 } }}
+                                            sx={{ mt: 1, mb: 0.5 }}
+                                            error={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)}
+                                            helperText={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000) ? "Precio debe ser mayor a 0 y no exceder 5000" : "Este precio se aplicará a cada noche del rango."}
+                                        />
+                                    </Box>
+                                )}
+
+                                {/* Contenedor Calendario */}
+                                <Box sx={{ display: 'flex', justifyContent: 'center', flexGrow: 1, minHeight: { xs: 320, sm: 360 }, mt: 2 }}>
+                                    <DateRangePicker
+                                        startDate={gestionStartDate} startDateId="gestion_start_date_id"
+                                        endDate={gestionEndDate} endDateId="gestion_end_date_id"
+                                        onDatesChange={handleGestionDatesChange}
+                                        focusedInput={gestionFocusedInput} onFocusChange={setGestionFocusedInput}
+                                        isDayBlocked={isGestionDayBlocked}
+                                        renderDayContents={renderGestionDayContents}
+                                        minimumNights={0} // Permitir seleccionar un solo día
+                                        numberOfMonths={window.innerWidth < 960 ? 1 : 2}
+                                        hideKeyboardShortcutsPanel noBorder readOnly
+                                        startDatePlaceholderText='Inicio' endDatePlaceholderText='Fin'
+                                        customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
+                                        daySize={window.innerWidth < 600 ? 32 : 38} // Ajustar tamaño día
+                                    // Añadir estas clases para un posible CSS personalizado si es necesario
+                                    // calendarInfoPosition="after"
+                                    // renderCalendarInfo={() => <div style={{padding: 10, fontSize: 12, color: '#555'}}>Seleccione un rango o un solo día.</div>}
+                                    />
+                                </Box>
+
+
+                            </Box>
+
+                            {/* Columna Derecha: Lista de Precios Especiales */}
+                            <Box sx={rightColumnStyle}>
+                                <Box sx={stickyHeaderStyleRight}> {/* Header pegajoso */}
+                                    <Typography variant="overline" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', pt: 1.5 }}>
+                                        Precios Especiales Activos
+                                    </Typography>
+                                </Box>
+                                {specialPricesList.length > 0 ? (
+                                    <List dense sx={{ pt: 0, width: '100%' }}>
+                                        {specialPricesList
+                                            .sort((a, b) => moment(a.fecha_inicio).diff(moment(b.fecha_inicio)))
+                                            .map((precio) => (
+                                                <ListItem
+                                                    key={precio.id}
+                                                    secondaryAction={
+                                                        <Tooltip title="Eliminar precio especial" arrow>
+                                                            <IconButton edge="end" aria-label="delete" onClick={() => handleDeleteSpecialPrice(precio.id)} size="small" color="error" disabled={loading} sx={{ '&:hover': { bgcolor: 'error.lighter' } }}>
+                                                                <DeleteOutlineIcon fontSize="inherit" />
+                                                            </IconButton>
+                                                        </Tooltip>
+                                                    }
+                                                    sx={{
+                                                        mb: 1,
+                                                        bgcolor: 'background.paper', // Fondo blanco para destacar
+                                                        borderRadius: 1.5,
+                                                        p: 1.5,
+                                                        boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                                                        '&:hover': { bgcolor: 'grey.100' }
+                                                    }}
+                                                    divider
+                                                >
+                                                    <ListItemIcon sx={{ minWidth: 36, color: 'primary.main' }}>
+                                                        <AttachMoneyIcon fontSize="small" />
+                                                    </ListItemIcon>
+                                                    <ListItemText
+                                                        primary={
+                                                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                                                {moment(precio.fecha_inicio).format('DD MMM YY')} <ArrowRightAltIcon fontSize='inherit' sx={{ verticalAlign: 'middle', mx: 0.5 }} /> {moment(precio.fecha_fin).format('DD MMM YY')}
+                                                            </Typography>
+                                                        }
+                                                        secondary={
+                                                            <Chip label={`${precio.precio_especial} € / noche`} size="small" color="primary" variant='outlined' sx={{ height: 'auto', '& .MuiChip-label': { py: 0.3, px: 0.8, fontSize: '0.7rem' }, mt: 0.5 }} />
+                                                        }
+                                                    />
+                                                </ListItem>
+                                            ))}
+                                    </List>
+                                ) : (
+                                    // Mensaje cuando no hay precios especiales
+                                    <Box sx={{ textAlign: 'center', color: 'text.secondary', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', p: 2 }}>
+                                        <Avatar sx={{ bgcolor: 'grey.200', width: 56, height: 56, mb: 2 }}>
+                                            <AttachMoneyIcon color="disabled" sx={{ fontSize: 30 }} />
+                                        </Avatar>
+                                        <Typography variant="body2" sx={{ mb: 0.5 }}>No hay precios especiales.</Typography>
+                                        <Typography variant="caption">Añada rangos de fechas y precios usando la acción "Precio Esp.".</Typography>
+                                    </Box>
+                                )}
+                            </Box>
+
                         </DialogContent>
-                    </Box>
 
-                    <DialogActions
-                        sx={{
-                            p: 2.5,
-                            borderTop: '1px solid',
-                            borderColor: 'divider',
-                            justifyContent: 'space-between',
-                            bgcolor: 'background.paper'
-                        }}
-                    >
-                        <Typography variant="caption" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                            {specialPricesList?.length > 0 ? `${specialPricesList.length} fecha${specialPricesList.length > 1 ? 's' : ''} con precio especial` : ''}
-                        </Typography>
-                        <Box>
-                            <Button
-                                onClick={handleCloseDeleteSpecialPrice}
-                                variant="outlined"
-                                color="inherit"
-                                startIcon={<ArrowBackIcon fontSize="small" />}
-                                sx={{
-                                    mr: 1.5,
-                                    textTransform: 'none',
-                                    fontWeight: 500,
-                                    borderRadius: 1.5,
-                                    px: 2.5
-                                }}
-                            >
-                                Volver
+                        {/* Acciones Finales */}
+                        <DialogActions sx={{
+                            px: { xs: 2, sm: 3 }, py: 1.5,
+                            borderTop: '1px solid', borderColor: 'divider',
+                            bgcolor: 'grey.50' // Fondo ligeramente distinto
+                        }}>
+                            <Button onClick={handleCloseGestionModal} color="inherit" disabled={loading} sx={{ textTransform: 'none' }}>
+                                Cancelar
                             </Button>
-                            {specialPricesList?.length > 0 && (
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    disableElevation
-                                    sx={{
-                                        textTransform: 'none',
-                                        fontWeight: 500,
-                                        borderRadius: 1.5,
-                                        px: 2.5
-                                    }}
-                                    onClick={() => handleCloseDeleteSpecialPrice()}
-                                >
-                                    Finalizar
-                                </Button>
-                            )}
-                        </Box>
-                    </DialogActions>
-                </Dialog>
+                            <Button
+                                onClick={handleGuardarGestion}
+                                variant="contained"
+                                color="primary"
+                                disabled={ /* ... (misma lógica de disabled que antes) ... */
+                                    loading ||
+                                    !gestionStartDate ||
+                                    (gestionAccion === 'precio' && (!gestionEndDate || !specialPrice || parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)) ||
+                                    (gestionAccion === 'desbloquear' && !(blockedDates.some(b => moment(gestionStartDate).isSame(b.fecha, 'day')) || (gestionEndDate && blockedDates.some(b => moment(gestionEndDate).isSame(b.fecha, 'day')))))
+                                }
+                                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
+                                sx={{ textTransform: 'none', fontWeight: 600 }}
+                            >
+                                {loading ? 'Guardando...' : 'Aplicar Cambios'}
+                            </Button>
+                        </DialogActions>
+                    </Dialog>
+                )};
 
-            </Container >
-        </Box >
+                {/* Snackbar para notificaciones */}
+                <Snackbar
+                    open={notification.open}
+                    autoHideDuration={6000}
+                    onClose={handleNotificationClose}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                >
+                    <Alert onClose={handleNotificationClose} severity={notification.severity} sx={{ width: '100%' }}>
+                        {notification.message}
+                    </Alert>
+                </Snackbar>
+
+            </Container>
+        </Box>
     );
 };
 
-
 export default PropertyDetails;
-
