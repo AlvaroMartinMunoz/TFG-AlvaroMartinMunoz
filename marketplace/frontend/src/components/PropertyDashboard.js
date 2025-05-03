@@ -153,6 +153,110 @@ const PropertyDashboard = () => {
         }
     }, [reservas]);
 
+    // Dentro del componente PropertyDashboard
+
+    // --- REEMPLAZA EL useMemo ANTERIOR CON ESTE ---
+    const datosOcupacionFiltrados = useMemo(() => {
+        // Nombres de meses en español para el resultado final y mapeo
+        const monthsOrder = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+        // 1. Parsea los datos crudos a un formato más útil y valida
+        const datosParseados = ocupacionTendencias
+            .map(item => {
+                if (!item || typeof item.mes !== 'string' || typeof item.ocupacion !== 'number') {
+                    console.warn("Item inválido en ocupacionTendencias:", item);
+                    return null; // Ignorar item inválido
+                }
+                const parts = item.mes.split('-'); // Divide "YYYY-MM"
+                if (parts.length !== 2) {
+                    console.warn("Formato mes inválido:", item.mes);
+                    return null; // Ignorar formato inválido
+                }
+                const año = parseInt(parts[0]);
+                const mesNum = parseInt(parts[1]); // Mes como número (1-12)
+
+                // Validar año y mes numérico
+                if (isNaN(año) || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+                    console.warn("Año o mes numérico inválido:", item.mes);
+                    return null; // Ignorar inválido
+                }
+
+                return {
+                    año: año,
+                    mesNum: mesNum, // Guardamos el número del mes (1-12)
+                    mes: monthsOrder[mesNum - 1], // Convertimos a 'Ene', 'Feb', etc.
+                    ocupacion: item.ocupacion
+                };
+            })
+            .filter(item => item !== null) // Elimina los items inválidos/nulos
+            .sort((a, b) => { // Ordenar por si acaso
+                if (a.año !== b.año) return a.año - b.año;
+                return a.mesNum - b.mesNum;
+            });
+
+        // Si no hay datos parseados válidos, devuelve array vacío
+        if (datosParseados.length === 0) {
+            console.log("Filtrando: No hay datos parseados válidos.");
+            return [];
+        }
+        console.log("Filtrando datos parseados:", datosParseados);
+
+        // 2. Aplica el filtro según selectedYear
+        if (selectedYear === 'todos') {
+            console.log("Filtrando: Caso 'todos'");
+            // Lógica para 'todos': Últimos 12 meses desde el último dato disponible
+            const lastEntry = datosParseados[datosParseados.length - 1];
+
+            // Calcula la fecha de inicio (hace 12 meses desde el mes *siguiente* al último dato)
+            // Usamos mesNum (1-12) que ahora tenemos. El mes en Date() es 0-11.
+            const endDate = new Date(lastEntry.año, lastEntry.mesNum, 1); // Ojo: mesNum es 1-12, Date() usa 0-11. endDate es el 1ro del mes SIGUIENTE.
+            const startDate = new Date(endDate);
+            startDate.setMonth(startDate.getMonth() - 12); // Retrocede 12 meses
+
+            // Filtra los datos parseados que caen en ese rango de 12 meses
+            const filtered = datosParseados.filter(d => {
+                try {
+                    // El mes en Date() es 0-11, por eso usamos d.mesNum - 1
+                    const entryDate = new Date(d.año, d.mesNum - 1, 1);
+                    return !isNaN(entryDate) && entryDate >= startDate && entryDate < endDate;
+                } catch (e) { return false; } // Seguridad
+            });
+
+            console.log("Filtrando: Resultado 'todos'", filtered.slice(-12));
+            // Devuelve solo los últimos 12 encontrados (o menos si no hay 12)
+            // Mantenemos la estructura { año, mes ('Ene'...), ocupacion }
+            return filtered.slice(-12);
+
+        } else {
+            // Lógica si se selecciona un año específico
+            const yearNum = parseInt(selectedYear);
+            console.log("Filtrando: Caso año específico", yearNum);
+            if (isNaN(yearNum)) {
+                console.log("Filtrando: Año inválido");
+                return [];
+            }
+
+            // Filtra los datos parseados por el año seleccionado
+            const filteredByYear = datosParseados.filter(d => d.año === yearNum);
+
+            // Rellenar meses faltantes con ocupación 0 para ese año
+            const result = [];
+            const dataMap = new Map(filteredByYear.map(item => [item.mes, item])); // Mapa por nombre de mes ('Ene', 'Feb'...)
+
+            for (let i = 0; i < 12; i++) {
+                const monthName = monthsOrder[i];
+                if (dataMap.has(monthName)) {
+                    result.push(dataMap.get(monthName)); // Añadir dato existente
+                } else {
+                    // Añadir dato con ocupación 0 para ese mes/año
+                    result.push({ año: yearNum, mesNum: i + 1, mes: monthName, ocupacion: 0.0 });
+                }
+            }
+            console.log("Filtrando: Resultado año específico", result);
+            return result; // Devuelve los 12 meses del año seleccionado
+        }
+    }, [ocupacionTendencias, selectedYear]);
+
     const scrollToSection = (elementId, offsetPixels = 80) => {
         const element = document.getElementById(elementId);
         if (element) {
@@ -279,6 +383,7 @@ const PropertyDashboard = () => {
             });
             if (!response.ok) throw new Error('Error fetching tendencias de ocupación');
             const data = await response.json();
+            console.log("Datos CRUDOS de ocupación:", data); // <--- AÑADIR ESTO
             setOcupacionTendencias(data);
         } catch (error) {
             console.error(error);
@@ -619,24 +724,85 @@ const PropertyDashboard = () => {
                 </Box>
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3, mb: 4 }}>
-                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                                <TrendingUpIcon /> Tendencias de Ocupación
-                            </Typography>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={ocupacionTendencias}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="mes" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="ocupacion" stroke={theme.palette.primary.main} name="Ocupación (%)" />
-                                </LineChart>
-                            </ResponsiveContainer>
+                    {/* --- Gráfica Tendencias de Ocupación (MODIFICADA) --- */}
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', border: '1px solid', borderColor: 'divider' }}>
+                        {/* Hacer CardContent flexible para que el gráfico crezca */}
+                        <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: { xs: 1.5, sm: 2 } }}>
+                            {/* Añadir Título y Filtro de Año */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                    <TrendingUpIcon /> Tendencias de Ocupación
+                                </Typography>
+                                {/* Filtro de Año (USA EL MISMO ESTADO selectedYear) */}
+                                {availableYears.length > 0 && (
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel id="year-filter-ocupacion-label">Año</InputLabel>
+                                        <Select
+                                            labelId="year-filter-ocupacion-label"
+                                            id="year-filter-ocupacion"
+                                            value={selectedYear}
+                                            label="Año"
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                        >
+                                            <MenuItem value="todos">
+                                                {/* Ajusta este texto si la lógica de 'todos' en useMemo es diferente */}
+                                                <em>Últimos 12 meses</em>
+                                            </MenuItem>
+                                            {availableYears.map(year => (
+                                                <MenuItem key={year} value={year}>{year}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            </Box>
+
+                            {/* Contenedor del gráfico (Usa datosOcupacionFiltrados) */}
+                            <Box sx={{ flexGrow: 1, minHeight: 300 }}> {/* Permite que el gráfico ocupe espacio */}
+                                <ResponsiveContainer width="100%" height="100%">
+                                    {/* Renderiza la gráfica solo si hay datos FILTRADOS */}
+                                    {datosOcupacionFiltrados.length > 0 ? (
+                                        <LineChart data={datosOcupacionFiltrados} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                                            {/* Asume que 'mes' viene como 'Ene', 'Feb'... */}
+                                            <XAxis dataKey="mes" tickLine={false} fontSize="0.8rem" interval={0} />
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                fontSize="0.8rem"
+                                                tickFormatter={(value) => `${value}%`} // Formato porcentaje
+                                                domain={[0, 100]} // Dominio 0-100%
+                                            />
+                                            <Tooltip
+                                                formatter={(value) => [`${value?.toFixed(1) ?? '0.0'}%`, "Ocupación"]}
+                                                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', border: `1px solid ${theme.palette.divider}`, padding: '8px 12px' }}
+                                            />
+                                            {/* <Legend wrapperStyle={{ paddingTop: 15, fontSize: '0.85rem' }}/> */}
+                                            <Line
+                                                type="monotone"
+                                                dataKey="ocupacion"
+                                                stroke={theme.palette.info.main} // Puedes cambiar el color
+                                                strokeWidth={2}
+                                                dot={{ r: 3, strokeWidth: 1 }}
+                                                activeDot={{ r: 6 }}
+                                                name="Ocupación"
+                                                connectNulls={true} // Conecta línea si hay meses con valor 0 o null (si no rellenaste)
+                                            />
+                                        </LineChart>
+                                    ) : (
+                                        // Mensaje si no hay datos para la selección actual
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary', textAlign: 'center', p: 2 }}>
+                                            <Typography>
+                                                {ocupacionTendencias.length === 0
+                                                    ? "Cargando datos o no hay historial."
+                                                    : `No hay datos para ${selectedYear === 'todos' ? 'el periodo seleccionado' : `el año ${selectedYear}`}.`
+                                                }
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </ResponsiveContainer>
+                            </Box>
                         </CardContent>
                     </Card>
-
                     <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
                         <CardContent>
                             <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
