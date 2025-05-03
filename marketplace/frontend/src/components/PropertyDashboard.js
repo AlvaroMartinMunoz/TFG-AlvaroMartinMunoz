@@ -196,14 +196,11 @@ const PropertyDashboard = () => {
 
         // Si no hay datos parseados válidos, devuelve array vacío
         if (datosParseados.length === 0) {
-            console.log("Filtrando: No hay datos parseados válidos.");
             return [];
         }
-        console.log("Filtrando datos parseados:", datosParseados);
 
         // 2. Aplica el filtro según selectedYear
         if (selectedYear === 'todos') {
-            console.log("Filtrando: Caso 'todos'");
             // Lógica para 'todos': Últimos 12 meses desde el último dato disponible
             const lastEntry = datosParseados[datosParseados.length - 1];
 
@@ -222,7 +219,6 @@ const PropertyDashboard = () => {
                 } catch (e) { return false; } // Seguridad
             });
 
-            console.log("Filtrando: Resultado 'todos'", filtered.slice(-12));
             // Devuelve solo los últimos 12 encontrados (o menos si no hay 12)
             // Mantenemos la estructura { año, mes ('Ene'...), ocupacion }
             return filtered.slice(-12);
@@ -230,9 +226,7 @@ const PropertyDashboard = () => {
         } else {
             // Lógica si se selecciona un año específico
             const yearNum = parseInt(selectedYear);
-            console.log("Filtrando: Caso año específico", yearNum);
             if (isNaN(yearNum)) {
-                console.log("Filtrando: Año inválido");
                 return [];
             }
 
@@ -252,10 +246,107 @@ const PropertyDashboard = () => {
                     result.push({ año: yearNum, mesNum: i + 1, mes: monthName, ocupacion: 0.0 });
                 }
             }
-            console.log("Filtrando: Resultado año específico", result);
             return result; // Devuelve los 12 meses del año seleccionado
         }
     }, [ocupacionTendencias, selectedYear]);
+
+    // Dentro del componente PropertyDashboard, junto al otro useMemo
+
+    // --- FILTRADO PRECIOS EN FRONTEND CON useMemo ---
+    const datosPrecioFiltrados = useMemo(() => {
+        // Nombres de meses en español para el resultado final y mapeo
+        const monthsOrder = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+
+        // 1. Parsea los datos crudos de precios y valida
+        const datosParseados = precioTendencias
+            .map(item => {
+                // ASUNCIÓN: El backend envía { mes: "YYYY-MM", precio: number }
+                // AJUSTA las claves 'mes' y 'precio' si tu backend usa otras
+                if (!item || typeof item.mes !== 'string' || typeof item.precio !== 'number') {
+                    console.warn("Item inválido en precioTendencias:", item);
+                    return null;
+                }
+                const parts = item.mes.split('-');
+                if (parts.length !== 2) {
+                    console.warn("Formato mes inválido en precios:", item.mes);
+                    return null;
+                }
+                const año = parseInt(parts[0]);
+                const mesNum = parseInt(parts[1]); // Mes como número (1-12)
+
+                if (isNaN(año) || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+                    console.warn("Año o mes numérico inválido en precios:", item.mes);
+                    return null;
+                }
+
+                return {
+                    año: año,
+                    mesNum: mesNum,
+                    mes: monthsOrder[mesNum - 1], // 'Ene', 'Feb', etc.
+                    precio: item.precio // Asegúrate que la clave es 'precio'
+                };
+            })
+            .filter(item => item !== null)
+            // Ordenar por si el fetch no lo hizo o por seguridad
+            .sort((a, b) => {
+                if (a.año !== b.año) return a.año - b.año;
+                return a.mesNum - b.mesNum;
+            });
+
+
+        if (datosParseados.length === 0) {
+            console.log("Filtrando Precios: No hay datos parseados válidos.");
+            return [];
+        }
+        console.log("Filtrando Precios parseados:", datosParseados);
+
+        // 2. Aplica el filtro según selectedYear
+        if (selectedYear === 'todos') {
+            console.log("Filtrando Precios: Caso 'todos'");
+            // Lógica para 'todos': Últimos 12 meses
+            const lastEntry = datosParseados[datosParseados.length - 1];
+            const endDate = new Date(lastEntry.año, lastEntry.mesNum, 1);
+            const startDate = new Date(endDate);
+            startDate.setMonth(startDate.getMonth() - 12);
+
+            const filtered = datosParseados.filter(d => {
+                try {
+                    const entryDate = new Date(d.año, d.mesNum - 1, 1);
+                    return !isNaN(entryDate) && entryDate >= startDate && entryDate < endDate;
+                } catch (e) { return false; }
+            });
+
+            console.log("Filtrando Precios: Resultado 'todos'", filtered.slice(-12));
+            return filtered.slice(-12); // Devuelve últimos 12
+
+        } else {
+            // Lógica para año específico
+            const yearNum = parseInt(selectedYear);
+            console.log("Filtrando Precios: Caso año específico", yearNum);
+            if (isNaN(yearNum)) {
+                console.log("Filtrando Precios: Año inválido");
+                return [];
+            }
+
+            const filteredByYear = datosParseados.filter(d => d.año === yearNum);
+
+            // Rellenar meses faltantes (con precio null o 0, según prefieras)
+            const result = [];
+            const dataMap = new Map(filteredByYear.map(item => [item.mes, item]));
+
+            for (let i = 0; i < 12; i++) {
+                const monthName = monthsOrder[i];
+                if (dataMap.has(monthName)) {
+                    result.push(dataMap.get(monthName));
+                } else {
+                    // Añadir dato con precio null (o 0) para meses sin datos
+                    result.push({ año: yearNum, mesNum: i + 1, mes: monthName, precio: null });
+                }
+            }
+            console.log("Filtrando Precios: Resultado año específico", result);
+            return result;
+        }
+    }, [precioTendencias, selectedYear]); // Depende de los datos de precio y el año
 
     const scrollToSection = (elementId, offsetPixels = 80) => {
         const element = document.getElementById(elementId);
@@ -383,7 +474,6 @@ const PropertyDashboard = () => {
             });
             if (!response.ok) throw new Error('Error fetching tendencias de ocupación');
             const data = await response.json();
-            console.log("Datos CRUDOS de ocupación:", data); // <--- AÑADIR ESTO
             setOcupacionTendencias(data);
         } catch (error) {
             console.error(error);
@@ -401,6 +491,8 @@ const PropertyDashboard = () => {
             });
             if (!response.ok) throw new Error('Error fetching tendencias de precios');
             const data = await response.json();
+            console.log("Datos CRUDOS de precios:", data); // <--- AÑADIR PARA VERIFICAR FORMATO
+
             setPrecioTendencias(data);
         } catch (error) {
             console.error(error);
@@ -803,21 +895,83 @@ const PropertyDashboard = () => {
                             </Box>
                         </CardContent>
                     </Card>
-                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
-                                <EuroIcon /> Tendencias de Precios
-                            </Typography>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <LineChart data={precioTendencias}>
-                                    <CartesianGrid strokeDasharray="3 3" />
-                                    <XAxis dataKey="mes" />
-                                    <YAxis />
-                                    <Tooltip />
-                                    <Legend />
-                                    <Line type="monotone" dataKey="precio" stroke={theme.palette.success.main} name="Precio (€)" />
-                                </LineChart>
-                            </ResponsiveContainer>
+                    {/* --- Gráfica Tendencias de Precios (MODIFICADA) --- */}
+                    <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)', border: '1px solid', borderColor: 'divider' }}>
+                        <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%', p: { xs: 1.5, sm: 2 } }}>
+                            {/* Añadir Título y Filtro de Año */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                                <Typography variant="h6" sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 500 }}>
+                                    <EuroIcon /> Tendencias de Precios {/* Asumiendo precio promedio */}
+                                </Typography>
+                                {/* Filtro de Año (USA EL MISMO ESTADO selectedYear) */}
+                                {availableYears.length > 0 && (
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel id="year-filter-precio-label">Año</InputLabel>
+                                        <Select
+                                            labelId="year-filter-precio-label"
+                                            id="year-filter-precio"
+                                            value={selectedYear}
+                                            label="Año"
+                                            onChange={(e) => setSelectedYear(e.target.value)} // Controla el mismo estado
+                                        >
+                                            <MenuItem value="todos">
+                                                {/* Ajusta texto según la lógica de 'todos' en useMemo */}
+                                                <em>Últimos 12 meses</em>
+                                            </MenuItem>
+                                            {availableYears.map(year => (
+                                                <MenuItem key={year} value={year}>{year}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            </Box>
+
+                            {/* Contenedor del gráfico (Usa datosPrecioFiltrados) */}
+                            <Box sx={{ flexGrow: 1, minHeight: 300 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    {/* Renderiza la gráfica solo si hay datos FILTRADOS */}
+                                    {datosPrecioFiltrados.length > 0 ? (
+                                        <LineChart data={datosPrecioFiltrados} margin={{ top: 5, right: 10, left: -15, bottom: 5 }}>
+                                            <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                                            {/* Eje X usa el mes 'Ene', 'Feb'... */}
+                                            <XAxis dataKey="mes" tickLine={false} fontSize="0.8rem" interval={0} />
+                                            <YAxis
+                                                axisLine={false}
+                                                tickLine={false}
+                                                fontSize="0.8rem"
+                                                tickFormatter={(value) => `€${value}`} // Formato Euro
+                                                domain={['auto', 'auto']} // Dominio automático
+                                            />
+                                            <Tooltip
+                                                // Formatea el tooltip para mostrar el precio en Euros
+                                                formatter={(value) => [`€${value?.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? 'N/A'}`, "Precio Prom."]}
+                                                contentStyle={{ backgroundColor: 'rgba(255, 255, 255, 0.9)', borderRadius: '8px', border: `1px solid ${theme.palette.divider}`, padding: '8px 12px' }}
+                                            />
+                                            {/* <Legend wrapperStyle={{ paddingTop: 15, fontSize: '0.85rem' }}/> */}
+                                            <Line
+                                                type="monotone"
+                                                dataKey="precio" // Asegúrate que esta clave coincide con la de tus datos parseados
+                                                stroke={theme.palette.success.main} // Color verde
+                                                strokeWidth={2}
+                                                dot={{ r: 3 }}
+                                                activeDot={{ r: 6 }}
+                                                name="Precio Prom." // Nombre para Tooltip/Leyenda
+                                                connectNulls={true} // Importante si usaste null para meses sin datos
+                                            />
+                                        </LineChart>
+                                    ) : (
+                                        // Mensaje si no hay datos para la selección actual
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'text.secondary', textAlign: 'center', p: 2 }}>
+                                            <Typography>
+                                                {precioTendencias.length === 0
+                                                    ? "Cargando datos o no hay historial."
+                                                    : `No hay datos de precios para ${selectedYear === 'todos' ? 'el periodo seleccionado' : `el año ${selectedYear}`}.`
+                                                }
+                                            </Typography>
+                                        </Box>
+                                    )}
+                                </ResponsiveContainer>
+                            </Box>
                         </CardContent>
                     </Card>
                 </Box>
