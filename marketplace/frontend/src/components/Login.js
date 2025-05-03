@@ -96,7 +96,7 @@ const Login = () => {
           state: { fromLogin: true }
         });
       }
-      // window.location.reload();
+      window.location.reload();
     } catch (error) {
       setError(error.message);
     } finally {

@@ -402,31 +402,33 @@ const PropertyDashboard = () => {
                     Valoraciones
                 </Button>
 
-                <Button
-                    variant="contained"
-                    color="success"
-                    href="#comparacion"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        scrollToSection('comparacion');
-                    }}
-                    startIcon={<CompareIcon />}
-                    sx={{
-                        px: 3,
-                        py: 1.2,
-                        borderRadius: 2,
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        fontSize: '0.95rem',
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                            transform: 'translateY(-3px)',
-                            boxShadow: 3
-                        }
-                    }}
-                >
-                    Comparación
-                </Button>
+                {propiedades.length > 1 &&
+                    <Button
+                        variant="contained"
+                        color="success"
+                        href="#comparacion"
+                        onClick={(e) => {
+                            e.preventDefault();
+                            scrollToSection('comparacion');
+                        }}
+                        startIcon={<CompareIcon />}
+                        sx={{
+                            px: 3,
+                            py: 1.2,
+                            borderRadius: 2,
+                            textTransform: 'none',
+                            fontWeight: 600,
+                            fontSize: '0.95rem',
+                            transition: 'all 0.3s ease',
+                            '&:hover': {
+                                transform: 'translateY(-3px)',
+                                boxShadow: 3
+                            }
+                        }}
+                    >
+                        Comparación
+                    </Button>
+                }
             </Box>
             <Container maxWidth="xl">
                 <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: `1px solid ${theme.palette.divider}`, pb: 2 }}>
@@ -436,27 +438,29 @@ const PropertyDashboard = () => {
                         </Typography>
                         <Chip label={propiedad?.tipo_de_propiedad} color="secondary" variant="outlined" sx={{ fontWeight: 500 }} />
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: '300px' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.text.secondary }}>
-                            Cambiar Propiedad:
-                        </Typography>
-                        <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
-                            <Select
-                                value={propiedadId}
-                                onChange={(e) => {
-                                    const safeValue = encodeURIComponent(e.target.value);
-                                    window.location.href = `/dashboard/${safeValue}`;
-                                }}
+                    {propiedades.length > 1 &&
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, maxWidth: '300px' }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500, color: theme.palette.text.secondary }}>
+                                Cambiar Propiedad:
+                            </Typography>
+                            <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+                                <Select
+                                    value={propiedadId}
+                                    onChange={(e) => {
+                                        const safeValue = encodeURIComponent(e.target.value);
+                                        window.location.href = `/dashboard/${safeValue}`;
+                                    }}
 
-                            >
-                                {propiedades.map((prop) => (
-                                    <MenuItem key={prop.id} value={prop.id}>
-                                        {prop.nombre}
-                                    </MenuItem>
-                                ))}
-                            </Select>
-                        </FormControl>
-                    </Box>
+                                >
+                                    {propiedades.map((prop) => (
+                                        <MenuItem key={prop.id} value={prop.id}>
+                                            {prop.nombre}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Box>
+                    }
 
 
                 </Box>
