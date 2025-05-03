@@ -225,6 +225,27 @@ class ValoracionPropiedadViewSetTest(APITestCase):
             parking=False, mascotas=False, permitido_fumar=False, politica_de_cancelacion='Flexible'
         )
 
+         # Crear una reserva previa para el reviewer en la propiedad
+        fecha_llegada_pasada = timezone.now().date() - timedelta(days=10)
+        fecha_salida_pasada = timezone.now().date() - timedelta(days=5)
+        num_noches = (fecha_salida_pasada - fecha_llegada_pasada).days
+
+        self.reserva_previa = Reserva.objects.create(
+            propiedad=self.prop,
+            anfitrion=self.host,  # El anfitrión de la reserva es el anfitrión de la propiedad
+            usuario=self.reviewer, # El usuario de la reserva es el reviewer (perfil Usuario)
+            fecha_llegada=fecha_llegada_pasada,
+            fecha_salida=fecha_salida_pasada,
+            numero_personas=1, # O el número que desees <= maximo_huespedes
+            # IMPORTANTE: Cambia 'Completada' por el estado que REALMENTE permite valorar en tu lógica
+            # Podría ser 'Confirmada', 'Completada', etc. NO 'Pendiente' o 'Cancelada'.
+            estado='Aceptada',
+            precio_por_noche=self.prop.precio_por_noche,
+            # Calcula el precio total basado en las noches y el precio por noche
+            precio_total=self.prop.precio_por_noche * num_noches,
+            metodo_pago='Test Card' # Valor de ejemplo
+        )
+
         self.list_url = reverse('valoracionpropiedad-list')
         self.detail_url = lambda pk: reverse('valoracionpropiedad-detail', args=[pk])
         self.media_url = lambda pk: reverse('valoracionpropiedad-media-valoraciones', args=[pk])
