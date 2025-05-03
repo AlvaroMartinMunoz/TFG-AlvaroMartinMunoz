@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
     Box,
     Container,
@@ -25,6 +25,7 @@ import {
 } from '@mui/material';
 import { es } from 'date-fns/locale';
 
+import { format, getYear, isValid, parseISO } from 'date-fns';
 import {
     CalendarToday as CalendarTodayIcon,
     Event as EventIcon,
@@ -73,11 +74,13 @@ const PropertyDashboard = () => {
     const [dateRangeFin, setDateRangeFin] = useState(null);
     const [selectedPropertyCompare, setSelectedPropertyCompare] = useState('');
     const [usuariosValoraciones, setUsuariosValoraciones] = useState([]);
-    const [usuariosReservas, setUsuariosReservas] = useState([]);
+    const [usuariosReservas, setUsuariosReservas] = useState({});
     const [errorDateRangeInicio, setErrorDateRangeInicio] = useState(null);
     const [errorDateRangeFin, setErrorDateRangeFin] = useState(null);
     const [ocupacionTendencias, setOcupacionTendencias] = useState([]);
     const [precioTendencias, setPrecioTendencias] = useState([]);
+    const [selectedYear, setSelectedYear] = useState('todos');
+    const [availableYears, setAvailableYears] = useState([]);
 
     const totalReservas = reservas.length;
     const promedioValoracion = propiedad?.valoracion_promedio || 0;
@@ -89,7 +92,9 @@ const PropertyDashboard = () => {
     }, 0);
     const ocupacionPorcentaje = (diasOcupados / 365 * 100).toFixed(1);
 
-    const datosReservasPorMes = procesarDatosReservas(reservas);
+    const datosReservasPorMes = useMemo(() => {
+        return procesarDatosReservas(reservas, selectedYear);
+    }, [reservas, selectedYear]);
     const datosValoraciones = procesarValoraciones(valoraciones);
     const eventosCalendario = [...reservas.map(r => ({ ...r, tipo: 'reserva' }))];
 
@@ -123,6 +128,31 @@ const PropertyDashboard = () => {
         }
     }, [reservas]);
 
+    useEffect(() => {
+        if (reservas && reservas.length > 0) {
+            const years = new Set();
+            reservas.forEach(reserva => {
+                try {
+                    const fechaLlegadaDate = typeof reserva.fecha_llegada === 'string'
+                        ? parseISO(reserva.fecha_llegada)
+                        : new Date(reserva.fecha_llegada);
+                    if (isValid(fechaLlegadaDate)) {
+                        years.add(getYear(fechaLlegadaDate));
+                    }
+                } catch (e) {
+                    console.error("Error extrayendo año de reserva:", reserva, e);
+                }
+            });
+            const sortedYears = Array.from(years).sort((a, b) => b - a); // Ordenar descendente
+            setAvailableYears(sortedYears);
+            // if (selectedYear === 'todos' && sortedYears.length > 0) {
+            //     setSelectedYear(sortedYears[0]);
+            // }
+        } else {
+            setAvailableYears([]); // Limpiar si no hay reservas
+        }
+    }, [reservas]);
+
     const scrollToSection = (elementId, offsetPixels = 80) => {
         const element = document.getElementById(elementId);
         if (element) {
@@ -135,21 +165,31 @@ const PropertyDashboard = () => {
             });
         }
     };
-
     const fetchUsuarioReservas = async (usuarioId) => {
+        if (!usuarioId || usuariosReservas[usuarioId]) {
+
+            return;
+        }
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}`, {
+            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
                 },
             });
-            if (!response.ok) throw new Error('Error fetching usuario reservas');
+            if (!response.ok) throw new Error(`Error fetching usuario ${usuarioId}`);
             const data = await response.json();
-            setUsuariosReservas(prev => [...prev, data]);
+            setUsuariosReservas(prev => ({
+                ...prev,
+                [usuarioId]: data
+            }));
         } catch (error) {
             console.error(error.message);
+            setUsuariosReservas(prev => ({
+                ...prev,
+                [usuarioId]: { id: usuarioId, error: true, usuario: { username: 'Error' } }
+            }));
         }
     }
 
@@ -474,22 +514,51 @@ const PropertyDashboard = () => {
 
                 <Box id="reservas-ingresos" sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '2fr 1fr' }, gap: 3, mb: 4 }}>
                     <Card elevation={0} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.05)' }}>
-                        <CardContent>
-                            <Typography variant="h6" gutterBottom sx={{ fontWeight: 500 }}>
-                                Reservas e Ingresos Mensuales
-                            </Typography>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={datosReservasPorMes}>
-                                    <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
-                                    <XAxis dataKey="mes" tickLine={false} />
-                                    <YAxis axisLine={false} tickLine={false} />
-                                    <Tooltip contentStyle={{ backgroundColor: theme.palette.background.paper, borderRadius: 8, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)', border: 'none' }} />
-                                    <Legend wrapperStyle={{ paddingTop: 20 }} />
-                                    <Bar dataKey="reservas" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} name="Reservas" />
-                                    <Bar dataKey="ingresos" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} name="Ingresos (€)" />
-                                </BarChart>
-                            </ResponsiveContainer>
+                        <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            {/* Contenedor para título y filtro */}
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
+                                <Typography variant="h6" sx={{ fontWeight: 500 }}>
+                                    Reservas e Ingresos Mensuales
+                                </Typography>
+                                {/* Filtro de Año */}
+                                {availableYears.length > 0 && ( // Mostrar solo si hay años
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel id="year-filter-label">Año</InputLabel>
+                                        <Select
+                                            labelId="year-filter-label"
+                                            id="year-filter"
+                                            value={selectedYear}
+                                            label="Año"
+                                            onChange={(e) => setSelectedYear(e.target.value)}
+                                        >
+                                            <MenuItem value="todos">
+                                                <em>Todos los años</em>
+                                            </MenuItem>
+                                            {availableYears.map(year => (
+                                                <MenuItem key={year} value={year}>{year}</MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                )}
+                            </Box>
+
+                            {/* Contenedor del gráfico (asegura que tome espacio) */}
+                            <Box sx={{ flexGrow: 1, minHeight: 300 }}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    {/* El BarChart ahora usa los datos filtrados */}
+                                    <BarChart data={datosReservasPorMes} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
+                                        <CartesianGrid strokeDasharray="3 3" stroke={theme.palette.divider} />
+                                        <XAxis dataKey="mes" tickLine={false} fontSize="0.8rem" />
+                                        <YAxis axisLine={false} tickLine={false} fontSize="0.8rem" />
+                                        <Tooltip contentStyle={{ /* ... tus estilos de tooltip ... */ }} />
+                                        <Legend wrapperStyle={{ paddingTop: 20 }} />
+                                        <Bar dataKey="reservas" fill={theme.palette.primary.main} radius={[4, 4, 0, 0]} name="Reservas" />
+                                        <Bar dataKey="ingresos" fill={theme.palette.success.main} radius={[4, 4, 0, 0]} name="Ingresos (€)" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </Box>
                         </CardContent>
+                        {/* === FIN: MODIFICACIONES JSX === */}
                     </Card>
 
                     <Card elevation={3} sx={{ borderRadius: 2, boxShadow: '0 4px 20px 0 rgba(0,0,0,0.1)' }}>
@@ -797,8 +866,7 @@ const PropertyDashboard = () => {
                                                                 {evento.tipo === 'reserva' ? (
                                                                     <Box>
                                                                         <Typography variant="caption" sx={{ fontWeight: 500, display: 'block' }}>
-                                                                            Cliente: {usuariosReservas?.find(usuario => usuario.id === evento.usuario)?.usuario?.username}
-                                                                        </Typography>
+                                                                            Cliente: {usuariosReservas[evento.usuario]?.usuario?.username || 'Cargando...'}                                                                        </Typography>
                                                                         <Typography variant="caption" color="text.secondary">
                                                                             Estado: {evento.estado} • {Math.ceil((new Date(evento.fecha_salida) - new Date(evento.fecha_llegada)) / (1000 * 60 * 60 * 24))} días
                                                                         </Typography>
@@ -1158,24 +1226,60 @@ const ComparacionPropiedades = ({ propiedadActual, propiedadComparada, reservas 
     );
 };
 
-const procesarDatosReservas = (reservas) => {
+
+const procesarDatosReservas = (reservas, añoSeleccionado = 'todos') => {
     const meses = Array(12).fill(0).map((_, i) => ({
-        mes: new Date(2024, i).toLocaleString('default', { month: 'short' }),
+        mes: format(new Date(2023, i, 1), 'MMM', { locale: es }), // Nombres de meses en español
         reservas: 0,
         ingresos: 0
     }));
 
-    reservas.forEach(reserva => {
-        const mes = new Date(reserva.fecha_llegada).getMonth();
-        meses[mes].reservas += 1;
-        meses[mes].ingresos += parseFloat(reserva.precio_total);
+    // Filtra las reservas según el año seleccionado ('todos' o un número)
+    const reservasFiltradas = añoSeleccionado === 'todos'
+        ? reservas
+        : reservas.filter(reserva => {
+            try {
+                // Intenta parsear la fecha (puede venir como string ISO o Date)
+                const fechaLlegadaDate = typeof reserva.fecha_llegada === 'string'
+                    ? parseISO(reserva.fecha_llegada)
+                    : new Date(reserva.fecha_llegada);
+
+                // Valida la fecha y compara el año
+                return isValid(fechaLlegadaDate) && getYear(fechaLlegadaDate) === parseInt(añoSeleccionado);
+            } catch (error) {
+                console.error("Error parseando fecha en filtro:", reserva.fecha_llegada, error);
+                return false; // Excluir si hay error al parsear
+            }
+        });
+
+    // Agrega los datos de las reservas filtradas por mes
+    reservasFiltradas.forEach(reserva => {
+        try {
+            const fechaLlegadaDate = typeof reserva.fecha_llegada === 'string'
+                ? parseISO(reserva.fecha_llegada)
+                : new Date(reserva.fecha_llegada);
+
+            if (isValid(fechaLlegadaDate)) {
+                const mesIndex = fechaLlegadaDate.getMonth(); // 0 = Enero, 11 = Diciembre
+                if (mesIndex >= 0 && mesIndex < 12) {
+                    meses[mesIndex].reservas += 1;
+                    // Asegura que precio_total es un número antes de sumar
+                    const precio = parseFloat(reserva.precio_total);
+                    if (!isNaN(precio)) {
+                        meses[mesIndex].ingresos += precio;
+                    }
+                }
+            }
+        } catch (error) {
+            console.error("Error procesando reserva:", reserva, error);
+        }
     });
 
-    return meses.map((mes) => ({
-        ...mes,
-        ingresos: parseFloat(mes.ingresos.toFixed(2)),
-    })
-    );
+    // Redondea los ingresos al final
+    return meses.map((mesData) => ({
+        ...mesData,
+        ingresos: parseFloat(mesData.ingresos.toFixed(2)),
+    }));
 };
 
 const procesarValoraciones = (valoraciones) => {
