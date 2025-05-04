@@ -10,6 +10,9 @@ import {
   Alert,
   Paper,
   CircularProgress,
+  FormControlLabel,
+  Checkbox,
+  Link
 } from "@mui/material";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
@@ -34,6 +37,8 @@ const Register = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
@@ -163,6 +168,12 @@ const Register = () => {
     setErrors({});
     setMessage("");
     setMessage2("");
+
+    if (!acceptedTerms) {
+      setTermsError(true);
+      setLoading(false);
+      return;
+    }
 
     if (!(await validateForm())) {
       setMessage("Por favor, corrija los errores en el formulario");
@@ -437,6 +448,40 @@ const Register = () => {
                 />
               </Box>
             </Box>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={acceptedTerms}
+                  onChange={(e) => {
+                    setAcceptedTerms(e.target.checked);
+                    setTermsError(false); // Limpia el error al marcar
+                  }}
+                  color="primary"
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  Acepto los{" "}
+                  <Link
+                    to="/terminos-y-condiciones"
+                    style={{ color: "#1976d2", textDecoration: "none" }}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      window.open("/terminos-y-condiciones", "_blank");
+                    }}
+                  >
+                    términos y condiciones
+                  </Link>
+                </Typography>
+              }
+              sx={{ mt: 2 }}
+            />
+            {termsError && (
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                Debes aceptar los términos y condiciones para continuar.
+              </Typography>
+            )}
+
 
             <Button
               type="submit"
