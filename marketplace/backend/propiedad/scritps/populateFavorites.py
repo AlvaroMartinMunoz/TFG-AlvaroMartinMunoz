@@ -4,6 +4,8 @@ import django
 import random
 import time  
 from faker import Faker
+from django.db import IntegrityError
+
 
 # Configuración Django
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
@@ -17,7 +19,6 @@ from propiedad.models.favorito import Favorito
 
 
 fake = Faker("es_ES")  
-
 def poblar_favoritos():
     usuarios = list(Usuario.objects.all())
     propiedades = list(Propiedad.objects.all())
@@ -26,15 +27,18 @@ def poblar_favoritos():
         try:
             propiedades_favoritas = random.sample(propiedades, random.randint(1, 3))
             for propiedad in propiedades_favoritas:
-                Favorito.objects.create(
-                    usuario=usuario,
-                    propiedad=propiedad
-                )
-                print(f"Favorito creado para {usuario.usuario.username} en {propiedad.nombre}")
+                try:
+                    favorito, creado = Favorito.objects.get_or_create(
+                        usuario=usuario,
+                        propiedad=propiedad
+                    )
+                    if creado:
+                        print(f"✅ Favorito creado: {usuario.usuario.username} -> {propiedad.nombre}")
+                    else:
+                        print(f"⚠️ Ya existía favorito: {usuario.usuario.username} -> {propiedad.nombre}")
+                except IntegrityError:
+                    print(f"❌ Error de integridad al crear favorito para {usuario.usuario.username}")
         except Exception as e:
-            print(f"Error al crear favorito: {e}")
+            print(f"❌ Error general con el usuario {usuario.usuario.username}: {e}")
 
 poblar_favoritos()
-
-
-          

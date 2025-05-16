@@ -5,6 +5,7 @@ import sys
 import django
 from datetime import timedelta, date, datetime
 from decimal import Decimal
+from django.db import IntegrityError
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../..'))
 sys.path.insert(0, project_root)
@@ -52,7 +53,6 @@ comentarios_predefinidos = [
     "¿El lugar tiene buen acceso para personas mayores o con movilidad reducida?",
     "¿Puedo hacer modificaciones a la reserva una vez confirmada?"
 ]
-
 def poblar_reservas():
     usuarios = list(Usuario.objects.all())
     propiedades = list(Propiedad.objects.all())
@@ -69,33 +69,39 @@ def poblar_reservas():
             propiedad = random.choice(propiedades_disponibles)
             propiedades_disponibles.remove(propiedad)
             anfitrion = propiedad.anfitrion
-            
+
             hoy = datetime.now()
             dias_atras = random.randint(0, 365)
             fecha_llegada = hoy - timedelta(days=dias_atras)
             fecha_salida = fecha_llegada + timedelta(days=random.randint(1, 7))
-            
+
             numero_personas = random.randint(1, 4)
             precio_por_noche = propiedad.precio_por_noche
             precio_total = precio_por_noche * (fecha_salida - fecha_llegada).days * Decimal(1.1)
             estado = "Aceptada"
             metodo_pago = random.choice(METODOS_DE_PAGO)
-            
-            reserva, created = Reserva.objects.get_or_create(
-                propiedad=propiedad,
-                usuario=usuario,
-                fecha_llegada=fecha_llegada,
-                fecha_salida=fecha_salida,
-                defaults={
-                    "anfitrion": anfitrion,
-                    "numero_personas": numero_personas,
-                    "precio_por_noche": precio_por_noche,
-                    "precio_total": precio_total,
-                    "estado": estado,
-                    "metodo_pago": metodo_pago,
-                    "comentarios_usuario": random.choice(comentarios_predefinidos),
-                }
-            )
-            print(f"Reserva creada: {reserva} - Estado: {estado} - Método de pago: {metodo_pago}")
+
+            try:
+                reserva, created = Reserva.objects.get_or_create(
+                    propiedad=propiedad,
+                    fecha_llegada=fecha_llegada,
+                    fecha_salida=fecha_salida,
+                    defaults={
+                        "usuario": usuario,
+                        "anfitrion": anfitrion,
+                        "numero_personas": numero_personas,
+                        "precio_por_noche": precio_por_noche,
+                        "precio_total": precio_total,
+                        "estado": estado,
+                        "metodo_pago": metodo_pago,
+                        "comentarios_usuario": random.choice(comentarios_predefinidos),
+                    }
+                )
+                if created:
+                    print(f"✅ Reserva creada: {reserva} - Estado: {estado} - Método de pago: {metodo_pago}")
+                else:
+                    print(f"⚠️ Reserva ya existente para {propiedad} entre {fecha_llegada} y {fecha_salida}")
+            except IntegrityError:
+                print(f"❌ Error: reserva duplicada para {propiedad} del {fecha_llegada} al {fecha_salida}, se omite.")
 
 poblar_reservas()

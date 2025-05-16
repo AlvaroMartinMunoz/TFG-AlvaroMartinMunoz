@@ -39,29 +39,34 @@ def generar_telefono():
 
 def poblar_usuarios():
     for _ in range(10):
-        username = fake.user_name()
-        email = fake.email()
+        try:
+            username = fake.user_name()
+            email = fake.email()
 
-        user = User.objects.create_user(
-            username=username,
-            email=email,
-            password='password123',
-        )
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password='password123',
+            )
 
-        dni = generar_dni()
-        telefono = generar_telefono()
-        direccion = fake.address()
-        biografia = random.choice(biografias_predefinidas)
-        fecha_de_nacimiento = fake.date_of_birth(minimum_age=18, maximum_age=60)
+            dni = generar_dni()
+            telefono = generar_telefono()
+            direccion = fake.address()
+            biografia = random.choice(biografias_predefinidas)
+            fecha_de_nacimiento = fake.date_of_birth(minimum_age=18, maximum_age=60)
 
-        Usuario.objects.create(
-            usuario=user,
-            dni=dni,
-            telefono=telefono,
-            direccion=direccion,
-            biografia=biografia,
-            fecha_de_nacimiento=fecha_de_nacimiento,
-        )
-        print(f"Usuario creado: {user.username}, DNI: {dni}, Teléfono: {telefono}, Dirección: {direccion}, Biografía: {biografia}, Fecha de nacimiento: {fecha_de_nacimiento}")
+            Usuario.objects.create(
+                usuario=user,
+                dni=dni,
+                telefono=telefono,
+                direccion=direccion,
+                biografia=biografia,
+                fecha_de_nacimiento=fecha_de_nacimiento,
+            )
+
+            print(f"✅ Usuario creado: {user.username}, DNI: {dni}, Teléfono: {telefono}, Dirección: {direccion}, Biografía: {biografia}, Fecha de nacimiento: {fecha_de_nacimiento}")
+
+        except Exception as e:
+            print(f"❌ Error al crear usuario: {e}")
 
 poblar_usuarios()

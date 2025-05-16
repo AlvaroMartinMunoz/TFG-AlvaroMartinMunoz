@@ -78,8 +78,6 @@ comentarios_predefinidos = [
     "La propiedad tiene un sistema de climatización perfecto para todas las estaciones del año.",
     "La piscina y el jardín son ideales para organizar eventos al aire libre con amigos y familiares."
 ]
-
-
 def poblar_valoraciones():
     usuarios = Usuario.objects.all()
     propiedades = Propiedad.objects.all()
@@ -87,28 +85,29 @@ def poblar_valoraciones():
     if not usuarios or not propiedades:
         print("No hay usuarios o propiedades en la base de datos.")
         return
-    try: 
-        for usuario in usuarios:
-            try:
-                for propiedad in propiedades:
-                    valoracion = ValoracionPropiedad.objects.filter(usuario=usuario, propiedad=propiedad).first()
-                    if usuario != propiedad.anfitrion and not valoracion:
-                        comentario = random.choice(comentarios_predefinidos)
-                        valoracion = random.choices([1, 2, 3, 4, 5], [0.05, 0.05, 0.20, 0.30, 0.40])[0]
 
-                        ValoracionPropiedad.objects.create(
-                            usuario=usuario,
-                            propiedad=propiedad,
-                            valoracion=valoracion,
-                            comentario=comentario,
-                        )
-                        print(f"Valoración creada para la propiedad {propiedad.id} por el usuario {usuario.id}")
-                    else:
-                        print(f"El usuario {usuario.id} ya ha valorado la propiedad {propiedad.id} o es el anfitrión.")
+    for usuario in usuarios:
+        for propiedad in propiedades:
+            if usuario == propiedad.anfitrion:
+                continue
+
+            try:
+                existe_valoracion = ValoracionPropiedad.objects.filter(usuario=usuario, propiedad=propiedad).exists()
+                if not existe_valoracion:
+                    comentario = random.choice(comentarios_predefinidos)
+                    valoracion = random.choices([1, 2, 3, 4, 5], [0.05, 0.05, 0.20, 0.30, 0.40])[0]
+
+                    ValoracionPropiedad.objects.create(
+                        usuario=usuario,
+                        propiedad=propiedad,
+                        valoracion=valoracion,
+                        comentario=comentario,
+                    )
+                    print(f"✅ Valoración creada: propiedad {propiedad.id} por usuario {usuario.id}")
+                else:
+                    print(f"⚠️ Ya existe valoración: propiedad {propiedad.id} por usuario {usuario.id}")
             except Exception as e:
-                print(f"Error al crear valoración para la propiedad {propiedad.id} por el usuario {usuario.id}: {e}")   
-    except Exception as e:
-        print(f"Error al crear valoraciones: {e}")
+                print(f"❌ Error al crear valoración: propiedad {propiedad.id} por usuario {usuario.id}: {e}")
+
 
 poblar_valoraciones()
-            
