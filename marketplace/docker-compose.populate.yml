@@ -1,0 +1,21 @@
+services:
+  populator:
+    build: ./backend
+    command: >
+      bash -c "
+        python propiedad/scritps/populateUsers.py &&
+        python propiedad/scritps/populateProperties.py &&
+        python propiedad/scritps/populateReservations.py &&
+        python propiedad/scritps/populatePastReservations.py &&
+        python propiedad/scritps/populateSpecialPrices.py &&
+        python propiedad/scritps/populateRatings.py &&
+        python propiedad/scritps/populateFavorites.py
+      "
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db
+    networks:
+      - marketplace_net

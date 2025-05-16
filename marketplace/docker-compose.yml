@@ -3,7 +3,13 @@ version: '3.8'
 services:
   backend:
     build: ./backend
-    command: python manage.py runserver 0.0.0.0:8000
+    command: >
+      bash -c "
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        echo 'Starting Backend Server...' &&
+        python manage.py runserver 0.0.0.0:8000
+      "
     env_file:
       - ./backend/.env
     volumes:
@@ -17,16 +23,36 @@ services:
     networks:
       - marketplace_net
 
+  worker: 
+    build: ./backend 
+    command: >
+      bash -c "
+        echo 'Waiting for DB to be ready for worker...' &&
+        python manage.py makemigrations &&
+        python manage.py migrate &&
+        echo 'Starting Task Worker (process_tasks)...' &&
+        python manage.py process_tasks
+      "
+    env_file:
+      - ./backend/.env
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - db 
+    networks:
+      - marketplace_net
+    restart: unless-stopped 
+
   frontend:
     build: ./frontend
     command: npm start
     volumes:
       - ./frontend:/app
-      - /app/node_modules
+      - /app/node_modules # Evita que node_modules local sobreescriba el del contenedor
     ports:
       - "3000:3000"
     depends_on:
-      - backend
+      - backend # El frontend depende de que el backend esté disponible
     environment:
       - CHOKIDAR_USEPOLLING=true
     networks:
@@ -36,15 +62,23 @@ services:
     image: postgres:13
     volumes:
       - db_data:/var/lib/postgresql/data/
-    env_file: ./backend/.env  
+    env_file: ./backend/.env # Lee las variables para la DB desde el .env del backend
+    # Las siguientes variables son para asegurar que Postgres las configure,
+    # incluso si ya están en el .env_file, esto da precedencia o claridad.
     environment:
-      POSTGRES_DB: marketplace_db
-      POSTGRES_USER: postgres 
-      POSTGRES_PASSWORD: postgres  
+      POSTGRES_DB: ${POSTGRES_DB:-marketplace_db} # Usa valor del .env o default
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     networks:
       - marketplace_net
+    healthcheck: # Opcional: para asegurar que la DB esté lista antes de que otros servicios dependan de ella
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-marketplace_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 volumes:
   static_volume:
