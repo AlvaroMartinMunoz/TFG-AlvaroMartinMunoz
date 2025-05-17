@@ -120,7 +120,7 @@ const CreateProperty = () => {
         "Toledo",
         "Ciudad Real",
         "Huesca",
-    ];
+    ].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
     const [errors, setErrors] = useState({});
     const navigate = useNavigate();

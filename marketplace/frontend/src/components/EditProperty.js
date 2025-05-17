@@ -124,7 +124,7 @@ const EditProperty = () => {
         "Toledo",
         "Ciudad Real",
         "Huesca",
-    ];
+    ].sort((a, b) => a.localeCompare(b, 'es', { sensitivity: 'base' }));
 
 
     useEffect(() => {
