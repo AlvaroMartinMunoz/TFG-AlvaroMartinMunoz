@@ -20,11 +20,13 @@ import {
     Divider,
     IconButton,
     Stack,
-    Alert
+    Alert,
+    Tooltip
 } from "@mui/material";
 import CloseIcon from '@mui/icons-material/Close';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import SaveIcon from '@mui/icons-material/Save';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const EditProperty = () => {
     const { propiedadId: id } = useParams();
@@ -712,6 +714,20 @@ const EditProperty = () => {
                                                 <MenuItem value="Moderada">Moderada</MenuItem>
                                                 <MenuItem value="Estricta">Estricta</MenuItem>
                                             </Select>
+                                            <Tooltip
+                                                title={
+                                                    <Box>
+                                                        <b>Flexible:</b> Cancelación gratuita hasta 24h antes.<br />
+                                                        <b>Moderada:</b> Cancelación gratuita hasta 5 días antes.<br />
+                                                        <b>Estricta:</b> No reembolsable salvo causa mayor.
+                                                    </Box>
+                                                }
+                                                arrow
+                                                placement="top"
+
+                                            >
+                                                <HelpOutlineIcon sx={{ ml: 1, color: "#888", cursor: "pointer,", mt: 1 }} fontSize="small" />
+                                            </Tooltip>
                                             <FormHelperText error>{errors.politica_de_cancelacion}</FormHelperText>
                                         </FormControl>
                                     </Stack>

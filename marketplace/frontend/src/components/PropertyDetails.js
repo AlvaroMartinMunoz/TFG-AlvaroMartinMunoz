@@ -33,6 +33,7 @@ import { useFavoritos } from "../context/FavoritosContext";
 import SettingsIcon from '@mui/icons-material/Settings'; // Nuevo icono
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Nuevo icono
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'; // Nuevo icono
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // Import HelpOutlineIcon
 
 // Configurar Moment.js en español
 moment.locale('es');
@@ -1684,10 +1685,24 @@ const PropertyDetails = () => {
                     </Box>
 
                     <Divider sx={{ my: 3 }} />
-
-                    <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: 'primary.dark' }}>
-                        Política de Cancelación
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', }}>
+                        <Typography variant="h6" sx={{ mb: 1, fontWeight: 600, color: 'primary.dark' }}>
+                            Política de Cancelación
+                        </Typography>
+                        <Tooltip
+                            title={
+                                <Box>
+                                    <b>Flexible:</b> Cancelación gratuita hasta 24h antes.<br />
+                                    <b>Moderada:</b> Cancelación gratuita hasta 5 días antes.<br />
+                                    <b>Estricta:</b> No reembolsable salvo causa mayor.
+                                </Box>
+                            }
+                            arrow
+                            placement="top"
+                        >
+                            <HelpOutlineIcon sx={{ ml: 1, mb: 1, color: "#888", cursor: "pointer" }} fontSize="small" />
+                        </Tooltip>
+                    </Box>
                     <Typography variant="body2" color="text.secondary">
                         {propiedad?.politica_de_cancelacion || 'No especificada'}
                     </Typography>

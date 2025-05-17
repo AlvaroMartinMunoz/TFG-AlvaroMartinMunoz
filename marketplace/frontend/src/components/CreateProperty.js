@@ -25,6 +25,8 @@ import PhotoCamera from '@mui/icons-material/PhotoCamera';
 import AddHomeIcon from '@mui/icons-material/AddHome';
 import { useNavigate } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import Tooltip from "@mui/material/Tooltip";
 
 const CreateProperty = () => {
     const storedInfo = localStorage.getItem("additionalInfo");
@@ -542,7 +544,7 @@ const CreateProperty = () => {
                                     helperText={errors.tamano}
                                     sx={{ width: "200px" }}
                                 />
-                                <FormControl variant="outlined" sx={{ width: "200px" }} error={!!errors.politica_de_cancelacion}>
+                                <FormControl variant="outlined" sx={{ width: "200px", display: "flex", flexDirection: "row", alignItems: "center" }} error={!!errors.politica_de_cancelacion}>
                                     <InputLabel>Política de Cancelación</InputLabel>
                                     <Select
                                         name="politica_de_cancelacion"
@@ -550,11 +552,25 @@ const CreateProperty = () => {
                                         onChange={handleChange}
                                         label="Política de Cancelación"
                                         required
+                                        sx={{ flex: 1, minWidth: "200px" }}
                                     >
                                         <MenuItem value="Flexible">Flexible</MenuItem>
                                         <MenuItem value="Moderada">Moderada</MenuItem>
                                         <MenuItem value="Estricta">Estricta</MenuItem>
                                     </Select>
+                                    <Tooltip
+                                        title={
+                                            <Box>
+                                                <b>Flexible:</b> Cancelación gratuita hasta 24h antes.<br />
+                                                <b>Moderada:</b> Cancelación gratuita hasta 5 días antes.<br />
+                                                <b>Estricta:</b> No reembolsable salvo causa mayor.
+                                            </Box>
+                                        }
+                                        arrow
+                                        placement="top"
+                                    >
+                                        <HelpOutlineIcon sx={{ ml: 1, color: "#888", cursor: "pointer" }} fontSize="small" />
+                                    </Tooltip>
                                     <FormHelperText>{errors.politica_de_cancelacion}</FormHelperText>
                                 </FormControl>
                             </Box>
