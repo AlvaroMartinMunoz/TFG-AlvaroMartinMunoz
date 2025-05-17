@@ -15,7 +15,7 @@ services:
       - ./backend/.env
     volumes:
       - ./backend:/app
-      - - ./backend/media:/app/media
+      - ./backend/media:/app/media
     depends_on:
       - db
     networks:
