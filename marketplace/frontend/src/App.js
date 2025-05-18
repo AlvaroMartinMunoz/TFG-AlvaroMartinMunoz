@@ -35,6 +35,7 @@ import AboutUs from "./components/Footer/AboutUs";
 import Recommendations from "./components/Recommendations";
 import PropertyDashboard from "./components/PropertyDashboard";
 import { FavoritosProvider } from "./context/FavoritosContext";
+import API_BASE_URL from "./apiConfig"; // Asegúrate de que la ruta sea correcta
 
 const theme = createTheme({
   palette: {
@@ -44,7 +45,11 @@ const theme = createTheme({
 });
 
 function App() {
+  console.log("API_BASE_URL en App.js:", API_BASE_URL);
+  console.log("process.env.REACT_APP_API_URL en App.js (refleja el valor del build):", process.env.REACT_APP_API_URL);
+
   return (
+
     <FavoritosProvider>
       <ThemeProvider theme={theme}>
         <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
