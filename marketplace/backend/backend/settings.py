@@ -13,7 +13,7 @@ SECRET_KEY = os.getenv(
 )
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '.onrender.com').split(',')
 
 BACKGROUND_TASKS_RETRY_TIME = 86400
 
