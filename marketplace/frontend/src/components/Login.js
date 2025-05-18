@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 
 const Login = () => {
   const [formData, setFormData] = useState({

@@ -22,7 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 
 
 const Profile = () => {

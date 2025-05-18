@@ -27,7 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import SaveIcon from '@mui/icons-material/Save';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 
 const EditProperty = () => {
     const { propiedadId: id } = useParams();

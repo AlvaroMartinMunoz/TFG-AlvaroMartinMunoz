@@ -21,7 +21,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { AccordionDetails } from "@mui/material";
 import { useLocation } from "react-router-dom";
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 
 const MyReserves = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 
 
 const FavoritosContext = createContext();

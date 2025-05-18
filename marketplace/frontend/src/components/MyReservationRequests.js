@@ -32,7 +32,7 @@ import PendingIcon from "@mui/icons-material/Pending";
 import SortIcon from "@mui/icons-material/Sort";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useLocation } from "react-router-dom";
-import { API_BASE_URL } from "../apiConfig";
+import API_BASE_URL from "../apiConfig";
 const MyReservationRequests = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [solicitudes, setSolicitudes] = useState([]);
