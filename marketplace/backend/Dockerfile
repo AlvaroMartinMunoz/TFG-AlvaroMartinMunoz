@@ -30,4 +30,5 @@ EXPOSE 8000
 # Reemplaza 'tu_proyecto_django.wsgi:application' con la ruta correcta a tu archivo wsgi.py
 # Por ejemplo, si tu wsgi.py está en una carpeta llamada 'mi_proyecto_django' dentro de /app,
 # entonces sería 'mi_proyecto_django.wsgi:application'
-CMD ["bash", "-c", "python manage.py migrate && python manage.py populate_all_data && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
+CMD ["bash", "-c", "python manage.py migrate && gunicorn backend.wsgi:application --bind 0.0.0.0:8000"]
+#  && python manage.py populate_all_data
