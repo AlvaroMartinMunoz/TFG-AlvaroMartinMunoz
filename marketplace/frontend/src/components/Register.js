@@ -18,7 +18,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { parseISO } from "date-fns";
 import { DatePicker } from "@mui/x-date-pickers";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const Register = () => {
   const [formData, setFormData] = useState({

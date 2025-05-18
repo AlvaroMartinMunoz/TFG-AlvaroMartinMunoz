@@ -2,7 +2,7 @@ import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, Circ
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const ReservationDetail = () => {
     const { reservaId } = useParams();

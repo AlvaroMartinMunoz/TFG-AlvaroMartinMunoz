@@ -4,7 +4,7 @@ import { Alert } from "@mui/material";
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { IconButton, InputAdornment } from "@mui/material";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 
 const ConfirmPasswordReset = () => {

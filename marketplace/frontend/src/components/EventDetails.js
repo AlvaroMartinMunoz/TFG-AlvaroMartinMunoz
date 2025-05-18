@@ -22,7 +22,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link } from 'react-router-dom';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from "../apiConfig";
 
 const EventDetails = () => {
     const { eventoId } = useParams();

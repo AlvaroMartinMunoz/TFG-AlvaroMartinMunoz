@@ -34,7 +34,7 @@ import SettingsIcon from '@mui/icons-material/Settings'; // Nuevo icono
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Nuevo icono
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'; // Nuevo icono
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // Import HelpOutlineIcon
-import { API_BASE_URL } from '../config'; // Asegúrate de que la ruta sea correcta
+import { API_BASE_URL } from "../apiConfig";
 
 // Configurar Moment.js en español
 moment.locale('es');

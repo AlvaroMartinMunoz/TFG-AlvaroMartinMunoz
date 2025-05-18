@@ -26,7 +26,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const NavBar = () => {
   const { favoritosNavbar } = useFavoritos();

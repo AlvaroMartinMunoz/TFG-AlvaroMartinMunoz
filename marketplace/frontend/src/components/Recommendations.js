@@ -28,7 +28,7 @@ import refreshAccessToken from "./RefreshToken";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useFavoritos } from "../context/FavoritosContext";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 
 const Recommendations = () => {

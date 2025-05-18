@@ -17,7 +17,7 @@ import {
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ShareIcon from '@mui/icons-material/Share';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from "../apiConfig";
 
 const Events = () => {
     const [eventos, setEventos] = useState([]);

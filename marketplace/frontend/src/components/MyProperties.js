@@ -21,7 +21,7 @@ import {
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Home as HomeIcon, Add as AddIcon } from "@mui/icons-material";
 import refreshAccessToken from "./RefreshToken";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const MyProperties = () => {
     const [mispropiedades, setMisPropiedades] = useState([]);

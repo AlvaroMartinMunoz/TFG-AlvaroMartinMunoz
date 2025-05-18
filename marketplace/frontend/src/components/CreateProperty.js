@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Tooltip from "@mui/material/Tooltip";
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const CreateProperty = () => {
     const storedInfo = localStorage.getItem("additionalInfo");

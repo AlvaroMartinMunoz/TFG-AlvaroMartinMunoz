@@ -1,7 +1,7 @@
 import { Box, Container, Paper, Typography, TextField, Button, CircularProgress } from '@mui/material';
 import { Alert } from '@mui/material';
 import { useState } from 'react';
-import { API_BASE_URL } from '../config';
+import { API_BASE_URL } from "../apiConfig";
 
 
 

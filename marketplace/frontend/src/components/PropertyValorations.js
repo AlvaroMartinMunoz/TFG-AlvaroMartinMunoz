@@ -2,7 +2,7 @@ import { Box, Typography, Avatar, Card, CardContent, Alert, CircularProgress, Bu
 import { useEffect, useState, useMemo } from "react";
 import Rating from '@mui/material/Rating';
 import { Comment as CommentIcon, VisibilityOff as VisibilityOffIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
-import { API_BASE_URL } from "../config";
+import { API_BASE_URL } from "../apiConfig";
 
 const PropertyValorations = ({ propiedadId }) => {
     const [valoraciones, setValoraciones] = useState([]);
