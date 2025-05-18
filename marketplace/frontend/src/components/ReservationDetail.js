@@ -2,6 +2,7 @@ import { Box, Card, CardMedia, Container, Paper, Typography, Divider, Chip, Circ
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
+import { API_BASE_URL } from "../config";
 
 const ReservationDetail = () => {
     const { reservaId } = useParams();
@@ -55,7 +56,7 @@ const ReservationDetail = () => {
 
     const fetchCliente = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${clienteId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${clienteId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -81,7 +82,7 @@ const ReservationDetail = () => {
 
     const fetchReservation = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${reservaId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${reservaId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -108,7 +109,7 @@ const ReservationDetail = () => {
 
     const fetchAnfitrion = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${anfitrionId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${anfitrionId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -135,7 +136,7 @@ const ReservationDetail = () => {
 
     const fetchPropiedad = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -163,7 +164,7 @@ const ReservationDetail = () => {
 
     const cancelarReserva = async (reservaId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${reservaId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${reservaId}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -197,7 +198,7 @@ const ReservationDetail = () => {
 
     const handleAccept = async (solicitudId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${solicitudId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${solicitudId}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -222,7 +223,7 @@ const ReservationDetail = () => {
 
     const fetchMediaValoraciones = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -244,7 +245,7 @@ const ReservationDetail = () => {
 
     const fetchPropertyPhoto = async (retried = false) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

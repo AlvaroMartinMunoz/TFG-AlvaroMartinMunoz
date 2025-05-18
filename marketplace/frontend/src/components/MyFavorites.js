@@ -15,6 +15,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import IconButton from "@mui/material/IconButton";
 import { useFavoritos } from "../context/FavoritosContext";
+import { API_BASE_URL } from "../config";
 
 
 const Myfavorites = () => {
@@ -60,7 +61,7 @@ const Myfavorites = () => {
             const favoritoId = misfavoritos.find((favorito) => favorito.propiedad === propiedadId)?.id;
 
             if (isFavorito) {
-                const data = await fetch(`http://localhost:8000/api/propiedades/favoritos/${favoritoId}/`, {
+                const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/${favoritoId}/`, {
                     method: "DELETE",
                     headers: {
                         "Content-Type": "application/json",
@@ -77,7 +78,7 @@ const Myfavorites = () => {
                     }
                 }
             } else if (!isFavorito) {
-                const data = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+                const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -107,7 +108,7 @@ const Myfavorites = () => {
     const fetchPropertyPhotos = async (propiedadId) => {
         setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
@@ -130,7 +131,7 @@ const Myfavorites = () => {
 
     const fetchMyFavoritesProperties = async (propiedadId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propiedadId}/`, {
                 method: "GET",
             });
 
@@ -151,7 +152,7 @@ const Myfavorites = () => {
     const fetchMyFavorites = async () => {
         const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -311,9 +312,10 @@ const Myfavorites = () => {
                                                     color: "#1976d2",
                                                     fontWeight: "bold",
                                                     boxShadow: "0 2px 8px rgba(0,0,0,0.1)"
-                                                }}
+                                                }
+                                                }
                                             />
-                                        </Box>
+                                        </Box >
                                         <CardContent sx={{ p: 2.5 }}>
                                             <Typography
                                                 variant="h6"
@@ -335,13 +337,13 @@ const Myfavorites = () => {
                                             {/* <Divider sx={{ my: 1.5 }} /> */}
                                         </CardContent>
 
-                                    </Card>
+                                    </Card >
                                 ))}
-                            </Box>
+                            </Box >
 
                         </>
                     )}
-                </Container>
+                </Container >
             )
             }
 

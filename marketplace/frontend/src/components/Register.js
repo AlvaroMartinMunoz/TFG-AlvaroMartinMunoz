@@ -18,6 +18,7 @@ import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import { parseISO } from "date-fns";
 import { DatePicker } from "@mui/x-date-pickers";
+import { API_BASE_URL } from "../config";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -126,7 +127,7 @@ const Register = () => {
     }
 
     try {
-      const checkResponse = await fetch("http://localhost:8000/api/usuarios/");
+      const checkResponse = await fetch(`${API_BASE_URL}/api/usuarios/`);
       const usuarios = await checkResponse.json();
 
       const existeUsuario = usuarios.some(
@@ -182,7 +183,7 @@ const Register = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/usuarios/", {
+      const response = await fetch(`${API_BASE_URL}/api/usuarios/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -34,6 +34,7 @@ import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import refreshAccessToken from "./RefreshToken";
 import { useFavoritos } from "../context/FavoritosContext";
+import { API_BASE_URL } from "../config";
 
 const Explorer = () => {
 
@@ -197,7 +198,7 @@ const Explorer = () => {
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
-        const recResponse = await fetch("http://localhost:8000/api/propiedades/recomendaciones/", {
+        const recResponse = await fetch(`${API_BASE_URL}/api/propiedades/recomendaciones/`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -211,7 +212,7 @@ const Explorer = () => {
           setPropiedadesFiltradas(recomendacionesData);
         }
 
-        const allResponse = await fetch("http://localhost:8000/api/propiedades/propiedades/");
+        const allResponse = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/`);
         if (allResponse.ok) {
           const allProperties = await allResponse.json();
           setPropiedades(allProperties);
@@ -283,7 +284,7 @@ const Explorer = () => {
 
   const fetchFavoritos = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`,
+      const response = await fetch(`${API_BASE_URL}/api/propiedades/favoritos-por-usuario/${usuarioId}`,
         {
           method: "GET",
           headers: {
@@ -313,7 +314,7 @@ const Explorer = () => {
       const favoritoId = favoritos.find((favorito) => favorito.propiedad === propiedadId)?.id;
 
       if (isFavorito) {
-        const data = await fetch(`http://localhost:8000/api/propiedades/favoritos/${favoritoId}/`, {
+        const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/${favoritoId}/`, {
           method: "DELETE",
           headers: {
             "Content-Type": "application/json",
@@ -330,7 +331,7 @@ const Explorer = () => {
           }
         }
       } else if (!isFavorito) {
-        const data = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+        const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -357,7 +358,7 @@ const Explorer = () => {
 
   const fetchMediaValoraciones = async (propiedadId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`);
+      const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`);
       if (response.ok) {
         const data = await response.json();
         setMediaValoraciones((prev) => ({ ...prev, [propiedadId]: data.media }));
@@ -374,7 +375,7 @@ const Explorer = () => {
     setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
     try {
       const response = await fetch(
-        "http://localhost:8000/api/propiedades/fotos-propiedades/"
+        `${API_BASE_URL}/api/propiedades/fotos-propiedades/`
       );
       if (response.ok) {
         const data = await response.json();
@@ -398,7 +399,7 @@ const Explorer = () => {
     setIsLoading(true);
     try {
       const response = await fetch(
-        "http://localhost:8000/api/propiedades/propiedades/"
+        `${API_BASE_URL}/api/propiedades/propiedades/`
       );
       if (!response.ok) {
         throw new Error("Error al obtener las propiedades");

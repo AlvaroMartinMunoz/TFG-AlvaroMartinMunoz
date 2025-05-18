@@ -22,6 +22,7 @@ import EditIcon from '@mui/icons-material/Edit';
 import SaveIcon from '@mui/icons-material/Save';
 import LogoutIcon from '@mui/icons-material/Logout';
 import PersonIcon from '@mui/icons-material/Person';
+import { API_BASE_URL } from '../config';
 
 
 const Profile = () => {
@@ -133,7 +134,7 @@ const Profile = () => {
 
 
         try {
-            const checkResponse = await fetch("http://localhost:8000/api/usuarios/");
+            const checkResponse = await fetch(`${API_BASE_URL}/api/usuarios/`);
             const usuarios = await checkResponse.json();
 
             const existeEmail = usuarios.some(u =>
@@ -186,7 +187,7 @@ const Profile = () => {
                 fecha_de_nacimiento: formData.fecha_de_nacimiento
             };
 
-            const response = await fetch(`http://localhost:8000/api/usuarios/${formData.id}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${formData.id}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -215,7 +216,7 @@ const Profile = () => {
 
     const refreshToken = async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/token/refresh/", {
+            const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -238,7 +239,7 @@ const Profile = () => {
 
     const fetchProfile = async (usuarioId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioId}/`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,

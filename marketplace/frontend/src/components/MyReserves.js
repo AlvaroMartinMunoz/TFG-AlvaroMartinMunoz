@@ -21,6 +21,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { AccordionDetails } from "@mui/material";
 import { useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 const MyReserves = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
@@ -108,7 +109,7 @@ const MyReserves = () => {
 
             if (sessionId) {
                 try {
-                    const response = await fetch(`http://localhost:8000/api/propiedades/confirmar-pago/${sessionId}`);
+                    const response = await fetch(`${API_BASE_URL}/api/propiedades/confirmar-pago/${sessionId}`);
 
                     if (response.ok) {
                         const data = await response.json();
@@ -163,7 +164,7 @@ const MyReserves = () => {
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 const response = await fetch(
-                    "http://localhost:8000/api/propiedades/confirmar-pago-paypal/",
+                    `${API_BASE_URL}/api/propiedades/confirmar-pago-paypal/`,
                     {
                         method: "POST",
                         headers: {
@@ -240,7 +241,7 @@ const MyReserves = () => {
 
     const cancelarReserva = async (reservaId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${reservaId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${reservaId}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -274,7 +275,7 @@ const MyReserves = () => {
 
     const fetchReservas = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/solicitudes-reserva-usuario/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/solicitudes-reserva-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -308,7 +309,7 @@ const MyReserves = () => {
         const propiedadesData = {};
         for (const reserva of reservas) {
             try {
-                const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${reserva.propiedad}/`, {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${reserva.propiedad}/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -341,7 +342,7 @@ const MyReserves = () => {
     const fetchPropertyPhotos = async (propiedadId) => {
         setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
@@ -648,7 +649,7 @@ const MyReserves = () => {
                                             }}
                                         >
                                             <a
-                                                href={`/detalles/${propiedad?.id}`}
+                                                href={`/ detalles / ${propiedad?.id}`}
                                                 style={{
                                                     textDecoration: "none",
                                                     color: "inherit",
@@ -716,7 +717,7 @@ const MyReserves = () => {
                                                 </Button>
 
                                             )}
-                                            <Button variant="outlined" color="primary" href={`/informacion-reserva/${reserva.id}`} fullWidth sx={{ borderRadius: 2, textTransform: 'none', py: 1, mt: 1 }}>
+                                            <Button variant="outlined" color="primary" href={`/ informacion - reserva / ${reserva.id}`} fullWidth sx={{ borderRadius: 2, textTransform: 'none', py: 1, mt: 1 }}>
                                                 Ver Detalles
                                             </Button>
 

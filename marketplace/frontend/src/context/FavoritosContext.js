@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
-
+import { API_BASE_URL } from '../config';
 
 
 const FavoritosContext = createContext();
@@ -15,7 +15,7 @@ export function FavoritosProvider({ children }) {
     const fetchFavoritosNavbar = useCallback(async (retried = false) => {
         if (!isAuthenticated()) return;
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -57,7 +57,7 @@ export function FavoritosProvider({ children }) {
                 console.log("No hay token de refresco");
                 return null;
             }
-            const response = await fetch("http://localhost:8000/api/token/refresh/", {
+            const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ refresh: refreshToken }),

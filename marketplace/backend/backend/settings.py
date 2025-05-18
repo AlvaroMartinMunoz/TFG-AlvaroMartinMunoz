@@ -151,6 +151,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  
+    "https://tfg-backend-ov1t.onrender.com/"
 ]
 
 SECURE_SSL_REDIRECT = False

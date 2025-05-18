@@ -1,6 +1,7 @@
 import { Box, Container, Paper, Typography, TextField, Button, CircularProgress } from '@mui/material';
 import { Alert } from '@mui/material';
 import { useState } from 'react';
+import { API_BASE_URL } from '../config';
 
 
 
@@ -21,7 +22,7 @@ const PasswordReset = () => {
         setMessage('');
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:8000/api/usuarios/password/reset/', {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/password/reset/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),

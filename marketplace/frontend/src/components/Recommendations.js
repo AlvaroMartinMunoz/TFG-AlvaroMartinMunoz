@@ -28,6 +28,7 @@ import refreshAccessToken from "./RefreshToken";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import { useFavoritos } from "../context/FavoritosContext";
+import { API_BASE_URL } from "../config";
 
 
 const Recommendations = () => {
@@ -52,7 +53,7 @@ const Recommendations = () => {
 
     const fetchRecommendations = useCallback(async () => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/recomendaciones/", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/recomendaciones/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -73,7 +74,7 @@ const Recommendations = () => {
 
     const fetchFavorites = useCallback(async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/favoritos-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -95,7 +96,7 @@ const Recommendations = () => {
     const fetchPropertyPhotos = useCallback(async (propertyId) => {
         setImageLoading((prev) => ({ ...prev, [propertyId]: true }));
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((foto) => foto.propiedad === parseInt(propertyId));
@@ -113,7 +114,7 @@ const Recommendations = () => {
     const fetchPropertyRatings = useCallback(async (propertyId) => {
         try {
             const response = await fetch(
-                `http://localhost:8000/api/propiedades/valoraciones-propiedades/${propertyId}/media-valoraciones/`
+                `${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${propertyId}/media-valoraciones/`
             );
             if (response.ok) {
                 const data = await response.json();
@@ -137,8 +138,8 @@ const Recommendations = () => {
             const favoriteId = favorite?.id;
 
             const endpoint = isFavorite
-                ? `http://localhost:8000/api/propiedades/favoritos/${favoriteId}/`
-                : "http://localhost:8000/api/propiedades/favoritos/";
+                ? `${API_BASE_URL}/api/propiedades/favoritos/${favoriteId}/`
+                : `${API_BASE_URL}/api/propiedades/favoritos/`;
 
             const method = isFavorite ? "DELETE" : "POST";
             const body = isFavorite ? undefined : JSON.stringify({

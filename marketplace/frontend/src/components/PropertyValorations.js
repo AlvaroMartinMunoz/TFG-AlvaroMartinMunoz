@@ -2,6 +2,7 @@ import { Box, Typography, Avatar, Card, CardContent, Alert, CircularProgress, Bu
 import { useEffect, useState, useMemo } from "react";
 import Rating from '@mui/material/Rating';
 import { Comment as CommentIcon, VisibilityOff as VisibilityOffIcon, Visibility as VisibilityIcon } from '@mui/icons-material';
+import { API_BASE_URL } from "../config";
 
 const PropertyValorations = ({ propiedadId }) => {
     const [valoraciones, setValoraciones] = useState([]);
@@ -37,7 +38,7 @@ const PropertyValorations = ({ propiedadId }) => {
         if (usuarios[usuarioId]) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -62,7 +63,7 @@ const PropertyValorations = ({ propiedadId }) => {
     const fetchPropertyValorations = async () => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

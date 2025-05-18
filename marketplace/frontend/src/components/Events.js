@@ -17,6 +17,7 @@ import {
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import ShareIcon from '@mui/icons-material/Share';
+import { API_BASE_URL } from '../config';
 
 const Events = () => {
     const [eventos, setEventos] = useState([]);
@@ -31,7 +32,7 @@ const Events = () => {
     const fetchEventos = async () => {
         try {
             setLoading(true);
-            const response = await fetch('http://localhost:8000/api/eventos/eventos');
+            const response = await fetch(`${API_BASE_URL}/api/eventos/eventos`);
             if (response.ok) {
                 const data = await response.json();
                 setEventos(data);

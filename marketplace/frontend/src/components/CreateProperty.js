@@ -27,6 +27,7 @@ import { useNavigate } from "react-router-dom";
 import refreshAccessToken from "./RefreshToken";
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Tooltip from "@mui/material/Tooltip";
+import { API_BASE_URL } from "../config";
 
 const CreateProperty = () => {
     const storedInfo = localStorage.getItem("additionalInfo");
@@ -183,7 +184,7 @@ const CreateProperty = () => {
 
         if (await validateForm()) {
             try {
-                const response = await fetch("http://localhost:8000/api/propiedades/propiedades/", {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -221,7 +222,7 @@ const CreateProperty = () => {
                     });
                     formData.append("propiedadId", propiedadId);
 
-                    const uploadResponse = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/upload_photos/", {
+                    const uploadResponse = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/upload_photos/`, {
                         method: "POST",
                         headers: {
                             Authorization: `Bearer ${localStorage.getItem("accessToken")}`
@@ -248,7 +249,7 @@ const CreateProperty = () => {
         const empiezaConLetraRegex = /^[a-zA-Z]/;
 
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/");
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/`);
             const propiedades = await response.json();
             const existeNombrePropiedad = propiedades.some(propiedad => propiedad.nombre === formValues.nombre);
             if (existeNombrePropiedad) {

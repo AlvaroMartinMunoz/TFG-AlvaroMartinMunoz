@@ -61,6 +61,7 @@ import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import BarChartIcon from '@mui/icons-material/BarChart';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import StarIcon from '@mui/icons-material/Star';
+import { API_BASE_URL } from '../config';
 
 const PropertyDashboard = () => {
     const theme = useTheme();
@@ -366,7 +367,7 @@ const PropertyDashboard = () => {
             return;
         }
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioId}/`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -390,7 +391,7 @@ const PropertyDashboard = () => {
 
     const fetchUsuarioValoraciones = async (usuarioId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${usuarioId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -408,7 +409,7 @@ const PropertyDashboard = () => {
 
     const fetchPropiedades = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -431,7 +432,7 @@ const PropertyDashboard = () => {
 
     const fetchReservas = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas-por-propiedad/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -448,7 +449,7 @@ const PropertyDashboard = () => {
 
     const fetchValoraciones = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-por-propiedad/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -465,7 +466,7 @@ const PropertyDashboard = () => {
 
     const fetchOcupacionTendencias = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/ocupacion-tendencias/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/ocupacion-tendencias/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -482,7 +483,7 @@ const PropertyDashboard = () => {
 
     const fetchPrecioTendencias = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precio-tendencias/${propiedadId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/precio-tendencias/${propiedadId}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',
@@ -1416,7 +1417,7 @@ const ComparacionPropiedades = ({ propiedadActual, propiedadComparada, reservas 
 
     const fetchReservasComparada = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadComparada.id}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas-por-propiedad/${propiedadComparada.id}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json',

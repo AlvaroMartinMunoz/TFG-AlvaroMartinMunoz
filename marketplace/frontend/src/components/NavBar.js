@@ -26,6 +26,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import { jwtDecode } from "jwt-decode";
 import { Link, useNavigate } from "react-router-dom";
 import FavoriteIcon from "@mui/icons-material/Favorite";
+import { API_BASE_URL } from "../config";
 
 const NavBar = () => {
   const { favoritosNavbar } = useFavoritos();
@@ -64,7 +65,7 @@ const NavBar = () => {
 
   const fetchAllUsers = async (userId) => {
     try {
-      let response = await fetch("http://localhost:8000/api/usuarios/", {
+      let response = await fetch(`${API_BASE_URL}/api/usuarios/`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -75,7 +76,7 @@ const NavBar = () => {
         console.log("Token expirado");
         const token = await refreshAccessToken();
         if (token) {
-          response = await fetch("http://localhost:8000/api/usuarios/", {
+          response = await fetch(`${API_BASE_URL}/api/usuarios/`, {
             method: "GET",
             headers: {
               Authorization: `Bearer ${token}`,
@@ -138,7 +139,7 @@ const NavBar = () => {
         return null;
       }
 
-      const response = await fetch("http://localhost:8000/api/token/refresh/", {
+      const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

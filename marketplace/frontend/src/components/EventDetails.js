@@ -22,6 +22,7 @@ import ShareIcon from '@mui/icons-material/Share';
 import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link } from 'react-router-dom';
+import { API_BASE_URL } from '../config';
 
 const EventDetails = () => {
     const { eventoId } = useParams();
@@ -36,7 +37,7 @@ const EventDetails = () => {
     const fetchEvento = async (eventoId) => {
         try {
             setLoading(true);
-            const response = await fetch(`http://localhost:8000/api/eventos/eventos/${eventoId}`);
+            const response = await fetch(`${API_BASE_URL}/api/eventos/eventos/${eventoId}`);
             if (response.ok) {
                 const data = await response.json();
                 setEvento(data);

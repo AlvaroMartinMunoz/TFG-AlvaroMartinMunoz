@@ -27,6 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import AddPhotoAlternateIcon from '@mui/icons-material/AddPhotoAlternate';
 import SaveIcon from '@mui/icons-material/Save';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { API_BASE_URL } from "../config";
 
 const EditProperty = () => {
     const { propiedadId: id } = useParams();
@@ -178,7 +179,7 @@ const EditProperty = () => {
     const deleteRemovedPhotos = async (retried = false) => {
         try {
             for (const photoId of deletedPhotoIds) {
-                const response = await fetch(`http://localhost:8000/api/propiedades/fotos-propiedades/${photoId}/`, {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/${photoId}/`, {
                     method: 'DELETE',
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('accessToken')}`
@@ -217,7 +218,7 @@ const EditProperty = () => {
 
     const fetchPropertyDetails = async (id, retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${id}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${id}/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -264,7 +265,7 @@ const EditProperty = () => {
 
     const fetchPropertyPhotos = async (id, retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/fotos-propiedades`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -303,7 +304,7 @@ const EditProperty = () => {
         const empiezaConLetraRegex = /^[a-zA-Z]/;
 
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/propiedades/")
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/`)
             const propiedades = await response.json();
             const existeNombrePropiedad = propiedades.filter(propiedad => propiedad.id != id && propiedad.nombre === formValues.nombre).length > 0;
             console.log(existeNombrePropiedad);
@@ -404,8 +405,8 @@ const EditProperty = () => {
 
                 const method = photoId ? 'PATCH' : 'POST';
                 const url = photoId
-                    ? `http://localhost:8000/api/propiedades/fotos-propiedades/${photoId}/`
-                    : `http://localhost:8000/api/propiedades/fotos-propiedades/`;
+                    ? `${API_BASE_URL}/api/propiedades/fotos-propiedades/${photoId}/`
+                    : `${API_BASE_URL}/api/propiedades/fotos-propiedades/`;
 
                 const response = await fetch(url, {
                     method: method,
@@ -439,7 +440,7 @@ const EditProperty = () => {
         e.preventDefault();
         if (await validateForm()) {
             try {
-                const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${id}/`, {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${id}/`, {
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",

@@ -13,6 +13,7 @@ import {
 import { useEffect, useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { useNavigate, useLocation } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -63,7 +64,7 @@ const Login = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/api/token/full", {
+      const response = await fetch(`${API_BASE_URL}/api/token/full`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),

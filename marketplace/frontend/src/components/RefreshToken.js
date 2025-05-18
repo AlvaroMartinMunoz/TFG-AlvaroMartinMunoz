@@ -1,3 +1,4 @@
+import { API_BASE_URL } from "../config";
 
 const refreshAccessToken = async () => {
 
@@ -16,7 +17,7 @@ const refreshAccessToken = async () => {
             return null;
         }
 
-        const response = await fetch("http://localhost:8000/api/token/refresh/", {
+        const response = await fetch(`${API_BASE_URL}/api/token/refresh/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",

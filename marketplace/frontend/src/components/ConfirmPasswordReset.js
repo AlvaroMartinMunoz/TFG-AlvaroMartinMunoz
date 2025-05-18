@@ -4,6 +4,7 @@ import { Alert } from "@mui/material";
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { IconButton, InputAdornment } from "@mui/material";
+import { API_BASE_URL } from "../config";
 
 
 const ConfirmPasswordReset = () => {
@@ -61,7 +62,7 @@ const ConfirmPasswordReset = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/password-reset-confirm/${uid}/${token}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/password-reset-confirm/${uid}/${token}/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",

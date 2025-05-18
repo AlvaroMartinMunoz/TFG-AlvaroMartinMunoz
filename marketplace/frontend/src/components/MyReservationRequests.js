@@ -32,7 +32,7 @@ import PendingIcon from "@mui/icons-material/Pending";
 import SortIcon from "@mui/icons-material/Sort";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import { useLocation } from "react-router-dom";
-
+import { API_BASE_URL } from "../config";
 const MyReservationRequests = () => {
     const usuarioId = JSON.parse(localStorage.getItem("additionalInfo")).usuarioId;
     const [solicitudes, setSolicitudes] = useState([]);
@@ -128,7 +128,7 @@ const MyReservationRequests = () => {
 
     const fetchSolicitudes = async (retried = false) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/solicitudes-reserva-anfitrion/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/solicitudes-reserva-anfitrion/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -167,7 +167,7 @@ const MyReservationRequests = () => {
         const uniquePropiedadIds = [...new Set(propiedadIds)];
         try {
             const PropiedadesPromises = uniquePropiedadIds.map((propiedadId) =>
-                fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, {
+                fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propiedadId}/`, {
                     method: "GET",
                     headers: {
                         "Content-Type": "application/json",
@@ -185,7 +185,7 @@ const MyReservationRequests = () => {
 
     const fetchFotosPropiedades = async (propiedades) => {
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",
@@ -204,7 +204,7 @@ const MyReservationRequests = () => {
 
     const handleAccept = async (solicitudId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${solicitudId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${solicitudId}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -226,7 +226,7 @@ const MyReservationRequests = () => {
 
     const handleDecline = async (solicitudId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas/${solicitudId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas/${solicitudId}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

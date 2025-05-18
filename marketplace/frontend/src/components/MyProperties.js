@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { Edit as EditIcon, Delete as DeleteIcon, Home as HomeIcon, Add as AddIcon } from "@mui/icons-material";
 import refreshAccessToken from "./RefreshToken";
+import { API_BASE_URL } from "../config";
 
 const MyProperties = () => {
     const [mispropiedades, setMisPropiedades] = useState([]);
@@ -46,14 +47,16 @@ const MyProperties = () => {
     const fetchPropertyPhotos = async (propiedadId) => {
         setImageLoading((prev) => ({ ...prev, [propiedadId]: true }));
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/fotos-por-propiedad/${propiedadId}`);
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-por-propiedad/${propiedadId}`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((foto) => foto.propiedad === parseInt(propiedadId));
                 console.log("Filtered Data:", filteredData);
                 const portadaFoto = filteredData.find((foto) => foto.es_portada);
                 const url = await portadaFoto ? portadaFoto.foto : "https://source.unsplash.com/1600x900/?house";
-                setUrl((prev) => ({ ...prev, [propiedadId]: "http://localhost:8000" + url }));
+                setUrl((prev) => ({
+                    ...prev, [propiedadId]: `${API_BASE_URL}` + url
+                }));
                 console.log("URL:", url);
                 setImageLoading((prev) => ({ ...prev, [propiedadId]: false }));
             }
@@ -87,7 +90,7 @@ const MyProperties = () => {
 
     const handleDeleteProperty = async (propertyId) => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propertyId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propertyId}/`, {
                 method: "DELETE",
                 headers: {
                     "Content-Type": "application/json",
@@ -120,7 +123,7 @@ const MyProperties = () => {
         const usuarioId = JSON.parse(usuarioIdSinParse).usuarioId;
 
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades-por-usuario/${usuarioId}`, {
                 method: "GET",
                 headers: {
                     "Content-Type": "application/json",

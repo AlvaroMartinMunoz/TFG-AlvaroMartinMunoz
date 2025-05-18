@@ -34,6 +34,7 @@ import SettingsIcon from '@mui/icons-material/Settings'; // Nuevo icono
 import EventAvailableIcon from '@mui/icons-material/EventAvailable'; // Nuevo icono
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth'; // Nuevo icono
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'; // Import HelpOutlineIcon
+import { API_BASE_URL } from '../config'; // Asegúrate de que la ruta sea correcta
 
 // Configurar Moment.js en español
 moment.locale('es');
@@ -161,7 +162,7 @@ const PropertyDetails = () => {
         try {
             let response;
             if (isAuthenticated()) {
-                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
+                response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
                     method: "GET",
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -169,7 +170,7 @@ const PropertyDetails = () => {
                 });
             }
             else {
-                response = await fetch(`http://localhost:8000/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
+                response = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/${propiedadId}/`, { // Asegúrate que la URL sea correcta
                     method: "GET",
                 });
             }
@@ -197,7 +198,7 @@ const PropertyDetails = () => {
     const fetchPropertyPhotos = async (propiedadId) => {
         // ... (sin cambios)
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fotos-propiedades/");
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fotos-propiedades/`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter(foto => foto.propiedad === parseInt(propiedadId));
@@ -213,7 +214,7 @@ const PropertyDetails = () => {
     const fetchBlockedDates = async (retried = false) => {
         if (!isAuthenticated()) return; // No intentar si no está autenticado
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas-por-propiedad/${propiedadId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fechas-bloqueadas-por-propiedad/${propiedadId}/`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -242,7 +243,7 @@ const PropertyDetails = () => {
     const fetchReservas = async (retried = false) => {
         if (!isAuthenticated()) return;
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/reservas-por-propiedad/${propiedadId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/reservas-por-propiedad/${propiedadId}/`, {
                 method: "GET",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -276,7 +277,7 @@ const PropertyDetails = () => {
 
     const fetchSpecialPrices = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales-por-propiedad/${propiedadId}/`);
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/precios-especiales-por-propiedad/${propiedadId}/`);
             if (response.ok) {
                 const data = await response.json();
                 const filteredData = data.filter((precio) => moment(precio.fecha_fin).isSameOrAfter(moment(), 'day'));
@@ -293,7 +294,7 @@ const PropertyDetails = () => {
         setLoadingMedia(true);
         setErrorMedia(null);
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${propiedadId}/media-valoraciones/`, {
                 method: "GET",
                 headers: { "Content-Type": "application/json" },
             });
@@ -315,7 +316,7 @@ const PropertyDetails = () => {
     const checkUserRating = async () => {
         if (!isAuthenticated() || !usuarioId) return; // Necesita estar logueado
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-por-propiedad/${propiedadId}/`);
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-por-propiedad/${propiedadId}/`);
             if (response.ok) {
                 const data = await response.json();
                 const dataFiltered = data.filter((valoracion) => valoracion.usuario === usuarioId);
@@ -339,7 +340,7 @@ const PropertyDetails = () => {
     const checkIfFavorite = async () => {
         if (!isAuthenticated() || !usuarioId) return;
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/favoritos-por-usuario/${usuarioId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/favoritos-por-usuario/${usuarioId}/`, {
                 method: "GET",
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
@@ -369,7 +370,7 @@ const PropertyDetails = () => {
     const fetchCliente = async (clienteId) => {
         if (!isAuthenticated()) return;
         try {
-            const response = await fetch(`http://localhost:8000/api/usuarios/${clienteId}/`);
+            const response = await fetch(`${API_BASE_URL}/api/usuarios/${clienteId}/`);
             if (response.ok) {
                 const data = await response.json();
                 setCliente(data);
@@ -430,7 +431,7 @@ const PropertyDetails = () => {
             const propiedadID = parseInt(propiedadId);
             const isFavorito = isFavorite;
             if (isFavorito) {
-                const data = await fetch(`http://localhost:8000/api/propiedades/favoritos/${favoritoId}/`, {
+                const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/${favoritoId}/`, {
                     method: "DELETE",
                     headers: {
                         "Content-Type": "application/json",
@@ -447,7 +448,7 @@ const PropertyDetails = () => {
                     }
                 }
             } else if (!isFavorito) {
-                const data = await fetch("http://localhost:8000/api/propiedades/favoritos/", {
+                const data = await fetch(`${API_BASE_URL}/api/propiedades/favoritos/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -497,7 +498,7 @@ const PropertyDetails = () => {
         }
         setLoadingRating(true);
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/valoraciones-propiedades/", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -566,7 +567,7 @@ const PropertyDetails = () => {
         }
         setLoadingRating(true);
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${userRating.id}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${userRating.id}/`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",
@@ -622,7 +623,7 @@ const PropertyDetails = () => {
 
         setLoadingRating(true); // Podrías usar un estado de carga específico si lo deseas
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/valoraciones-propiedades/${ratingId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/valoraciones-propiedades/${ratingId}/`, {
                 method: "DELETE",
                 headers: {
                     Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
@@ -881,7 +882,7 @@ const PropertyDetails = () => {
         // --- Lógica de Pago (Stripe / PayPal) ---
         if (metodoPago === "Tarjeta de crédito") {
             try {
-                const response = await fetch("http://localhost:8000/api/propiedades/create-checkout-session/", {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/create-checkout-session/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -921,7 +922,7 @@ const PropertyDetails = () => {
             }
         } else if (metodoPago === "PayPal") {
             try {
-                const response = await fetch("http://localhost:8000/api/propiedades/create-checkout-paypal/", {
+                const response = await fetch(`${API_BASE_URL}/api/propiedades/create-checkout-paypal/`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
@@ -1131,7 +1132,7 @@ const PropertyDetails = () => {
         // ... (código original, pero sin gestión de UI aquí)
         if (!isAuthenticated()) return false;
         try {
-            const response = await fetch("http://localhost:8000/api/propiedades/fechas-bloqueadas/", {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fechas-bloqueadas/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -1151,11 +1152,11 @@ const PropertyDetails = () => {
                 console.log(`Fecha ${date} bloqueada`);
                 return true; // Indicar éxito
             } else {
-                console.error(`Error bloqueando fecha ${date}:`, response.status, response.statusText);
+                console.error(`Error bloqueando fecha ${date}: `, response.status, response.statusText);
                 return false; // Indicar fallo
             }
         } catch (error) {
-            console.error(`Error en petición para bloquear ${date}:`, error);
+            console.error(`Error en petición para bloquear ${date}: `, error);
             return false;
         }
     };
@@ -1172,7 +1173,7 @@ const PropertyDetails = () => {
                 return false; // No se puede desbloquear si no existe
             }
 
-            const response = await fetch(`http://localhost:8000/api/propiedades/fechas-bloqueadas/${fechaBloqueada.id}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/fechas-bloqueadas/${fechaBloqueada.id}/`, {
                 method: "DELETE",
                 headers: {
                     // "Content-Type": "application/json", // DELETE no suele necesitar Content-Type
@@ -1203,7 +1204,7 @@ const PropertyDetails = () => {
     const handleSetSpecialPrice = async (fechaInicio, fechaFin, priceValue, retried = false) => {
         if (!isAuthenticated()) return false;
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/precios-especiales/`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -1254,7 +1255,7 @@ const PropertyDetails = () => {
         }
         setLoading(true); // Indicar carga mientras se borra
         try {
-            const response = await fetch(`http://localhost:8000/api/propiedades/precios-especiales/${specialPriceId}/`, {
+            const response = await fetch(`${API_BASE_URL}/api/propiedades/precios-especiales/${specialPriceId}/`, {
                 method: "DELETE",
                 headers: { Authorization: `Bearer ${localStorage.getItem("accessToken")}` },
             });
