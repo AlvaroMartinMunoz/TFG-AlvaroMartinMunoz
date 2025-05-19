@@ -96,8 +96,8 @@ const PropertyDetails = () => {
         display: 'flex',
         flexDirection: 'column',
         overflowY: 'auto', // Permitir scroll independiente en cada columna
-        flexGrow: 1,        // Permitir que crezcan
-        minHeight: 0,       // Necesario para que flexGrow funcione con overflow
+        flexGrow: 1,       // Permitir que crezcan
+        minHeight: 0,      // Necesario para que flexGrow funcione con overflow
     };
 
     const leftColumnStyle = {
@@ -110,9 +110,10 @@ const PropertyDetails = () => {
     const rightColumnStyle = {
         ...columnStyle,
         flexBasis: { md: '40%' }, // Menos espacio para la lista
-        bgcolor: 'grey.50',      // Fondo sutil para diferenciar
+        bgcolor: 'grey.50',    // Fondo sutil para diferenciar
     };
 
+    // NUEVO: Estilos para headers pegajosos dentro de las columnas
     const stickyHeaderStyle = {
         position: 'sticky',
         top: 0,
@@ -122,15 +123,16 @@ const PropertyDetails = () => {
         pb: 1.5,
         borderBottom: '1px solid',
         borderColor: 'divider',
-        mx: -3, // Extender al ancho completo del padding del contenedor
-        px: 3, // Restaurar padding interno
+        // Hacemos que el header ocupe el ancho del padding de su contenedor
+        mx: { xs: -2, sm: -3 }, // Ajusta esto si el padding de columnStyle (p) es diferente
+        px: { xs: 2, sm: 3 },  // Restaura el padding interno
     };
 
     const stickyHeaderStyleRight = {
         ...stickyHeaderStyle,
         bgcolor: 'grey.50', // Mantener el fondo de la columna derecha
-        mx: -3,
-        px: 3,
+        mx: { xs: -2, sm: -3 }, // Ajusta esto si el padding de columnStyle (p) es diferente
+        px: { xs: 2, sm: 3 },
     };
 
     useEffect(() => {
@@ -1837,47 +1839,72 @@ const PropertyDetails = () => {
                 <Modal
                     open={openReserveDatePicker}
                     onClose={handleCloseReserveDatePicker}
-                    // ... (estilos como en el código original) ...
                     sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
                     <Paper
                         elevation={5}
                         sx={{
-                            position: 'relative', width: { xs: '95vw', sm: '80vw', md: '70vw' }, maxWidth: '850px',
-                            bgcolor: "background.paper", maxHeight: '90vh', p: { xs: 2, sm: 3, md: 4 }, borderRadius: 2,
-                            display: 'flex', flexDirection: 'column', boxShadow: 24, overflow: 'hidden' // Overflow hidden en Paper
+                            position: 'relative',
+                            width: { xs: '95vw', sm: '80vw', md: '70vw' },
+                            height: { xs: '80vh', sm: '70vh', md: '80vh' }, // Altura automática para pantallas grandes
+                            maxWidth: '950px',
+                            bgcolor: "background.paper",
+                            maxHeight: '95vh',
+                            p: { xs: 1.5, sm: 2, md: 3 }, // Reducido de 2,3,4 a 1.5,2,3
+                            borderRadius: 2,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            boxShadow: 24,
+                            overflow: 'hidden'
                         }}
                     >
-                        {/* Título y Cierre */}
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, pb: 1.5, borderBottom: 1, borderColor: 'divider' }}>
-                            <Typography variant="h5" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                        {/* Reducir espacio en el encabezado */}
+                        <Box sx={{
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            mb: 1.5, // Reducido de 3 a 1.5
+                            pb: 1, // Reducido de 1.5 a 1
+                            borderBottom: 1,
+                            borderColor: 'divider'
+                        }}>
+                            <Typography variant="h6" sx={{ fontWeight: 600, color: 'text.primary' }}>
+                                {/* Usar variante h6 en lugar de h5 */}
                                 Realizar Reserva
                             </Typography>
-                            <IconButton onClick={handleCloseReserveDatePicker} aria-label="Cerrar"><CloseIcon /></IconButton>
+                            <IconButton onClick={handleCloseReserveDatePicker} aria-label="Cerrar" size="small">
+                                <CloseIcon fontSize="small" />
+                            </IconButton>
                         </Box>
 
                         {/* Contenido Scrollable */}
                         <Box sx={{ overflowY: 'auto', flexGrow: 1, pr: 1, mr: -1 }}> {/* Padding y margin para scrollbar */}
                             {/* Selector de Fechas */}
-                            <Box sx={{ mb: 3, display: 'flex', justifyContent: 'center' }}>
+                            <Box sx={{ mb: 1.5, display: 'flex', justifyContent: 'center' }}> {/* Reducir mb de 3 a 1.5 */}
                                 <DateRangePicker
                                     startDate={reserveStartDate} startDateId="reserve_start_date_id"
                                     endDate={reserveEndDate} endDateId="reserve_end_date_id"
                                     onDatesChange={handleReserveDateChange}
                                     focusedInput={focusedInput} onFocusChange={setFocusedInput}
-                                    minimumNights={1} // O la estancia mínima que requieras
-                                    isDayBlocked={isClientDayBlocked} // Usa la función específica del cliente
-                                    renderDayContents={renderClientDayContents} // Muestra precios especiales
-                                    numberOfMonths={window.innerWidth < 700 ? 1 : 2} // Adaptar meses
+                                    minimumNights={1}
+                                    isDayBlocked={isClientDayBlocked}
+                                    renderDayContents={renderClientDayContents}
+                                    numberOfMonths={window.innerWidth < 700 ? 1 : 2}
                                     hideKeyboardShortcutsPanel required noBorder small
                                     startDatePlaceholderText='Fecha de entrada' endDatePlaceholderText='Fecha de salida'
                                     customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
-                                    displayFormat="DD/MM/YYYY" daySize={36}
+                                    displayFormat="DD/MM/YYYY"
+                                    daySize={32}
+                                    keepOpenOnDateSelect={true}
+                                    withPortal={false}
+                                    // Añadir estos estilos para reducir el tamaño total
+                                    orientation={'horizontal'}
+                                    verticalHeight={330}
                                 />
                             </Box>
 
                             {/* Selector Huéspedes */}
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: '100%', mb: 2.5, p: 1.5, bgcolor: 'grey.100', borderRadius: 1.5 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: '100%', mb: 2.5, p: 1.5, bgcolor: 'grey.100', borderRadius: 1.5, mt: 2 }}>
                                 <Typography variant="body1">Número de huéspedes:</Typography>
                                 <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                     <IconButton onClick={handleDecrement} size="small" aria-label="Reducir huéspedes"><RemoveIcon fontSize="small" /></IconButton>
@@ -1887,7 +1914,7 @@ const PropertyDetails = () => {
                             </Box>
 
                             {/* Selector Método de Pago */}
-                            <FormControl fullWidth sx={{ mb: 2.5 }}>
+                            <FormControl fullWidth sx={{ mb: 2.5, mt: 2 }}>
                                 <InputLabel id="metodo-pago-label-reserva">Método de Pago</InputLabel>
                                 <Select
                                     id="metodo-pago-reserva" labelId="metodo-pago-label-reserva"
@@ -1904,7 +1931,7 @@ const PropertyDetails = () => {
                                 label="Comentarios adicionales (opcional)"
                                 value={comentarios_usuario} onChange={(e) => setComentariosUsuario(e.target.value)}
                                 multiline rows={3} fullWidth variant="outlined" size="small"
-                                placeholder="Indique cualquier requerimiento especial..." sx={{ mb: 3 }}
+                                placeholder="Indique cualquier requerimiento especial..." sx={{ mb: 3, mt: 2 }}
                             />
 
                             {/* Resumen de Precios */}
@@ -1979,24 +2006,23 @@ const PropertyDetails = () => {
                         open={openGestionModal}
                         onClose={handleCloseGestionModal}
                         fullWidth
-                        maxWidth="lg"
+                        maxWidth="lg" // MODIFICADO: Usar 'lg' para más espacio. Considera 'xl' si es necesario.
                         PaperProps={{
                             sx: {
-                                borderRadius: { xs: 0, sm: 3 }, // Sin borde en móvil, redondeado en escritorio
-                                height: { xs: '100%', sm: '90vh' }, // Pantalla completa en móvil
-                                maxHeight: { sm: '750px' },     // Altura máxima en escritorio
-                                overflow: 'hidden',           // Gestionar scroll interno
-                                boxShadow: '0 12px 30px -5px rgba(0,0,0,0.2)' // Sombra más pronunciada
+                                borderRadius: { xs: 0, sm: 3 },
+                                height: { xs: '100%', sm: '90vh' },
+                                maxHeight: { sm: '750px' }, // Altura máxima en escritorio
+                                overflow: 'hidden', // Gestionar scroll interno en DialogContent y columnas
+                                boxShadow: '0 12px 30px -5px rgba(0,0,0,0.2)'
                             }
                         }}
                     >
-                        {/* Título del Diálogo */}
                         <DialogTitle sx={{
                             bgcolor: 'primary.main',
                             color: 'primary.contrastText',
                             py: 1.5, px: { xs: 2, sm: 3 },
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                            borderBottom: '1px solid', borderColor: 'primary.dark' // Línea sutil
+                            borderBottom: '1px solid', borderColor: 'primary.dark'
                         }}>
                             <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 <CalendarMonthIcon sx={{ mr: 1.5, opacity: 0.9 }} />
@@ -2009,13 +2035,13 @@ const PropertyDetails = () => {
                             </IconButton>
                         </DialogTitle>
 
-                        {/* Contenido Principal (Dividido en Columnas) */}
+                        {/* MODIFICADO: Contenido Principal (Dividido en Columnas) */}
                         <DialogContent dividers sx={{ p: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, flexGrow: 1, minHeight: 0 }}>
 
                             {/* Columna Izquierda: Acciones y Calendario */}
                             <Box sx={leftColumnStyle}>
-                                {/* Selector de Acción */}
-                                <Box sx={stickyHeaderStyle}> {/* Header pegajoso */}
+                                {/* Selector de Acción - AHORA PEGAJOSO */}
+                                <Box sx={stickyHeaderStyle}>
                                     <Typography variant="overline" display="block" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500, pt: 1.5 }}>
                                         Seleccionar Acción
                                     </Typography>
@@ -2042,9 +2068,42 @@ const PropertyDetails = () => {
                                     </Typography>
                                 </Box>
 
-                                {/* Input de Precio Especial */}
+                                {/* Contenedor Calendario */}
+                                {/* MODIFICADO: Ajustes para el DateRangePicker */}
+                                <Box sx={{
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    flexGrow: 1,
+                                    minHeight: { xs: 320, sm: 360 }, // Altura mínima para el calendario
+                                    mt: 2, // Margen superior para separar del header pegajoso
+                                    // overflow: 'visible', // Asegúrate que el calendario no sea cortado si usa overlays
+                                }}>
+                                    <DateRangePicker
+                                        startDate={gestionStartDate} startDateId="gestion_start_date_id"
+                                        endDate={gestionEndDate} endDateId="gestion_end_date_id"
+                                        onDatesChange={handleGestionDatesChange}
+                                        focusedInput={gestionFocusedInput} onFocusChange={setGestionFocusedInput}
+                                        isDayBlocked={isGestionDayBlocked}
+                                        renderDayContents={renderGestionDayContents}
+                                        minimumNights={0}
+                                        numberOfMonths={window.innerWidth < 960 ? 1 : 2}
+                                        hideKeyboardShortcutsPanel
+                                        noBorder
+                                        readOnly
+                                        startDatePlaceholderText='Inicio'
+                                        endDatePlaceholderText='Fin'
+                                        customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
+                                        daySize={window.innerWidth < 600 ? 32 : 38}
+                                        // Añadir estas dos propiedades importantes:
+                                        keepOpenOnDateSelect={true}
+                                        // Esta propiedad es la clave para evitar cierres no deseados
+                                        withPortal={false}
+                                    />
+                                </Box>
+
+                                {/* Input de Precio Especial - AHORA AL FINAL DE LA COLUMNA IZQUIERDA */}
                                 {gestionAccion === 'precio' && (
-                                    <Box sx={{ mt: 'auto', pt: 3, borderTop: 1, borderColor: 'divider', mx: -3, px: 3 }}> {/* Con separador */}
+                                    <Box sx={{ mt: 'auto', pt: 3, borderTop: 1, borderColor: 'divider', mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }}>
                                         <TextField
                                             label="Precio Especial por Noche" type="number"
                                             value={specialPrice} onChange={(e) => setSpecialPrice(e.target.value)}
@@ -2056,34 +2115,11 @@ const PropertyDetails = () => {
                                         />
                                     </Box>
                                 )}
-
-                                {/* Contenedor Calendario */}
-                                <Box sx={{ display: 'flex', justifyContent: 'center', flexGrow: 1, minHeight: { xs: 320, sm: 360 }, mt: 2 }}>
-                                    <DateRangePicker
-                                        startDate={gestionStartDate} startDateId="gestion_start_date_id"
-                                        endDate={gestionEndDate} endDateId="gestion_end_date_id"
-                                        onDatesChange={handleGestionDatesChange}
-                                        focusedInput={gestionFocusedInput} onFocusChange={setGestionFocusedInput}
-                                        isDayBlocked={isGestionDayBlocked}
-                                        renderDayContents={renderGestionDayContents}
-                                        minimumNights={0} // Permitir seleccionar un solo día
-                                        numberOfMonths={window.innerWidth < 960 ? 1 : 2}
-                                        hideKeyboardShortcutsPanel noBorder readOnly
-                                        startDatePlaceholderText='Inicio' endDatePlaceholderText='Fin'
-                                        customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
-                                        daySize={window.innerWidth < 600 ? 32 : 38} // Ajustar tamaño día
-                                    // Añadir estas clases para un posible CSS personalizado si es necesario
-                                    // calendarInfoPosition="after"
-                                    // renderCalendarInfo={() => <div style={{padding: 10, fontSize: 12, color: '#555'}}>Seleccione un rango o un solo día.</div>}
-                                    />
-                                </Box>
-
-
                             </Box>
 
                             {/* Columna Derecha: Lista de Precios Especiales */}
                             <Box sx={rightColumnStyle}>
-                                <Box sx={stickyHeaderStyleRight}> {/* Header pegajoso */}
+                                <Box sx={stickyHeaderStyleRight}>
                                     <Typography variant="overline" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500, display: 'block', pt: 1.5 }}>
                                         Precios Especiales Activos
                                     </Typography>
@@ -2104,7 +2140,7 @@ const PropertyDetails = () => {
                                                     }
                                                     sx={{
                                                         mb: 1,
-                                                        bgcolor: 'background.paper', // Fondo blanco para destacar
+                                                        bgcolor: 'background.paper',
                                                         borderRadius: 1.5,
                                                         p: 1.5,
                                                         boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
@@ -2129,7 +2165,6 @@ const PropertyDetails = () => {
                                             ))}
                                     </List>
                                 ) : (
-                                    // Mensaje cuando no hay precios especiales
                                     <Box sx={{ textAlign: 'center', color: 'text.secondary', flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', p: 2 }}>
                                         <Avatar sx={{ bgcolor: 'grey.200', width: 56, height: 56, mb: 2 }}>
                                             <AttachMoneyIcon color="disabled" sx={{ fontSize: 30 }} />
@@ -2139,14 +2174,12 @@ const PropertyDetails = () => {
                                     </Box>
                                 )}
                             </Box>
-
                         </DialogContent>
 
-                        {/* Acciones Finales */}
                         <DialogActions sx={{
                             px: { xs: 2, sm: 3 }, py: 1.5,
                             borderTop: '1px solid', borderColor: 'divider',
-                            bgcolor: 'grey.50' // Fondo ligeramente distinto
+                            bgcolor: 'grey.50'
                         }}>
                             <Button onClick={handleCloseGestionModal} color="inherit" disabled={loading} sx={{ textTransform: 'none' }}>
                                 Cancelar
@@ -2155,11 +2188,20 @@ const PropertyDetails = () => {
                                 onClick={handleGuardarGestion}
                                 variant="contained"
                                 color="primary"
-                                disabled={ /* ... (misma lógica de disabled que antes) ... */
+                                disabled={
                                     loading ||
                                     !gestionStartDate ||
                                     (gestionAccion === 'precio' && (!gestionEndDate || !specialPrice || parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)) ||
-                                    (gestionAccion === 'desbloquear' && !(blockedDates.some(b => moment(gestionStartDate).isSame(b.fecha, 'day')) || (gestionEndDate && blockedDates.some(b => moment(gestionEndDate).isSame(b.fecha, 'day')))))
+                                    (gestionAccion === 'desbloquear' &&
+                                        !( // Lógica para deshabilitar si no hay fechas bloqueadas manualmente en la selección
+                                            (gestionStartDate && blockedDates.some(b => moment(gestionStartDate).isSame(b.fecha, 'day'))) ||
+                                            (gestionEndDate && blockedDates.some(b => moment(gestionEndDate).isSame(b.fecha, 'day'))) ||
+                                            (gestionStartDate && gestionEndDate &&
+                                                Array.from({ length: moment(gestionEndDate).diff(moment(gestionStartDate), 'days') + 1 }, (_, i) => moment(gestionStartDate).add(i, 'days'))
+                                                    .some(dayInRage => blockedDates.some(b => dayInRage.isSame(b.fecha, 'day')))
+                                            )
+                                        )
+                                    )
                                 }
                                 startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SaveIcon />}
                                 sx={{ textTransform: 'none', fontWeight: 600 }}
@@ -2168,8 +2210,7 @@ const PropertyDetails = () => {
                             </Button>
                         </DialogActions>
                     </Dialog>
-                )};
-
+                )}
                 {/* Snackbar para notificaciones */}
                 <Snackbar
                     open={notification.open}
