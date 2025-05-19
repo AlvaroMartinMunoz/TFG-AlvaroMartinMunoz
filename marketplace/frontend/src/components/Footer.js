@@ -74,7 +74,7 @@ const Footer = () => {
 
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap" }}>
           <Typography variant="body2" color="common.white" sx={{ mb: { xs: 2, md: 0 }, opacity: 0.8 }}>
-            © {new Date().getFullYear()} Tu Empresa. Todos los derechos reservados.
+            © {new Date().getFullYear()} Hostsy. Todos los derechos reservados.
           </Typography>
           <Stack direction="row" spacing={1}>
             <IconButton aria-label="facebook" size="small" sx={{ color: "common.white" }}>
