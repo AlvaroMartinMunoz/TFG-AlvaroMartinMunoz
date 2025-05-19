@@ -41,6 +41,28 @@ const ConfirmPasswordReset = () => {
         return errors;
     };
 
+    const translateBackendError = (errorMessage) => {
+        if (typeof errorMessage !== 'string') {
+            if (errorMessage && errorMessage.new_password && Array.isArray(errorMessage.new_password) && errorMessage.new_password.length > 0) {
+                const firstError = errorMessage.new_password[0];
+                if (firstError.includes("This password is too common.")) {
+                    return "Esta contraseña es demasiado común. Por favor, elige una más segura.";
+                }
+                return firstError;
+            }
+            return "Esta contraseña es demasiado común. Por favor, elige una más segura.";
+        }
+
+        if (errorMessage.includes("This password is too common.")) {
+            return "Esta contraseña es demasiado común. Por favor, elige una más segura.";
+        }
+        if (errorMessage.includes("Invalid token") || errorMessage.includes("Invalid uid")) {
+            return "El enlace de recuperación de contraseña no es válido o ha expirado.";
+        }
+        return errorMessage;
+    };
+
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
@@ -78,10 +100,19 @@ const ConfirmPasswordReset = () => {
                 }, 3000);
             } else {
                 const data = await response.json();
-                setError(data.error || "Error al cambiar la contraseña");
+                let errorMessage;
+                if (data.error) {
+                    errorMessage = data.error;
+                } else if (data.new_password) {
+                    errorMessage = data.new_password;
+                } else {
+                    errorMessage = "Error al cambiar la contraseña. Por favor, inténtalo de nuevo.";
+                }
+                setError(translateBackendError(errorMessage));
             }
         } catch (error) {
-            setError("Error en la conexión");
+            console.error("Error en la petición:", error);
+            setError("Error en la conexión o el servidor no responde. Por favor, inténtalo más tarde.");
         } finally {
             setLoading(false);
         }
@@ -134,9 +165,7 @@ const ConfirmPasswordReset = () => {
                                         </IconButton>
                                     </InputAdornment>
                                 ),
-
                             }}
-
                         />
 
                         <Button
