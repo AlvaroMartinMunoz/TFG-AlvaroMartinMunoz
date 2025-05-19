@@ -1,13 +1,14 @@
-version: '3.8'
-
 services:
   backend:
     build: ./backend
     command: >
       bash -c "
+        echo 'Backend: Esperando que la BD esté lista...' &&
+        echo 'Backend: Ejecutando makemigrations...' &&
         python manage.py makemigrations &&
+        echo 'Backend: Ejecutando migrate...' &&
         python manage.py migrate &&
-        echo 'Starting Backend Server...' &&
+        echo 'Backend: Iniciando servidor Django...' &&
         python manage.py runserver 0.0.0.0:8000
       "
     env_file:
@@ -15,24 +16,29 @@ services:
     volumes:
       - ./backend:/app
       - static_volume:/app/staticfiles
-      - media_volume:/app/media  
-      - ./backend/media:/app/media 
-
+      - ./backend/media:/app/media
     ports:
-      - "8000:8000"  
+      - "8000:8000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - marketplace_net
+    healthcheck:
+    
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/ || exit 1"]
+      interval: 15s 
+      timeout: 5s   
+      retries: 5    
+      start_period: 40s 
 
-  worker: 
-    build: ./backend 
+  worker:
+    build: ./backend
     command: >
       bash -c "
-        echo 'Waiting for DB to be ready for worker...' &&
-        python manage.py makemigrations &&
-        python manage.py migrate &&
-        echo 'Starting Task Worker (process_tasks)...' &&
+        echo 'Worker: Esperando que la BD esté lista...' &&
+        echo 'Worker: Esperando que el servicio Backend esté saludable (migraciones completadas)...' &&
+        echo 'Worker: Iniciando tareas (process_tasks)...' &&
         python manage.py process_tasks
       "
     env_file:
@@ -40,21 +46,24 @@ services:
     volumes:
       - ./backend:/app
     depends_on:
-      - db 
+      db:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
     networks:
       - marketplace_net
-    restart: unless-stopped 
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
     command: npm start
     volumes:
       - ./frontend:/app
-      - /app/node_modules # Evita que node_modules local sobreescriba el del contenedor
+      - /app/node_modules
     ports:
       - "3000:3000"
     depends_on:
-      - backend # El frontend depende de que el backend esté disponible
+      - backend
     environment:
       - CHOKIDAR_USEPOLLING=true
     networks:
@@ -64,28 +73,27 @@ services:
     image: postgres:13
     volumes:
       - db_data:/var/lib/postgresql/data/
-    env_file: ./backend/.env # Lee las variables para la DB desde el .env del backend
-    # Las siguientes variables son para asegurar que Postgres las configure,
-    # incluso si ya están en el .env_file, esto da precedencia o claridad.
+    env_file:
+      - ./backend/.env
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-marketplace_db} # Usa valor del .env o default
+      POSTGRES_DB: ${POSTGRES_DB:-marketplace_db}
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     networks:
       - marketplace_net
-    healthcheck: # Opcional: para asegurar que la DB esté lista antes de que otros servicios dependan de ella
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-marketplace_db}"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-marketplace_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-
 volumes:
-  static_volume:
-  media_volume:
-  db_data:
+  static_volume: {}
+  media_volume: {}
+  db_data: {}
 
 networks:
   marketplace_net:
+    driver: bridge
