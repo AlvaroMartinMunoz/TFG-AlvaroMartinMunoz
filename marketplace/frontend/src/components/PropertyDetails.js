@@ -2020,7 +2020,9 @@ const PropertyDetails = () => {
                         <DialogTitle sx={{
                             bgcolor: 'primary.main',
                             color: 'primary.contrastText',
-                            py: 1.5, px: { xs: 2, sm: 3 },
+                            // Reduce el padding bottom para acercar el contenido que sigue
+                            py: 1, // Reducido de 1.5 a 1
+                            px: { xs: 2, sm: 3 },
                             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                             borderBottom: '1px solid', borderColor: 'primary.dark'
                         }}>
@@ -2035,48 +2037,129 @@ const PropertyDetails = () => {
                             </IconButton>
                         </DialogTitle>
 
-                        {/* MODIFICADO: Contenido Principal (Dividido en Columnas) */}
-                        <DialogContent dividers sx={{ p: 0, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, flexGrow: 1, minHeight: 0 }}>
-
-                            {/* Columna Izquierda: Acciones y Calendario */}
-                            <Box sx={leftColumnStyle}>
-                                {/* Selector de Acción - AHORA PEGAJOSO */}
-                                <Box sx={stickyHeaderStyle}>
-                                    <Typography variant="overline" display="block" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500, pt: 1.5 }}>
+                        <DialogContent
+                            dividers
+                            sx={{
+                                p: 0,
+                                display: 'flex',
+                                flexDirection: { xs: 'column', md: 'row' },
+                                flexGrow: 1,
+                                minHeight: 0,
+                                // Elimina o reduce el padding top del DialogContent
+                                pt: 0 // Asegurar que no hay padding top
+                            }}
+                        >
+                            <Box sx={{
+                                ...leftColumnStyle,
+                                // Elimina el padding top del leftColumnStyle si existe
+                                pt: 0
+                            }}>
+                                {/* Cabecera con acciones - Ajustado para estar más cerca del título */}
+                                <Box sx={{
+                                    ...stickyHeaderStyle,
+                                    pt: 0,
+                                    pb: 0,
+                                    borderTopWidth: 0,
+                                    '& .MuiToggleButtonGroup-root': { mt: 0 }
+                                }}>
+                                    <Typography variant="caption" sx={{
+                                        color: 'text.secondary',
+                                        fontWeight: 500,
+                                        textTransform: 'uppercase',
+                                        letterSpacing: '0.5px',
+                                        mb: 0.25,
+                                        display: 'block'
+                                    }}>
                                         Seleccionar Acción
                                     </Typography>
+
+                                    {/* Botones de acción */}
                                     <ToggleButtonGroup
-                                        color="primary" value={gestionAccion} exclusive
-                                        onChange={handleGestionAccionChange} aria-label="Acción de gestión"
-                                        fullWidth size="small" sx={{ mb: 2 }}
+                                        color="primary"
+                                        value={gestionAccion}
+                                        exclusive
+                                        onChange={handleGestionAccionChange}
+                                        aria-label="Acción de gestión"
+                                        fullWidth
+                                        size="small"
+                                        sx={{
+                                            mb: 1,
+                                            '& .MuiToggleButton-root': {
+                                                py: 0.25,
+                                                minHeight: '28px'
+                                            }
+                                        }}
                                     >
                                         <ToggleButton value="bloquear" aria-label="Bloquear fechas" sx={{ textTransform: 'none', flexGrow: 1 }}>
-                                            <EventBusyIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
-                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Bloquear</Typography>
+                                            <EventBusyIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '1rem' }} />
+                                            <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.25 }}>Bloquear</Typography>
                                         </ToggleButton>
                                         <ToggleButton value="desbloquear" aria-label="Desbloquear fechas" sx={{ textTransform: 'none', flexGrow: 1 }}>
-                                            <EventAvailableIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
-                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Desbloquear</Typography>
+                                            <EventAvailableIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '1rem' }} />
+                                            <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.25 }}>Desbloquear</Typography>
                                         </ToggleButton>
                                         <ToggleButton value="precio" aria-label="Establecer precio especial" sx={{ textTransform: 'none', flexGrow: 1 }}>
-                                            <AttachMoneyIcon sx={{ mr: { xs: 0, sm: 1 } }} fontSize="small" />
-                                            <Typography variant="body2" sx={{ display: { xs: 'none', sm: 'inline' } }}>Precio Esp.</Typography>
+                                            <AttachMoneyIcon sx={{ mr: { xs: 0, sm: 0.5 }, fontSize: '1rem' }} />
+                                            <Typography variant="caption" sx={{ display: { xs: 'none', sm: 'inline' }, ml: 0.25 }}>Precio Esp.</Typography>
                                         </ToggleButton>
                                     </ToggleButtonGroup>
-                                    <Typography variant="overline" display="block" gutterBottom sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                        Seleccionar Fechas
-                                    </Typography>
+
+                                    {/* Separador con etiqueta de calendario */}
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        mt: 0.5,
+                                        mb: 0.5
+                                    }}>
+                                        <Box sx={{ flexGrow: 1, height: '1px', bgcolor: 'divider' }} />
+                                        <Box sx={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            px: 1,
+                                            color: 'text.secondary'
+                                        }}>
+                                            <CalendarTodayIcon fontSize="small" sx={{ fontSize: '0.9rem', mr: 0.5 }} />
+                                            <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                                                {gestionAccion === 'bloquear' ? 'Seleccionar fechas a bloquear' :
+                                                    gestionAccion === 'desbloquear' ? 'Seleccionar fechas a desbloquear' :
+                                                        'Seleccionar rango para precio especial'}
+                                            </Typography>
+                                        </Box>
+                                        <Box sx={{ flexGrow: 1, height: '1px', bgcolor: 'divider' }} />
+                                    </Box>
+
+                                    {/* Campo de precio especial movido aquí */}
+                                    {gestionAccion === 'precio' && (
+                                        <Box sx={{ mt: 1, mb: 2 }}>
+                                            <TextField
+                                                label="Precio Especial por Noche"
+                                                type="number"
+                                                value={specialPrice}
+                                                onChange={(e) => setSpecialPrice(e.target.value)}
+                                                fullWidth
+                                                variant="outlined"
+                                                size="small"
+                                                required
+                                                InputProps={{
+                                                    startAdornment: <InputAdornment position="start">€</InputAdornment>,
+                                                    inputProps: { min: 0.01, step: 0.01, max: 5000 }
+                                                }}
+                                                error={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)}
+                                                helperText={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)
+                                                    ? "Precio debe ser mayor a 0 y no exceder 5000"
+                                                    : "Este precio se aplicará a cada noche del rango."}
+                                            />
+                                        </Box>
+                                    )}
                                 </Box>
 
                                 {/* Contenedor Calendario */}
-                                {/* MODIFICADO: Ajustes para el DateRangePicker */}
                                 <Box sx={{
                                     display: 'flex',
                                     justifyContent: 'center',
                                     flexGrow: 1,
-                                    minHeight: { xs: 320, sm: 360 }, // Altura mínima para el calendario
-                                    mt: 2, // Margen superior para separar del header pegajoso
-                                    // overflow: 'visible', // Asegúrate que el calendario no sea cortado si usa overlays
+                                    minHeight: { xs: 280, sm: 320 },
+                                    mt: 1,
                                 }}>
                                     <DateRangePicker
                                         startDate={gestionStartDate} startDateId="gestion_start_date_id"
@@ -2093,28 +2176,12 @@ const PropertyDetails = () => {
                                         startDatePlaceholderText='Inicio'
                                         endDatePlaceholderText='Fin'
                                         customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
-                                        daySize={window.innerWidth < 600 ? 32 : 38}
-                                        // Añadir estas dos propiedades importantes:
+                                        daySize={30}
                                         keepOpenOnDateSelect={true}
-                                        // Esta propiedad es la clave para evitar cierres no deseados
                                         withPortal={false}
                                     />
                                 </Box>
 
-                                {/* Input de Precio Especial - AHORA AL FINAL DE LA COLUMNA IZQUIERDA */}
-                                {gestionAccion === 'precio' && (
-                                    <Box sx={{ mt: 'auto', pt: 3, borderTop: 1, borderColor: 'divider', mx: { xs: -2, sm: -3 }, px: { xs: 2, sm: 3 } }}>
-                                        <TextField
-                                            label="Precio Especial por Noche" type="number"
-                                            value={specialPrice} onChange={(e) => setSpecialPrice(e.target.value)}
-                                            fullWidth variant="outlined" size="small" required
-                                            InputProps={{ startAdornment: <InputAdornment position="start">€</InputAdornment>, inputProps: { min: 0.01, step: 0.01, max: 5000 } }}
-                                            sx={{ mt: 1, mb: 0.5 }}
-                                            error={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000)}
-                                            helperText={specialPrice !== '' && (parseFloat(specialPrice) <= 0 || parseFloat(specialPrice) > 5000) ? "Precio debe ser mayor a 0 y no exceder 5000" : "Este precio se aplicará a cada noche del rango."}
-                                        />
-                                    </Box>
-                                )}
                             </Box>
 
                             {/* Columna Derecha: Lista de Precios Especiales */}
@@ -2224,7 +2291,7 @@ const PropertyDetails = () => {
                 </Snackbar>
 
             </Container>
-        </Box>
+        </Box >
     );
 };
 
