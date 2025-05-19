@@ -41,7 +41,7 @@ def poblar_usuarios():
     # Crear usuario fijo
     try:
         username = "Alvaro"
-        email = "alvaro@.martin2003@gmail.com"
+        email = "alvaro.martin2003@gmail.com"
 
         user = User.objects.create_user(
             username=username,
