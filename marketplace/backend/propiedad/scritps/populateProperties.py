@@ -156,7 +156,8 @@ def generar_descripcion(tipo, ciudad, habitaciones, banos, camas, max_huespedes,
     descripcion += "¡No dudes en reservar tu estancia en este maravilloso espacio!"
 
     return descripcion
-def poblar_propiedades(n=10):
+
+def poblar_propiedades(n=12):
     usuarios = Usuario.objects.all()
     if not usuarios:
         print("No hay usuarios en la base de datos.")
@@ -165,7 +166,71 @@ def poblar_propiedades(n=10):
     tipos_de_propiedad = ["Apartamento", "Casa", "Villa"]
     politicas_cancelacion = ["Flexible", "Moderada", "Estricta"]
 
-    for _ in range(n):
+    # Crear dos propiedades para el usuario 'Alvaro' si existe
+        # Crear hasta dos propiedades para el usuario 'Alvaro' si tiene menos de dos
+    try:
+        anfitrion_alvaro = Usuario.objects.filter(usuario__username="Alvaro").first()
+        if anfitrion_alvaro:
+            propiedades_alvaro = Propiedad.objects.filter(anfitrion=anfitrion_alvaro).count()
+            propiedades_a_crear = max(0, 2 - propiedades_alvaro)
+            for _ in range(propiedades_a_crear):
+                tipo_de_propiedad = random.choice(tipos_de_propiedad)
+                ciudad = random.choice(ciudadesEspana)
+                habitaciones = random.randint(1, 5)
+                banos = random.randint(1, 3)
+                camas = random.randint(1, 5)
+                max_huespedes = random.randint(1, 10)
+                wifi = fake.boolean()
+                aire_acondicionado = fake.boolean()
+                calefaccion = fake.boolean()
+                parking = fake.boolean()
+                mascotas = fake.boolean()
+                permitido_fumar = fake.boolean()
+
+                propiedad = Propiedad.objects.create(
+                    anfitrion=anfitrion_alvaro,
+                    nombre=generar_nombre_propiedad(ciudad),
+                    descripcion=generar_descripcion(tipo_de_propiedad, ciudad, habitaciones, banos, camas, max_huespedes, wifi, aire_acondicionado, calefaccion, parking, mascotas, permitido_fumar),
+                    direccion=fake.street_address(),
+                    ciudad=ciudad,
+                    pais="España",
+                    codigo_postal=fake.postcode()[:5],
+                    tipo_de_propiedad=tipo_de_propiedad,
+                    precio_por_noche=round(random.uniform(50, 500), 2),
+                    maximo_huespedes=max_huespedes,
+                    numero_de_habitaciones=habitaciones,
+                    numero_de_banos=banos,
+                    numero_de_camas=camas,
+                    tamano=random.randint(30, 300),
+                    wifi=wifi,
+                    aire_acondicionado=aire_acondicionado,
+                    calefaccion=calefaccion,
+                    parking=parking,
+                    mascotas=mascotas,
+                    permitido_fumar=permitido_fumar,
+                    politica_de_cancelacion=random.choice(politicas_cancelacion),
+                )
+
+                for i in range(random.randint(2, 3)):
+                    try:
+                        imagen = obtener_imagen()
+                        if imagen:
+                            FotoPropiedad.objects.create(
+                                propiedad=propiedad,
+                                foto=imagen,
+                                es_portada=(i == 0)
+                            )
+                    except Exception as e:
+                        print(f"❌ Error al añadir imagen a {propiedad.nombre}: {e}")
+
+                print(f"✅ Propiedad creada para Alvaro: {propiedad.nombre}")
+        else:
+            print("No se encontró el usuario 'Alvaro'.")
+    except Exception as e:
+        print(f"❌ Error al crear propiedad para Alvaro: {e}")
+
+    # Crear el resto de propiedades de forma aleatoria
+    for _ in range(n - 2):
         try:
             anfitrion = random.choice(usuarios)
 
@@ -223,4 +288,4 @@ def poblar_propiedades(n=10):
         except Exception as e:
             print(f"❌ Error al crear propiedad: {e}")
 
-poblar_propiedades(10)
+poblar_propiedades(12)
