@@ -854,24 +854,28 @@ const Explorer = () => {
                           mb: 2,
                           flexWrap: "wrap"
                         }}>
-                          <Tooltip title="Habitaciones">
-                            <Chip
-                              icon={<BedIcon fontSize="small" />}
-                              label={propiedad.numero_de_habitaciones}
-                              size="small"
-                              variant="outlined"
-                              sx={{ borderRadius: "4px", height: 24 }}
-                            />
-                          </Tooltip>
-                          <Tooltip title="Camas">
-                            <Chip
-                              icon={<HotelIcon fontSize="small" />}
-                              label={propiedad.numero_de_camas}
-                              size="small"
-                              variant="outlined"
-                              sx={{ borderRadius: "4px", height: 24 }}
-                            />
-                          </Tooltip>
+                          {typeof propiedad.numero_de_habitaciones === "number" && (
+                            <Tooltip title="Habitaciones">
+                              <Chip
+                                icon={<BedIcon fontSize="small" />}
+                                label={propiedad.numero_de_habitaciones}
+                                size="small"
+                                variant="outlined"
+                                sx={{ borderRadius: "4px", height: 24 }}
+                              />
+                            </Tooltip>
+                          )}
+                          {typeof propiedad.numero_de_camas === "number" && (
+                            <Tooltip title="Camas">
+                              <Chip
+                                icon={<HotelIcon fontSize="small" />}
+                                label={propiedad.numero_de_camas}
+                                size="small"
+                                variant="outlined"
+                                sx={{ borderRadius: "4px", height: 24 }}
+                              />
+                            </Tooltip>
+                          )}
                           {propiedad.wifi && (
                             <Tooltip title="WiFi disponible">
                               <Chip
