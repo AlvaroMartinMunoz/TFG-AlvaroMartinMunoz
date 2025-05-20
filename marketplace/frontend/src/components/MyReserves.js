@@ -649,7 +649,7 @@ const MyReserves = () => {
                                             }}
                                         >
                                             <a
-                                                href={`/ detalles / ${propiedad?.id}`}
+                                                href={`/detalles/${propiedad?.id}`}
                                                 style={{
                                                     textDecoration: "none",
                                                     color: "inherit",
