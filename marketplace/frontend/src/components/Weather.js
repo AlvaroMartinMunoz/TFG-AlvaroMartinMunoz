@@ -74,35 +74,54 @@ const Weather = () => {
     };
 
     useEffect(() => {
-        if (mapContainerRef.current && !mapRef.current) {
+        if (!loading && weatherData && mapContainerRef.current && !mapRef.current) {
             mapRef.current = L.map(mapContainerRef.current).setView([location.lat, location.lng], 10);
-
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(mapRef.current);
 
             markerRef.current = L.marker([location.lat, location.lng]).addTo(mapRef.current)
-                .bindPopup(`${location.name}<br>${weatherData?.current?.temperature_2m}°C`);
+                .bindPopup(`${location.name}<br>${weatherData?.current?.temperature_2m ?? ''}°C`);
 
             mapRef.current.on('click', (e) => {
                 fetchWeather(e.latlng.lat, e.latlng.lng);
             });
-        }
 
-        if (mapRef.current && markerRef.current) {
+            setTimeout(() => {
+                mapRef.current.invalidateSize();
+            }, 500);
+        }
+    }, [loading, weatherData]);
+
+    useEffect(() => {
+        if (mapRef.current) {
             mapRef.current.setView([location.lat, location.lng]);
-            markerRef.current.setLatLng([location.lat, location.lng])
-                .setPopupContent(`${location.name}<br>${weatherData?.current?.temperature_2m}°C`);
+            if (!markerRef.current) {
+                markerRef.current = L.marker([location.lat, location.lng]).addTo(mapRef.current)
+                    .bindPopup(`${location.name}<br>${weatherData?.current?.temperature_2m ?? ''}°C`);
+            } else {
+                // Solo actualiza si el marcador sigue en el mapa
+                if (mapRef.current.hasLayer(markerRef.current)) {
+                    markerRef.current.setLatLng([location.lat, location.lng])
+                        .setPopupContent(`${location.name}<br>${weatherData?.current?.temperature_2m ?? ''}°C`);
+                }
+            }
         }
+    }, [location, weatherData]);
 
+    useEffect(() => {
         return () => {
             if (mapRef.current) {
                 mapRef.current.off();
                 mapRef.current.remove();
                 mapRef.current = null;
             }
+            if (markerRef.current) {
+                markerRef.current.remove();
+                markerRef.current = null;
+            }
         };
-    }, [location, weatherData]);
+    }, []);
 
     useEffect(() => {
         const handleResize = () => {
@@ -115,6 +134,14 @@ const Weather = () => {
 
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
+    useEffect(() => {
+        if (mapRef.current) {
+            setTimeout(() => {
+                mapRef.current.invalidateSize();
+            }, 200);
+        }
     }, []);
 
     useEffect(() => {
@@ -241,10 +268,13 @@ const Weather = () => {
                     <Box sx={{
                         width: { xs: '100%', md: '60%' },
                         height: { xs: '40vh', md: '100%' },
+                        minHeight: 300, // <-- Añade esto
                     }}>
-                        <div ref={mapContainerRef} style={{ height: '100%', width: '100%' }}></div>
+                        <div
+                            ref={mapContainerRef}
+                            style={{ height: '100%', width: '100%', minHeight: 300, background: '#eee' }}
+                        ></div>
                     </Box>
-
                     <Box sx={{
                         width: { xs: '100%', md: '40%' },
                         height: { xs: '60vh', md: '100%' },
