@@ -171,7 +171,7 @@ const MyReserves = () => {
                     return;
                 }
 
-                const reservaAlmacenada = await reservaResponse.json();
+                // const reservaAlmacenada = await reservaResponse.json();
 
                 window.history.replaceState({}, document.title, window.location.pathname);
 
