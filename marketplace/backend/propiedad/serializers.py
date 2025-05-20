@@ -72,6 +72,13 @@ class PropiedadRecommendationSerializer(serializers.ModelSerializer):
         return 0
     
 
+from .models.reservaPaypalTemporal import ReservaPaypalTemporal
+
+class ReservaPaypalTemporalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ReservaPaypalTemporal
+        fields = '__all__'
+
 
 
     

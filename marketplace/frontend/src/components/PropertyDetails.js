@@ -958,24 +958,34 @@ const PropertyDetails = () => {
 
                 const data = await response.json();
 
-                if (data.approval_url) {
-                    // Guardar temporalmente los datos de la reserva asociados al ID de pedido de PayPal
-                    // para recuperarlos después de la redirección de PayPal.
-                    localStorage.setItem(`pending_paypal_reservation_${data.orderID}`, JSON.stringify(reservationData));
-                    window.location.href = data.approval_url; // Redirigir a PayPal
+                if (data.approval_url && data.orderID) {
+                    // 1. Guarda la reserva temporal en el backend
+                    await fetch(`${API_BASE_URL}/api/propiedades/reserva-paypal/`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                        },
+                        body: JSON.stringify({
+                            order_id: data.orderID,
+                            ...reservationData,
+                            datos_reserva: JSON.stringify(reservationData), // Enviar como string
+                        }),
+                    });
+
+                    // 2. Redirige a PayPal
+                    window.location.href = data.approval_url;
                 } else {
-                    throw new Error("No se recibió la URL de aprobación de PayPal.");
+                    throw new Error("No se recibió la URL de aprobación de PayPal o el orderID.");
                 }
             } catch (error) {
                 console.error("Error creating PayPal session:", error);
                 setNotification({ open: true, message: `Error al iniciar el pago con PayPal: ${error.message}`, severity: 'error' });
                 setLoading(false); // Detener carga si falla
             }
-        } else {
-            setNotification({ open: true, message: 'Método de pago no soportado', severity: 'error' });
-            setLoading(false);
         }
     };
+
 
 
     // --- FUNCIONES PARA EL MODAL UNIFICADO DE GESTIÓN ---
@@ -1916,7 +1926,7 @@ const PropertyDetails = () => {
                                     customArrowIcon={<ArrowRightAltIcon sx={{ color: 'text.secondary', mx: 1 }} />}
                                     displayFormat="DD/MM/YYYY"
                                     daySize={32}
-                                    keepOpenOnDateSelect={true}
+                                    // keepOpenOnDateSelect={true}
                                     withPortal={false}
                                     // Añadir estos estilos para reducir el tamaño total
                                     orientation={'horizontal'}

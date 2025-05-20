@@ -28,6 +28,7 @@ import json
 from django.views.decorators.http import require_POST
 from django.db import transaction
 from .models.favorito import Favorito
+from django.shortcuts import get_object_or_404
 from .serializers import FavoritoSerializer
 from propiedad.recommendations import ContentRecommender, CollaborativeRecommender
 from propiedad.serializers import PropiedadRecommendationSerializer
@@ -47,6 +48,8 @@ from rest_framework import status
 from dateutil.relativedelta import relativedelta
 from django.utils import timezone
 from .models.clickPropiedad import ClickPropiedad
+from .serializers import ReservaPaypalTemporalSerializer
+from .models.reservaPaypalTemporal import ReservaPaypalTemporal
 
 
 
@@ -213,49 +216,83 @@ def create_payment(request):
 
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
-
 @require_POST
 @csrf_exempt
 def confirmar_pago_paypal(request):
     try:
-        data = json.loads(request.body)
-        order_id = data['orderID']
+        data_entrada = json.loads(request.body)
+        order_id = data_entrada.get('orderID')
+
+        if not order_id:
+            return JsonResponse({'error': 'Falta el OrderID de PayPal en la solicitud.'}, status=400)
+
         client = get_paypal_client()
 
         if Reserva.objects.filter(payment_id=order_id).exists():
-            return JsonResponse({'error': 'Pago ya procesado'}, status=409)
+            return JsonResponse({'error': 'Este pago ya ha sido procesado y una reserva existe.'}, status=409)
 
         request_capture = OrdersCaptureRequest(order_id)
-        response = client.execute(request_capture)
+        response_paypal = client.execute(request_capture)
 
-        if response.result.status == 'COMPLETED':
-            datos = data['reservationData']
+        if response_paypal.result.status == 'COMPLETED':
+            try:
+                reserva_temporal = ReservaPaypalTemporal.objects.get(order_id=order_id)
+                datos_raw = reserva_temporal.datos_reserva # <--- CAMBIO 1: Obtener como 'datos_raw'
+            except ReservaPaypalTemporal.DoesNotExist:
+                return JsonResponse({'error': 'Reserva temporal no encontrada para este pago.'}, status=404)
+
+            # ***** INICIO DEL BLOQUE AÑADIDO/MODIFICADO *****
+            if isinstance(datos_raw, str):
+                try:
+                    datos = json.loads(datos_raw) # Parsea si es una cadena
+                except json.JSONDecodeError:
+                    print(f"Error CRÍTICO: datos_reserva para order_id {order_id} es una cadena pero no es JSON válido: {datos_raw}")
+                    return JsonResponse({'error': 'Error interno: Formato de datos de reserva temporal corrupto.'}, status=500)
+            elif isinstance(datos_raw, dict):
+                datos = datos_raw # Úsalo directamente si ya es un diccionario
+            else:
+                print(f"Error CRÍTICO: datos_reserva para order_id {order_id} no es ni cadena ni diccionario. Tipo: {type(datos_raw)}")
+                return JsonResponse({'error': 'Error interno: Tipo de datos de reserva temporal inesperado.'}, status=500)
+            
+            # Convertir precios a float
+            try:
+                precio_total_float = float(datos['precio_total'])
+                precio_por_noche_float = float(datos['precio_por_noche'])
+            except ValueError:
+                print(f"Error: ValueError al convertir precios. precio_total='{datos.get('precio_total')}', precio_por_noche='{datos.get('precio_por_noche')}'")
+                return JsonResponse({'error': 'Los valores de precio_total o precio_por_noche guardados no son números válidos.'}, status=400)
+            except KeyError as e: # Si 'precio_total' o 'precio_por_noche' faltan en 'datos'
+                 print(f"Error: KeyError al acceder a precios en 'datos' - {e}. Contenido de 'datos': {datos}")
+                 return JsonResponse({'error': f'Falta el dato de precio ({e}) en la información de la reserva guardada.'}, status=400)
+
 
             reserva = Reserva.objects.create(
                 propiedad_id=datos['propiedad'],
-                usuario_id=datos['usuario'],
-                anfitrion_id=datos['anfitrion'],
+                usuario_id=datos['usuario'], 
+                anfitrion_id=datos['anfitrion'], 
                 fecha_llegada=datos['fecha_llegada'],
                 fecha_salida=datos['fecha_salida'],
                 numero_personas=datos['numero_personas'],
-                precio_por_noche=datos['precio_por_noche'],
-                comentarios_usuario=datos['comentarios_usuario'],
-                fecha_aceptacion_rechazo = datetime.now() - timedelta(hours=1), 
-                precio_total=datos['precio_total'],
-                estado='Confirmado',  
+                precio_por_noche=precio_por_noche_float,
+                comentarios_usuario=datos.get('comentarios_usuario', ''),
+                fecha_aceptacion_rechazo=timezone.now(),
+                precio_total=precio_total_float,
+                estado='Aceptada',
                 metodo_pago='PayPal',
-                payment_id=order_id ,
+                payment_id=order_id,
             )
 
             subject = 'Confirmacion de reserva'
             message = (
                 f"Hola,\n\n"
                 f"Su reserva ha sido confirmada exitosamente. A continuación, los detalles:\n"
-                f"Propiedad: {datos['nombrePropiedad']}\n"
+                f"Propiedad: {datos.get('nombrePropiedad', 'N/A')}\n"
                 f"Fecha de llegada: {datos['fecha_llegada']}\n"
                 f"Fecha de salida: {datos['fecha_salida']}\n"
                 f"Número de personas: {datos['numero_personas']}\n"
-                f"Precio total: {float(datos['precio_total']):.2f} EUR\n\n"
+                f"Precio total: {precio_total_float:.2f} EUR\n\n"
+                f"ID de Reserva: {reserva.id}\n"
+                f"ID de Pago PayPal: {order_id}\n\n"
                 f"Gracias por confiar en nosotros."
             )
 
@@ -264,10 +301,25 @@ def confirmar_pago_paypal(request):
 
             return JsonResponse({'status': 'success', 'reserva_id': reserva.id})
         else:
-            return JsonResponse({'error': 'Pago no completado'}, status=400)
+            paypal_status = response_paypal.result.status
+            print(f"Intento de captura para order_id {order_id} no fue COMPLETED. Estado PayPal: {paypal_status}. Respuesta: {response_paypal.result}")
+            return JsonResponse({'error': f'El pago en PayPal no se completó. Estado: {paypal_status}'}, status=400)
 
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Cuerpo de la solicitud JSON inválido.'}, status=400)
+    except KeyError as e:
+        
+        data_para_log = locals().get('data_entrada', 'data_entrada no definida')
+        datos_para_log = locals().get('datos', 'datos no definidos')
+        print(f"Error: KeyError en confirmar_pago_paypal - {e}. data_entrada: {data_para_log}, datos: {datos_para_log}")
+        return JsonResponse({'error': f'Dato faltante ({e}) en la solicitud o en datos guardados.'}, status=400)
     except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
+        import traceback 
+        data_para_log_ex = locals().get('data_entrada', {}).get('orderID', 'DESCONOCIDO')
+        print(f"Error inesperado en confirmar_pago_paypal para order_id {data_para_log_ex}:")
+        print(traceback.format_exc()) 
+        return JsonResponse({'error': f'Ocurrió un error interno en el servidor: {str(e)}'}, status=500)
+
 
     
 class PropiedadViewSet(viewsets.ModelViewSet):
@@ -1204,3 +1256,19 @@ def precio_tendencia_por_propiedad(request, propiedad_id):
         })
     
     return Response(data, status=status.HTTP_200_OK)
+
+class ReservaPaypalTemporalView(APIView):
+    def post(self, request):
+        serializer = ReservaPaypalTemporalSerializer(data=request.data)
+        if serializer.is_valid():
+            usuario = Usuario.objects.filter(usuario=request.user.id).first()
+
+            serializer.save(usuario=usuario)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class ReservaPaypalTemporalDetailView(APIView):
+    def get(self, request, order_id):
+        reserva = get_object_or_404(ReservaPaypalTemporal, order_id=order_id)
+        serializer = ReservaPaypalTemporalSerializer(reserva)
+        return Response(serializer.data['datos_reserva'], status=status.HTTP_200_OK)

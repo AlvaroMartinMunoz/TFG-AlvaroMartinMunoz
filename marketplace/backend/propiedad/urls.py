@@ -23,6 +23,8 @@ from .views import solicitudes_de_reserva_usuario
 from .views import fechas_bloqueadas_por_propiedad
 from .views import ocupacion_tendencia_por_propiedad
 from .views import precio_tendencia_por_propiedad
+from .views import ReservaPaypalTemporalView
+from .views import ReservaPaypalTemporalDetailView
 
 
 
@@ -54,4 +56,7 @@ urlpatterns = [
     path('fechas-bloqueadas-por-propiedad/<int:propiedad_id>/', fechas_bloqueadas_por_propiedad),
     path('ocupacion-tendencias/<int:propiedad_id>', ocupacion_tendencia_por_propiedad ),
     path('precio-tendencias/<int:propiedad_id>', precio_tendencia_por_propiedad ),
+    path('reserva-paypal/', ReservaPaypalTemporalView.as_view(), name='reserva-paypal-create'),
+    path('reserva-paypal/<str:order_id>/', ReservaPaypalTemporalDetailView.as_view(), name='reserva-paypal-detail'),
+
 ]

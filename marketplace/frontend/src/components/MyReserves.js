@@ -152,17 +152,30 @@ const MyReserves = () => {
 
             localStorage.setItem("processingOrder", orderID);
 
-
-
             try {
-                const reservaAlmacenada = localStorage.getItem(`reservation_${orderID}`);
-                if (!reservaAlmacenada) {
-                    alert("Sesión expirada. Por favor realiza la reserva nuevamente");
+                // 1. Recupera la reserva desde el backend usando el orderID
+                const reservaResponse = await fetch(
+                    `${API_BASE_URL}/api/propiedades/reserva-paypal/${orderID}/`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${localStorage.getItem("accessToken")}`,
+                        },
+                    }
+                );
+
+                if (!reservaResponse.ok) {
+                    alert("Sesión expirada o reserva no encontrada. Por favor realiza la reserva nuevamente");
+                    localStorage.removeItem("processingOrder");
                     return;
                 }
 
+                const reservaAlmacenada = await reservaResponse.json();
+
                 window.history.replaceState({}, document.title, window.location.pathname);
 
+                // 2. Confirma el pago con la reserva recuperada
                 const response = await fetch(
                     `${API_BASE_URL}/api/propiedades/confirmar-pago-paypal/`,
                     {
@@ -173,14 +186,12 @@ const MyReserves = () => {
                         },
                         body: JSON.stringify({
                             orderID,
-                            reservationData: JSON.parse(reservaAlmacenada),
+                            // reservationData: reservaAlmacenada,
                         }),
                     }
                 );
 
-                localStorage.removeItem(`reservation_${orderID}`);
                 localStorage.removeItem("processingOrder");
-
 
                 if (!response.ok) {
                     const errorData = await response.json();
@@ -192,7 +203,8 @@ const MyReserves = () => {
                         return;
                     }
                     throw new Error(errorMessage);
-                } setNotification({
+                }
+                setNotification({
                     type: "success",
                     message: "¡Pago completado con éxito!",
                 });
@@ -216,6 +228,7 @@ const MyReserves = () => {
             isMounted = false;
         };
     }, [location.search]);
+
 
 
     useEffect(() => {
