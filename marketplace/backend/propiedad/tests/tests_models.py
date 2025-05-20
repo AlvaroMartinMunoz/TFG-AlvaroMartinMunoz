@@ -15,6 +15,7 @@ from datetime import timedelta
 from django.utils.timezone import now
 from ..models.valoracionPropiedad import ValoracionPropiedad
 from ..models.reserva import Reserva
+from ..models.reservaPaypalTemporal import ReservaPaypalTemporal
 
 
 
@@ -760,3 +761,138 @@ class ValoracionPropiedadModelTest(TestCase):
 
         with self.assertRaises(ValidationError):
             duplicada.full_clean()
+
+
+class ReservaPaypalTemporalModelTest(TestCase):
+
+    def setUp(self):
+        # Crear usuario de Django
+        self.django_user = User.objects.create_user(
+            username='paypaluser',
+            password='password123',
+            email='paypal@example.com'
+        )
+
+        # Crear instancia de Usuario (tu modelo extendido)
+        self.usuario_app = Usuario.objects.create(
+            usuario=self.django_user,
+            dni='98765432X',
+            telefono='600112233',
+            direccion='Calle Paypal 123',
+            biografia='Usuario para pruebas de PayPal.',
+            fecha_de_nacimiento=date(1995, 10, 20)
+        )
+
+        self.sample_order_id = 'PAYPAL_ORDER_ID_12345'
+        self.sample_datos_reserva = {
+            'propiedad_id': 1,
+            'fecha_llegada': '2025-12-24',
+            'fecha_salida': '2025-12-26',
+            'precio_total': 250.75,
+            'numero_personas': 2
+        }
+
+    def test_creacion_reserva_paypal_temporal(self):
+        """
+        Prueba la creación de una instancia de ReservaPaypalTemporal.
+        """
+        reserva_temporal = ReservaPaypalTemporal.objects.create(
+            order_id=self.sample_order_id,
+            usuario=self.usuario_app,
+            datos_reserva=self.sample_datos_reserva
+        )
+        self.assertEqual(reserva_temporal.order_id, self.sample_order_id)
+        self.assertEqual(reserva_temporal.usuario, self.usuario_app)
+        self.assertEqual(reserva_temporal.datos_reserva['propiedad_id'], self.sample_datos_reserva['propiedad_id'])
+        self.assertEqual(reserva_temporal.datos_reserva['precio_total'], self.sample_datos_reserva['precio_total'])
+        self.assertIsNotNone(reserva_temporal.creado_en)
+        self.assertTrue(reserva_temporal.creado_en <= timezone.now())
+
+    def test_order_id_unique(self):
+        """
+        Prueba la restricción de unicidad en el campo order_id.
+        """
+        ReservaPaypalTemporal.objects.create(
+            order_id=self.sample_order_id,
+            usuario=self.usuario_app,
+            datos_reserva=self.sample_datos_reserva
+        )
+        with self.assertRaises(IntegrityError):
+            ReservaPaypalTemporal.objects.create(
+                order_id=self.sample_order_id, # Mismo order_id
+                usuario=self.usuario_app,
+                datos_reserva={'otra_info': 'diferente'}
+            )
+
+    def test_datos_reserva_json_field(self):
+        """
+        Prueba que el campo JSONField almacena y recupera datos correctamente.
+        """
+        datos_complejos = {
+            'id_reserva_original': 'abc-123',
+            'items': [
+                {'nombre': 'noche_estancia', 'cantidad': 2, 'precio_unitario': 100},
+                {'nombre': 'servicio_limpieza', 'cantidad': 1, 'precio_unitario': 50.75}
+            ],
+            'descuento_aplicado': None,
+            'notas_cliente': 'Llegaremos tarde.'
+        }
+        reserva_temporal = ReservaPaypalTemporal.objects.create(
+            order_id='JSON_TEST_ORDER_ID',
+            usuario=self.usuario_app,
+            datos_reserva=datos_complejos
+        )
+        retrieved_reserva = ReservaPaypalTemporal.objects.get(order_id='JSON_TEST_ORDER_ID')
+        self.assertEqual(retrieved_reserva.datos_reserva, datos_complejos)
+        self.assertEqual(retrieved_reserva.datos_reserva['items'][0]['nombre'], 'noche_estancia')
+
+    def test_creado_en_auto_now_add(self):
+        """
+        Prueba que el campo creado_en se establece automáticamente al crear.
+        """
+        # Pequeña demora para asegurar que el tiempo cambie si es necesario
+        # En la práctica, la resolución del reloj suele ser suficiente.
+        # import time
+        # time.sleep(0.001)
+
+        now_before_create = timezone.now()
+        reserva_temporal = ReservaPaypalTemporal.objects.create(
+            order_id='TIMESTAMP_ORDER_ID',
+            usuario=self.usuario_app,
+            datos_reserva=self.sample_datos_reserva
+        )
+        # El tiempo de creación debe ser mayor o igual al tiempo antes de la creación
+        # y menor o igual al tiempo actual (después de la creación)
+        self.assertTrue(now_before_create <= reserva_temporal.creado_en <= timezone.now())
+
+    def test_str_representation(self):
+        """
+        Prueba la representación en cadena del modelo.
+        """
+        reserva_temporal = ReservaPaypalTemporal.objects.create(
+            order_id=self.sample_order_id,
+            usuario=self.usuario_app,
+            datos_reserva=self.sample_datos_reserva
+        )
+        expected_str = f"Reserva temporal PayPal {self.sample_order_id}"
+        self.assertEqual(str(reserva_temporal), expected_str)
+
+    def test_relacion_usuario_on_delete_cascade(self):
+        """
+        Prueba que si se elimina el Usuario, la ReservaPaypalTemporal asociada se elimina.
+        """
+        reserva_temporal = ReservaPaypalTemporal.objects.create(
+            order_id=self.sample_order_id,
+            usuario=self.usuario_app,
+            datos_reserva=self.sample_datos_reserva
+        )
+        order_id_temp = reserva_temporal.order_id
+        self.assertEqual(ReservaPaypalTemporal.objects.count(), 1)
+
+        # Eliminar el usuario de Django (que debería desencadenar la eliminación de Usuario_app si está configurado)
+        # O directamente el self.usuario_app
+        self.usuario_app.delete() # Esto debería eliminar en cascada la ReservaPaypalTemporal
+
+        with self.assertRaises(ReservaPaypalTemporal.DoesNotExist):
+            ReservaPaypalTemporal.objects.get(order_id=order_id_temp)
+        self.assertEqual(ReservaPaypalTemporal.objects.count(), 0)
