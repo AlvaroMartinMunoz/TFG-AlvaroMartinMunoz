@@ -771,6 +771,7 @@ const PropertyDetails = () => {
         );
         const isSpecial = !!specialPriceInfo;
         const isUnavailable = isClientDayBlocked(day); // Revisa si está bloqueado/reservado
+        const isPastDate = day.isBefore(moment(), 'day'); // Verifica si es una fecha pasada
 
         // Estilo base
         let dayStyle = {
@@ -785,20 +786,31 @@ const PropertyDetails = () => {
         };
         let tooltip = '';
 
-        if (isUnavailable && !isSpecial) { // Si está bloqueado/reservado Y NO tiene precio especial visible
+        // Prioridad: fechas pasadas > fechas bloqueadas/reservadas > precios especiales
+        if (isPastDate) {
+            // Estilo específico para fechas pasadas
+            dayStyle = {
+                ...dayStyle,
+                textDecoration: 'line-through',
+                color: 'rgba(0, 0, 0, 0.3)',
+                backgroundColor: 'rgba(0, 0, 0, 0.08)', // Más oscuro para distinguir las fechas pasadas
+                cursor: 'not-allowed'
+            };
+            tooltip = 'Fecha pasada';
+        } else if (isUnavailable && !isSpecial) {
             dayStyle = {
                 ...dayStyle,
                 textDecoration: 'line-through',
                 color: 'rgba(0, 0, 0, 0.3)',
                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
-                cursor: 'not-allowed' // Indicar no seleccionable
+                cursor: 'not-allowed'
             };
         } else if (isSpecial) {
             dayStyle = {
                 ...dayStyle,
                 fontWeight: 'bold',
-                color: '#0056b3', // Azul oscuro para precio especial
-                backgroundColor: 'rgba(0, 123, 255, 0.08)', // Fondo azul claro
+                color: '#0056b3',
+                backgroundColor: 'rgba(0, 123, 255, 0.08)',
                 border: '1px solid rgba(0, 123, 255, 0.2)'
             };
             tooltip = `Precio especial: ${specialPriceInfo.precio_especial} €`;
@@ -1075,18 +1087,27 @@ const PropertyDetails = () => {
 
     // Renderiza visualmente los días en el modal de GESTIÓN
     const renderGestionDayContents = (day) => {
-        // ... (implementado arriba)
         const dateStr = day.format('YYYY-MM-DD');
         const isBlockedManual = blockedDates.some(b => b.fecha === dateStr);
         const isReserved = reservas.some(r => r.estado !== 'Cancelada' && moment(dateStr).isBetween(r.fecha_llegada, r.fecha_salida, 'day', '[)'));
         const specialPriceInfo = specialPricesList.find(p => moment(dateStr).isBetween(p.fecha_inicio, p.fecha_fin, 'day', '[]'));
         const isSpecial = !!specialPriceInfo;
+        const isPastDate = day.isBefore(moment(), 'day'); // Verifica si es una fecha pasada
 
         let style = {};
         let tooltipTitle = '';
 
-        // Prioridad visual: Reserva > Precio Especial > Bloqueo Manual
-        if (isReserved) {
+        // Prioridad visual: Fechas Pasadas > Reserva > Precio Especial > Bloqueo Manual
+        if (isPastDate) {
+            style = {
+                backgroundColor: 'rgba(50, 50, 50, 0.15)', // Más oscuro para fechas pasadas
+                textDecoration: 'line-through',
+                color: 'rgba(50, 50, 50, 0.6)',
+                borderRadius: '50%',
+                cursor: 'not-allowed'
+            };
+            tooltipTitle = 'Fecha pasada';
+        } else if (isReserved) {
             style = { backgroundColor: 'rgba(108, 117, 125, 0.1)', textDecoration: 'line-through', color: 'rgba(108, 117, 125, 0.7)', borderRadius: '50%', cursor: 'not-allowed' };
             tooltipTitle = 'Fecha reservada';
         } else if (isSpecial) {
