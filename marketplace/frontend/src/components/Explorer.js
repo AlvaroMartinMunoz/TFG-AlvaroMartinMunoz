@@ -159,7 +159,7 @@ const Explorer = () => {
         if (recResponse.ok) {
           const recomendacionesData = await recResponse.json();
           setRecomendaciones(recomendacionesData);
-          setPropiedadesFiltradas(recomendacionesData);
+          // setPropiedadesFiltradas(recomendacionesData);
         }
 
         const allResponse = await fetch(`${API_BASE_URL}/api/propiedades/propiedades/`);
@@ -181,7 +181,6 @@ const Explorer = () => {
   useEffect(() => {
     const filterProperties = (props) => {
       return props.filter((propiedad) => {
-        // Excluir propiedades del usuario autenticado
         if (usuarioId && propiedad.anfitrion === usuarioId) return false;
         return (
           (!tipoPropiedad || propiedad.tipo_de_propiedad === tipoPropiedad) &&
@@ -196,8 +195,13 @@ const Explorer = () => {
     };
 
     const sortProperties = (props) => {
+      // Si quieres que las recomendaciones salgan primero:
       return props.sort((a, b) => {
         if (ordenPrecio === "recomendaciones") {
+          const aRec = recomendaciones.some(r => r.id === a.id);
+          const bRec = recomendaciones.some(r => r.id === b.id);
+          if (aRec && !bRec) return -1;
+          if (!aRec && bRec) return 1;
           return 0;
         } else if (ordenPrecio === "asc") {
           return a.precio_por_noche - b.precio_por_noche;
@@ -210,20 +214,15 @@ const Explorer = () => {
       });
     };
 
-    const filteredRecs = sortProperties(filterProperties(recomendaciones));
-
-    const filteredAll = sortProperties(filterProperties(propiedades.filter(
-      p => !recomendaciones.some(r => r.id === p.id)
-    )));
-
-    const combined = [...filteredRecs, ...filteredAll];
-
-    setPropiedadesFiltradas(combined);
-
-    combined.forEach((propiedad) => {
+    const todasFiltradas = filterProperties(propiedades);
+    const todasOrdenadas = sortProperties(todasFiltradas);
+    setPropiedadesFiltradas(todasOrdenadas);
+    todasOrdenadas.forEach((propiedad) => {
       if (!url[propiedad.id]) fetchPropertyPhotos(propiedad.id);
       if (!mediaValoraciones[propiedad.id]) fetchMediaValoraciones(propiedad.id);
     });
+
+
   }, [tipoPropiedad, precioRango, habitaciones, camas, propiedades, recomendaciones, ordenPrecio, ciudad, usuarioId]);
 
 
@@ -385,6 +384,11 @@ const Explorer = () => {
     if (precio < 100) return "Económico";
     if (precio < 300) return "Estándar";
     return "Premium";
+  };
+
+  const safeNumber = (value) => {
+    const n = parseInt(value, 10);
+    return isNaN(n) ? 0 : n;
   };
 
   return (
@@ -854,28 +858,24 @@ const Explorer = () => {
                           mb: 2,
                           flexWrap: "wrap"
                         }}>
-                          {typeof propiedad.numero_de_habitaciones === "number" && (
-                            <Tooltip title="Habitaciones">
-                              <Chip
-                                icon={<BedIcon fontSize="small" />}
-                                label={propiedad.numero_de_habitaciones}
-                                size="small"
-                                variant="outlined"
-                                sx={{ borderRadius: "4px", height: 24 }}
-                              />
-                            </Tooltip>
-                          )}
-                          {typeof propiedad.numero_de_camas === "number" && (
-                            <Tooltip title="Camas">
-                              <Chip
-                                icon={<HotelIcon fontSize="small" />}
-                                label={propiedad.numero_de_camas}
-                                size="small"
-                                variant="outlined"
-                                sx={{ borderRadius: "4px", height: 24 }}
-                              />
-                            </Tooltip>
-                          )}
+                          <Tooltip title="Habitaciones">
+                            <Chip
+                              icon={<BedIcon fontSize="small" />}
+                              label={safeNumber(propiedad.numero_de_habitaciones)}
+                              size="small"
+                              variant="outlined"
+                              sx={{ borderRadius: "4px", height: 24 }}
+                            />
+                          </Tooltip>
+                          <Tooltip title="Camas">
+                            <Chip
+                              icon={<HotelIcon fontSize="small" />}
+                              label={safeNumber(propiedad.numero_de_camas)}
+                              size="small"
+                              variant="outlined"
+                              sx={{ borderRadius: "4px", height: 24 }}
+                            />
+                          </Tooltip>
                           {propiedad.wifi && (
                             <Tooltip title="WiFi disponible">
                               <Chip
@@ -887,7 +887,6 @@ const Explorer = () => {
                             </Tooltip>
                           )}
                         </Box>
-
                         <Box sx={{
                           mt: "auto",
                           display: "flex",
@@ -1122,14 +1121,31 @@ const Explorer = () => {
 
                       <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
                         <Tooltip title="Habitaciones">
-                          <Chip icon={<BedIcon fontSize="small" />} label={recomendacion.numero_de_habitaciones} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                          <Chip
+                            icon={<BedIcon fontSize="small" />}
+                            label={safeNumber(recomendacion.numero_de_habitaciones)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderRadius: "4px", height: 24 }}
+                          />
                         </Tooltip>
                         <Tooltip title="Camas">
-                          <Chip icon={<HotelIcon fontSize="small" />} label={recomendacion.numero_de_camas} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                          <Chip
+                            icon={<HotelIcon fontSize="small" />}
+                            label={safeNumber(recomendacion.numero_de_camas)}
+                            size="small"
+                            variant="outlined"
+                            sx={{ borderRadius: "4px", height: 24 }}
+                          />
                         </Tooltip>
                         {recomendacion.wifi && (
                           <Tooltip title="WiFi disponible">
-                            <Chip icon={<WifiIcon fontSize="small" />} size="small" variant="outlined" sx={{ borderRadius: "4px", height: 24 }} />
+                            <Chip
+                              icon={<WifiIcon fontSize="small" />}
+                              size="small"
+                              variant="outlined"
+                              sx={{ borderRadius: "4px", height: 24 }}
+                            />
                           </Tooltip>
                         )}
                       </Box>
