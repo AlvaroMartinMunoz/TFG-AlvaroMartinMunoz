@@ -237,13 +237,6 @@ const Weather = () => {
         setTabValue(newValue);
     };
 
-    if (loading) {
-        return (
-            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <CircularProgress size={60} />
-            </Box>
-        );
-    }
 
     if (error) {
         return (
@@ -253,8 +246,29 @@ const Weather = () => {
         );
     }
 
+    if (!weatherData) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <CircularProgress size={60} />
+            </Box>
+        );
+    }
+
     return (
-        <Box sx={{ padding: 2, width: '100%', height: '100%' }}>
+        <Box sx={{ position: 'relative', padding: 2, width: '100%', height: '100%' }}>
+            {loading && (
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    zIndex: 10,
+                    background: 'rgba(255,255,255,0.6)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center'
+                }}>
+                    <CircularProgress size={60} />
+                </Box>
+            )}
             <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>
                 Pronóstico Meteorológico
             </Typography>
@@ -283,8 +297,8 @@ const Weather = () => {
                     }}>
                         <Box sx={{ p: 3, bgcolor: 'primary.main', color: 'white' }}>
                             <Typography variant="h4" sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
-                                {getWeatherIcon(weatherData.current.weather_code)}
-                                {weatherData.current.temperature_2m}°C
+                                {weatherData && getWeatherIcon(weatherData.current.weather_code)}
+                                {weatherData && weatherData.current.temperature_2m}°C
                             </Typography>
                             <Typography variant="body1" sx={{ mt: 1, mb: 2 }}>
                                 {getWeatherDescription(weatherData.current.weather_code)}
