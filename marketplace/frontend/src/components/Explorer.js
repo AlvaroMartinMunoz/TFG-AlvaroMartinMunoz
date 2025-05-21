@@ -1127,8 +1127,8 @@ const Explorer = () => {
                       </Box>
 
                       <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
-                        <Tooltip title="Habitaciones">
-                          <Chip
+                        {/* <Tooltip title="Habitaciones">
+                          <Chip 
                             icon={<BedIcon fontSize="small" />}
                             label={safeNumber(recomendacion.numero_de_habitaciones)}
                             size="small"
@@ -1144,7 +1144,7 @@ const Explorer = () => {
                             variant="outlined"
                             sx={{ borderRadius: "4px", height: 24 }}
                           />
-                        </Tooltip>
+                        </Tooltip> */}
                         {recomendacion.wifi && (
                           <Tooltip title="WiFi disponible">
                             <Chip
