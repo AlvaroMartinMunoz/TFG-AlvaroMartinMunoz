@@ -227,6 +227,13 @@ const Explorer = () => {
 
 
   useEffect(() => {
+    recomendaciones.forEach((propiedad) => {
+      if (!url[propiedad.id]) fetchPropertyPhotos(propiedad.id);
+      if (!mediaValoraciones[propiedad.id]) fetchMediaValoraciones(propiedad.id);
+    });
+  }, [recomendaciones]);
+
+  useEffect(() => {
     fetchAllProperties();
     fetchFavoritos();
     actualizarFavoritosNavbar();
